@@ -17,6 +17,7 @@
   --green: #059669;
   --yellow: #d97706;
   --red: #dc2626;
+  --orange: #ea580c;
   --text: #111827;
   --muted: #6b7280;
   --radius: 12px;
@@ -25,7 +26,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-/* ── LOGIN ── */
+/* LOGIN */
 .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
 .login-card { background: var(--surface); border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,.12); padding: 40px 36px; width: 100%; max-width: 420px; text-align: center; }
 .login-logo { width: 52px; height: 52px; background: var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.3rem; color: #fff; margin: 0 auto 20px; }
@@ -39,7 +40,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .login-info { margin-top: 16px; font-size: .85rem; color: var(--muted); background: var(--bg); border-radius: 8px; padding: 12px; }
 .login-error { margin-top: 12px; font-size: .85rem; color: var(--red); }
 
-/* ── HEADER ── */
+/* HEADER */
 .header { background: var(--accent); color: #fff; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,.2); position: sticky; top: 0; z-index: 100; }
 .logo { display: flex; align-items: center; gap: 10px; }
 .logo-box { width:32px;height:32px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem;color:#fff; }
@@ -50,16 +51,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .btn-loggut { background: rgba(255,255,255,.15); border: none; color: #fff; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: .85rem; transition: background .15s; }
 .btn-loggut:hover { background: rgba(255,255,255,.25); }
 
-/* ── TABS ── */
+/* TABS */
 .tabs { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; padding: 0 24px; }
-.tab { padding: 14px 20px; font-size: .9rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; }
+.tab { padding: 14px 20px; font-size: .9rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; white-space: nowrap; }
 .tab:hover { color: var(--accent); }
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-/* ── MAIN ── */
+/* MAIN */
 .main { max-width: 960px; margin: 24px auto; padding: 0 16px; }
 
-/* ── SEARCH ── */
+/* SEARCH */
 .search-bar { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .search-input { flex: 1; min-width: 180px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: .95rem; outline: none; transition: border-color .15s; }
 .search-input:focus { border-color: var(--accent); }
@@ -67,20 +68,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .select-filter:focus { border-color: var(--accent); }
 .result-info { font-size: .85rem; color: var(--muted); margin-bottom: 12px; }
 
-/* ── BUTTONS ── */
+/* BUTTONS */
 .btn { padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: .9rem; font-weight: 600; transition: background .15s; }
 .btn-primary   { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:hover  { background: var(--accent-hover); }
 .btn-secondary { background: var(--surface2); color: var(--text); }
 .btn-secondary:hover { background: #d1d5db; }
 .btn-gold      { background: var(--gold); color: #fff; }
 .btn-gold:hover { background: #d4901a; }
 .btn-danger    { background: var(--red); color: #fff; }
 .btn-danger:hover { background: #b91c1c; }
-.btn-sm        { padding: 5px 12px; font-size: .8rem; }
+.btn-sm { padding: 5px 12px; font-size: .8rem; }
 .btn:disabled  { opacity: .5; cursor: not-allowed; }
 
-/* ── ORDER LIST ── */
+/* ORDER LIST */
 .order-list { display: flex; flex-direction: column; gap: 10px; }
 .order-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 20px; cursor: pointer; transition: box-shadow .15s, transform .1s; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .order-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); transform: translateY(-1px); }
@@ -96,28 +97,28 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .status-badge.blue   { background: #dbeafe; color: #1e40af; }
 .status-badge.gray   { background: #f3f4f6; color: #374151; }
 
-/* ── PAGINATION ── */
+/* PAGINATION */
 .pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 20px; }
 .pagination span { font-size: .9rem; color: var(--muted); }
 
-/* ── LOADER ── */
+/* LOADER */
 .loader { text-align: center; padding: 48px; color: var(--muted); font-size: .95rem; }
 .spinner { width: 36px; height: 36px; border: 3px solid var(--surface2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── MODAL ── */
+/* MODAL */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; display: flex; align-items: flex-start; justify-content: center; padding: 20px 16px; overflow-y: auto; }
 .modal { background: var(--surface); border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,.2); width: 100%; max-width: 720px; padding: 28px; position: relative; margin: auto; }
 .modal-close { position: absolute; top: 16px; right: 16px; background: var(--surface2); border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1rem; }
 .modal-title { font-size: 1.25rem; font-weight: 700; color: var(--accent); margin-bottom: 18px; padding-right: 36px; }
-.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 4px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .detail-field label { font-size: .72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 2px; }
 .detail-field span { font-size: .92rem; }
 .detail-full { grid-column: 1 / -1; }
 .detail-note { background: var(--bg); border-radius: 8px; padding: 10px 14px; font-size: .9rem; white-space: pre-wrap; }
+.section-divider { border: none; border-top: 1px solid var(--border); margin: 22px 0 18px; }
 
-/* ── TIMER SECTION ── */
-.timer-divider { border: none; border-top: 1px solid var(--border); margin: 22px 0 18px; }
+/* TIMER SECTION (ordre-modal) */
 .timer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .timer-heading { font-size: 1rem; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 8px; }
 .timer-count { background: var(--accent); color: #fff; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
@@ -126,16 +127,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .timer-rad-info { flex: 1; min-width: 0; }
 .timer-rad-top { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
 .timer-dato { font-size: .85rem; font-weight: 600; }
-.timer-tid  { font-size: .82rem; color: var(--muted); }
 .timer-antall { font-size: .85rem; font-weight: 700; color: var(--accent); }
 .timer-akt  { font-size: .82rem; margin-top: 3px; }
-.timer-komm { font-size: .8rem; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.timer-komm { font-size: .8rem; color: var(--muted); margin-top: 2px; }
 .timer-ansatt { font-size: .75rem; color: var(--muted); margin-top: 2px; }
 .timer-rad-actions { display: flex; gap: 6px; flex-shrink: 0; }
-.fakturerbar-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-left: 4px; title: "Fakturerbar"; }
-.ikke-fakturerbar-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); margin-left: 4px; }
+.fakt-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-left: 4px; vertical-align: middle; }
+.fakt-dot.ja  { background: var(--green); }
+.fakt-dot.nei { background: var(--muted); }
 
-/* ── TIMER FORM ── */
+/* TIMER FORM (ordre-modal) */
 .timer-form { background: var(--bg); border-radius: 10px; padding: 18px; margin-top: 8px; }
 .timer-form h3 { font-size: .9rem; font-weight: 700; color: var(--accent); margin-bottom: 14px; }
 .tform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -145,10 +146,48 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .tform-group input, .tform-group select, .tform-group textarea { border: 1px solid var(--border); border-radius: 7px; padding: 9px 12px; font-size: .92rem; font-family: inherit; outline: none; background: var(--surface); color: var(--text); transition: border-color .15s; }
 .tform-group input:focus, .tform-group select:focus, .tform-group textarea:focus { border-color: var(--accent); }
 .tform-group textarea { resize: vertical; min-height: 64px; }
-.timer-beregnet { font-size: .85rem; color: var(--accent); font-weight: 600; margin-top: 2px; }
 .tform-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
 
-/* ── NY ORDRE FORM ── */
+/* MIN DAG */
+.dag-nav { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dag-dato-input { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: .95rem; outline: none; transition: border-color .15s; }
+.dag-dato-input:focus { border-color: var(--accent); }
+.dag-nav-btn { background: var(--surface2); border: none; border-radius: 7px; padding: 8px 12px; cursor: pointer; font-size: .9rem; transition: background .15s; }
+.dag-nav-btn:hover { background: #d1d5db; }
+
+.dag-summary { background: var(--accent); color: #fff; border-radius: var(--radius); padding: 18px 24px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.dag-summary.helg { background: var(--orange); }
+.dag-sum-felt { text-align: center; }
+.dag-sum-felt .verdi { font-size: 1.4rem; font-weight: 700; }
+.dag-sum-felt .etikett { font-size: .72rem; opacity: .8; margin-top: 2px; text-transform: uppercase; letter-spacing: .5px; }
+.dag-sum-helg-badge { background: rgba(255,255,255,.2); border-radius: 6px; padding: 4px 10px; font-size: .78rem; font-weight: 600; display: inline-block; margin-bottom: 8px; }
+
+.arbeidsdag-liste { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.arbeidsdag-rad { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.arbeidsdag-rad-info { flex: 1; }
+.arb-tid { font-size: 1rem; font-weight: 700; color: var(--accent); }
+.arb-detalj { font-size: .82rem; color: var(--muted); margin-top: 3px; }
+.arb-komm { font-size: .82rem; color: var(--muted); margin-top: 2px; font-style: italic; }
+.arb-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+.ot-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: .75rem; font-weight: 700; margin-left: 8px; }
+.ot-badge.ot50  { background: #fef3c7; color: #92400e; }
+.ot-badge.ot100 { background: #fee2e2; color: #991b1b; }
+.ot-badge.helg  { background: #fee2e2; color: #991b1b; }
+
+.arb-form { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 16px; }
+.arb-form h3 { font-size: .95rem; font-weight: 700; color: var(--accent); margin-bottom: 14px; }
+.arb-form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.arb-form-group { display: flex; flex-direction: column; gap: 4px; }
+.arb-form-group.full { grid-column: 1 / -1; }
+.arb-form-group label { font-size: .75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.arb-form-group input, .arb-form-group textarea { border: 1px solid var(--border); border-radius: 7px; padding: 9px 12px; font-size: .92rem; font-family: inherit; outline: none; background: var(--surface); color: var(--text); transition: border-color .15s; }
+.arb-form-group input:focus, .arb-form-group textarea:focus { border-color: var(--accent); }
+.arb-form-group textarea { resize: vertical; min-height: 60px; }
+.arb-netto-vis { font-size: .85rem; color: var(--accent); font-weight: 600; margin-top: 4px; }
+.arb-form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+
+/* NY ORDRE */
 .form-section { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; margin-bottom: 20px; }
 .form-section h2 { font-size: 1rem; font-weight: 700; color: var(--accent); margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -166,7 +205,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .add-line-btn { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--accent); background: none; border: 2px dashed var(--border); border-radius: 8px; padding: 10px; width: 100%; cursor: pointer; font-size: .9rem; font-weight: 500; transition: all .15s; }
 .add-line-btn:hover { border-color: var(--accent); background: #eef1f8; }
 
-/* ── CONFIRM DIALOG ── */
+/* CONFIRM */
 .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 400; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .confirm-box { background: var(--surface); border-radius: var(--radius); box-shadow: 0 12px 40px rgba(0,0,0,.2); padding: 28px; max-width: 380px; width: 100%; text-align: center; }
 .confirm-ikon { font-size: 2rem; margin-bottom: 12px; }
@@ -174,9 +213,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .confirm-tekst { font-size: .9rem; color: var(--muted); margin-bottom: 22px; }
 .confirm-actions { display: flex; gap: 10px; justify-content: center; }
 
-/* ── TOAST ── */
+/* TOAST */
 .toast { position: fixed; bottom: 24px; right: 24px; background: #1f2937; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: .9rem; box-shadow: 0 8px 24px rgba(0,0,0,.2); z-index: 999; transform: translateY(80px); opacity: 0; transition: all .25s; max-width: 340px; }
-.toast.show   { transform: translateY(0); opacity: 1; }
+.toast.show { transform: translateY(0); opacity: 1; }
 .toast.success { background: var(--green); }
 .toast.error   { background: var(--red); }
 
@@ -185,12 +224,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   .form-group.full, .tform-group.full { grid-column: 1; }
   .order-card { flex-direction: column; }
   .order-card-right { text-align: left; }
+  .dag-summary { grid-template-columns: repeat(2, 1fr); }
+  .arb-form-grid { grid-template-columns: 1fr 1fr; }
 }
 </style>
 </head>
 <body>
 
-<!-- ── LOGIN ─────────────────────────────────────────────────────────────── -->
+<!-- LOGIN -->
 <div id="login-screen" style="display:none;">
   <div class="login-wrap">
     <div class="login-card">
@@ -200,22 +241,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <input class="login-input" id="login-epost" type="email" placeholder="navn@industrikran.no" onkeydown="if(event.key==='Enter')sendMagicLink()">
       <button class="login-btn" id="login-btn" onclick="sendMagicLink()">Send innloggingslenke</button>
       <div id="login-melding" style="display:none;" class="login-info">
-        ✉️ Sjekk innboksen din! Vi har sendt en innloggingslenke til <strong id="login-epost-vis"></strong>
+        ✉️ Sjekk innboksen! Innloggingslenke sendt til <strong id="login-epost-vis"></strong>
       </div>
       <div id="login-feil" class="login-error"></div>
     </div>
   </div>
 </div>
 
-<!-- ── APP ───────────────────────────────────────────────────────────────── -->
+<!-- APP -->
 <div id="app" style="display:none;">
   <header class="header">
     <div class="logo">
       <div class="logo-box">IK</div>
-      <div>
-        <span class="logo-navn">Industrikran</span>
-        <span class="logo-sub">Ordreapp</span>
-      </div>
+      <div><span class="logo-navn">Industrikran</span><span class="logo-sub">Ordreapp</span></div>
     </div>
     <div class="header-right">
       <span class="bruker-epost" id="bruker-epost"></span>
@@ -224,27 +262,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </header>
 
   <div class="tabs">
-    <div class="tab active" id="tab-sok" onclick="byttFane('sok')">🔍 Ordresøk</div>
-    <div class="tab" id="tab-ny" onclick="byttFane('ny')">➕ Ny ordre</div>
+    <div class="tab active" id="tab-sok"    onclick="byttFane('sok')">🔍 Ordresøk</div>
+    <div class="tab"        id="tab-ny"     onclick="byttFane('ny')">➕ Ny ordre</div>
+    <div class="tab"        id="tab-mindag" onclick="byttFane('mindag')">📅 Min dag</div>
   </div>
 
   <!-- ORDRESØK -->
   <div class="main" id="side-sok">
     <div class="search-bar">
       <input class="search-input" id="sokeord" type="text" placeholder="Søk på kundenavn eller ordrenummer..." onkeydown="if(event.key==='Enter')sokOrdrer()">
-      <select class="select-filter" id="avdeling-filter" onchange="sokOrdrer()">
-        <option value="">Alle avdelinger</option>
-      </select>
-      <select class="select-filter" id="status-filter" onchange="sokOrdrer()">
-        <option value="">Alle statuser</option>
-      </select>
-      <button class="btn btn-primary" onclick="sokOrdrer()">Søk</button>
+      <select class="select-filter" id="avdeling-filter" onchange="sokOrdrer()"><option value="">Alle avdelinger</option></select>
+      <select class="select-filter" id="status-filter"   onchange="sokOrdrer()"><option value="">Alle statuser</option></select>
+      <button class="btn btn-primary"   onclick="sokOrdrer()">Søk</button>
       <button class="btn btn-secondary" onclick="nullstillSok()">Nullstill</button>
     </div>
     <div id="resultat-info" class="result-info"></div>
-    <div id="ordre-liste" class="order-list">
-      <div class="loader"><div class="spinner"></div>Henter ordrer...</div>
-    </div>
+    <div id="ordre-liste" class="order-list"><div class="loader"><div class="spinner"></div>Henter ordrer...</div></div>
     <div class="pagination" id="paginering" style="display:none;">
       <button class="btn btn-secondary" id="forrige-btn" onclick="forrigeSide()">← Forrige</button>
       <span id="side-info"></span>
@@ -280,24 +313,38 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       </div>
     </form>
   </div>
+
+  <!-- MIN DAG -->
+  <div class="main" id="side-mindag" style="display:none;">
+    <div class="dag-nav">
+      <button class="dag-nav-btn" onclick="byttDag(-1)">←</button>
+      <input type="date" class="dag-dato-input" id="dag-dato" onchange="lastDag()">
+      <button class="dag-nav-btn" onclick="byttDag(1)">→</button>
+      <button class="btn btn-secondary" onclick="settDagTilDag(new Date())">I dag</button>
+      <button class="btn btn-primary" style="margin-left:auto" onclick="visArbForm()">+ Legg til arbeidsperiode</button>
+    </div>
+    <div id="arb-form-wrap"></div>
+    <div id="dag-summary-wrap"></div>
+    <div id="arbeidsdag-liste-wrap"></div>
+  </div>
 </div>
 
-<!-- ── ORDRE DETALJ MODAL ──────────────────────────────────────────────── -->
+<!-- ORDRE MODAL -->
 <div class="modal-overlay" id="detalj-modal" style="display:none;" onclick="lukkModalKlikk(event)">
   <div class="modal">
     <button class="modal-close" onclick="lukkModal()">✕</button>
     <div id="modal-innhold"></div>
-    <hr class="timer-divider">
+    <hr class="section-divider">
     <div id="timer-seksjon"></div>
   </div>
 </div>
 
-<!-- ── BEKREFT DIALOG ─────────────────────────────────────────────────── -->
+<!-- BEKREFT -->
 <div class="confirm-overlay" id="confirm-overlay" style="display:none;">
   <div class="confirm-box">
     <div class="confirm-ikon">🗑️</div>
-    <div class="confirm-tittel">Slett timeregistrering</div>
-    <div class="confirm-tekst">Er du sikker på at du vil slette denne timeregistreringen? Dette kan ikke angres.</div>
+    <div class="confirm-tittel" id="confirm-tittel">Er du sikker?</div>
+    <div class="confirm-tekst"  id="confirm-tekst">Dette kan ikke angres.</div>
     <div class="confirm-actions">
       <button class="btn btn-secondary" onclick="lukkBekreft()">Avbryt</button>
       <button class="btn btn-danger" id="bekreft-ok-btn">Ja, slett</button>
@@ -312,14 +359,13 @@ const SUPABASE_URL      = 'https://eeikodpeeybrzgxcsflh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlaWtvZHBlZXlicnpneGNzZmxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzY3MjcsImV4cCI6MjA5MzYxMjcyN30.nJFkmdOvpHrq2MGaDIyF0GShPBUOnOB9h-cf9-elsTY';
 const MAKE_WEBHOOK      = 'https://hook.eu1.make.com/4xa8o3um368rto24hc6oq9edgwo25bvt';
 const PAGE_SIZE = 30;
+const ORDINAER_TIMER = 7.5;
+const OT50_MAX = 5;
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let gjeldendeSide = 0;
-let totaltAntall  = 0;
-let linjeNr = 0;
-let aktivOrdre = null;   // ordre som er åpen i modal
-let redigeringsId = null; // timer-rad som redigeres
+let gjeldendeSide = 0, totaltAntall = 0, linjeNr = 0;
+let aktivOrdre = null, redigeringsId = null, redigeringsArbId = null;
 
 const AKTIVITETER = [
   { kode: 119, navn: 'Administrativt arbeid',     fakturerbar: true  },
@@ -341,36 +387,25 @@ async function sendMagicLink() {
   const epost = document.getElementById('login-epost').value.trim().toLowerCase();
   const feilEl = document.getElementById('login-feil');
   feilEl.textContent = '';
-
   if (!epost.endsWith('@industrikran.no')) {
-    feilEl.textContent = 'Kun @industrikran.no e-postadresser er tillatt.';
-    return;
+    feilEl.textContent = 'Kun @industrikran.no e-postadresser er tillatt.'; return;
   }
-
   const btn = document.getElementById('login-btn');
-  btn.disabled = true;
-  btn.textContent = 'Sender...';
-
+  btn.disabled = true; btn.textContent = 'Sender...';
   const { error } = await sb.auth.signInWithOtp({
     email: epost,
     options: { emailRedirectTo: window.location.origin + window.location.pathname }
   });
-
   if (error) {
     feilEl.textContent = 'Feil: ' + error.message;
-    btn.disabled = false;
-    btn.textContent = 'Send innloggingslenke';
-    return;
+    btn.disabled = false; btn.textContent = 'Send innloggingslenke'; return;
   }
-
   document.getElementById('login-epost-vis').textContent = epost;
   document.getElementById('login-melding').style.display = 'block';
   btn.textContent = 'Sendt ✓';
 }
 
-async function loggUt() {
-  await sb.auth.signOut();
-}
+async function loggUt() { await sb.auth.signOut(); }
 
 sb.auth.onAuthStateChange((event, session) => {
   if (session) {
@@ -380,6 +415,7 @@ sb.auth.onAuthStateChange((event, session) => {
     hentFilterverdier();
     hentOrdrer(0);
     leggTilOrdrelinje();
+    settDagTilDag(new Date());
   } else {
     document.getElementById('login-screen').style.display = 'block';
     document.getElementById('app').style.display = 'none';
@@ -390,85 +426,125 @@ sb.auth.onAuthStateChange((event, session) => {
 
 function toast(msg, type = '') {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'toast show ' + type;
+  el.textContent = msg; el.className = 'toast show ' + type;
   setTimeout(() => { el.className = 'toast'; }, 3500);
 }
 function fmtBeloep(v) {
   if (v == null) return '–';
   return Number(v).toLocaleString('nb-NO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' kr';
 }
-function fmtDato(d) {
+function fmtDato(d) { if (!d) return '–'; return new Date(d).toLocaleDateString('nb-NO'); }
+function fmtDatoLang(d) {
   if (!d) return '–';
-  return new Date(d).toLocaleDateString('nb-NO');
-}
-function statusFarge(s) {
-  if (!s) return 'gray';
-  const l = s.toLowerCase();
-  if (l.includes('faktur')) return 'green';
-  if (l.includes('klar') || l.includes('ferdig')) return 'green';
-  if (l.includes('produksjon') || l.includes('aktiv')) return 'blue';
-  if (l.includes('vent') || l.includes('tilbud')) return 'yellow';
-  return 'gray';
-}
-function beregnTimer(fra, til) {
-  if (!fra || !til) return 0;
-  const [fh, fm] = fra.split(':').map(Number);
-  const [th, tm] = til.split(':').map(Number);
-  const mins = (th * 60 + tm) - (fh * 60 + fm);
-  return Math.max(0, mins / 60);
+  return new Date(d + 'T12:00:00').toLocaleDateString('nb-NO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 function fmtTimer(t) {
   if (!t && t !== 0) return '–';
+  t = Number(t);
   const h = Math.floor(t);
   const m = Math.round((t - h) * 60);
   return h + 't' + (m > 0 ? ' ' + m + 'm' : '');
 }
-
+function statusFarge(s) {
+  if (!s) return 'gray';
+  const l = s.toLowerCase();
+  if (l.includes('faktur') || l.includes('klar') || l.includes('ferdig')) return 'green';
+  if (l.includes('produksjon') || l.includes('aktiv')) return 'blue';
+  if (l.includes('vent') || l.includes('tilbud')) return 'yellow';
+  return 'gray';
+}
 function byttFane(fane) {
-  document.getElementById('side-sok').style.display = fane === 'sok' ? '' : 'none';
-  document.getElementById('side-ny').style.display  = fane === 'ny'  ? '' : 'none';
+  ['sok','ny','mindag'].forEach(f => document.getElementById('side-' + f).style.display = f === fane ? '' : 'none');
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + fane).classList.add('active');
 }
 
-// ── ORDRESØK ─────────────────────────────────────────────────────────────
+// ── NORSKE HELLIGDAGER ────────────────────────────────────────────────────
+
+function beregnPaaske(aar) {
+  const a = aar % 19, b = Math.floor(aar/100), c = aar % 100;
+  const d = Math.floor(b/4), e = b % 4, f = Math.floor((b+8)/25);
+  const g = Math.floor((b-f+1)/3), h = (19*a+b-d-g+15) % 30;
+  const i = Math.floor(c/4), k = c % 4, l = (32+2*e+2*i-h-k) % 7;
+  const m = Math.floor((a+11*h+22*l)/451);
+  const month = Math.floor((h+l-7*m+114)/31);
+  const day   = ((h+l-7*m+114) % 31) + 1;
+  return new Date(aar, month-1, day);
+}
+
+function erNorskHelligdag(d) {
+  const dag = d.getDate(), mnd = d.getMonth()+1, aar = d.getFullYear();
+  if (mnd===1  && dag===1)  return true;
+  if (mnd===5  && dag===1)  return true;
+  if (mnd===5  && dag===17) return true;
+  if (mnd===12 && dag===25) return true;
+  if (mnd===12 && dag===26) return true;
+  const p = beregnPaaske(aar), ms = 864e5;
+  const pMs = p.getTime();
+  const dMs = new Date(aar, mnd-1, dag).getTime();
+  const offsets = [-3,-2,0,1,39,49,50];
+  return offsets.some(o => dMs === pMs + o*ms);
+}
+
+function erHelgEllerHelligdag(datoStr, fraTidStr) {
+  const d = new Date(datoStr + 'T12:00:00');
+  const dagNr = d.getDay();
+  if (dagNr === 0 || dagNr === 6) return true;
+  if (dagNr === 5) {
+    const h = parseInt((fraTidStr||'00:00').split(':')[0]);
+    if (h >= 21) return true;
+  }
+  if (dagNr === 1) {
+    const h = parseInt((fraTidStr||'00:00').split(':')[0]);
+    if (h < 7) return true;
+  }
+  return erNorskHelligdag(d);
+}
+
+// ── OVERTIDSBEREGNING ─────────────────────────────────────────────────────
+
+function beregnDagTotaler(perioder) {
+  // perioder: array av { netto_timer, er_helg_helligdag }
+  const totalNetto = perioder.reduce((s, p) => s + Number(p.netto_timer), 0);
+  const erHelg = perioder.some(p => p.er_helg_helligdag);
+
+  let ordinaer = 0, ot50 = 0, ot100 = 0;
+  if (erHelg) {
+    ot100 = totalNetto;
+  } else if (totalNetto <= ORDINAER_TIMER) {
+    ordinaer = totalNetto;
+  } else if (totalNetto <= ORDINAER_TIMER + OT50_MAX) {
+    ordinaer = ORDINAER_TIMER; ot50 = totalNetto - ORDINAER_TIMER;
+  } else {
+    ordinaer = ORDINAER_TIMER; ot50 = OT50_MAX; ot100 = totalNetto - ORDINAER_TIMER - OT50_MAX;
+  }
+  return { totalNetto, ordinaer, ot50, ot100, erHelg };
+}
+
+// ── ORDRESØK ──────────────────────────────────────────────────────────────
 
 async function hentOrdrer(side) {
   const liste = document.getElementById('ordre-liste');
   liste.innerHTML = '<div class="loader"><div class="spinner"></div>Henter ordrer...</div>';
   document.getElementById('paginering').style.display = 'none';
   document.getElementById('resultat-info').textContent = '';
-
-  const sokeord      = document.getElementById('sokeord').value.trim();
-  const avdFilter    = document.getElementById('avdeling-filter').value;
+  const sokeord = document.getElementById('sokeord').value.trim();
+  const avdFilter = document.getElementById('avdeling-filter').value;
   const statusFilter = document.getElementById('status-filter').value;
   const fra = side * PAGE_SIZE;
-
-  let q = sb.from('ps_ordrer')
-    .select('*', { count: 'exact' })
-    .eq('category_id', 'Ordre')
-    .order('order_number', { ascending: false })
+  let q = sb.from('ps_ordrer').select('*', { count: 'exact' })
+    .eq('category_id', 'Ordre').order('order_number', { ascending: false })
     .range(fra, fra + PAGE_SIZE - 1);
-
-  if (sokeord) {
-    const tall = parseInt(sokeord);
-    q = !isNaN(tall) ? q.eq('order_number', tall) : q.ilike('customer_name', '%' + sokeord + '%');
-  }
-  if (avdFilter)    q = q.eq('department_name', avdFilter);
+  if (sokeord) { const tall = parseInt(sokeord); q = !isNaN(tall) ? q.eq('order_number', tall) : q.ilike('customer_name', '%'+sokeord+'%'); }
+  if (avdFilter) q = q.eq('department_name', avdFilter);
   if (statusFilter) q = q.eq('status_name', statusFilter);
-
   const { data, error, count } = await q;
   if (error) { liste.innerHTML = '<div class="loader">⚠ ' + error.message + '</div>'; return; }
-
-  gjeldendeSide = side;
-  totaltAntall  = count || 0;
-  visOrdrer(data || []);
-  visPaginering();
+  gjeldendeSide = side; totaltAntall = count || 0;
+  visOrdrer(data || []); visPaginering();
 }
-
-function sokOrdrer()   { hentOrdrer(0); }
-function nesteSide()   { hentOrdrer(gjeldendeSide + 1); }
+function sokOrdrer() { hentOrdrer(0); }
+function nesteSide() { hentOrdrer(gjeldendeSide + 1); }
 function forrigeSide() { hentOrdrer(gjeldendeSide - 1); }
 function nullstillSok() {
   document.getElementById('sokeord').value = '';
@@ -476,17 +552,15 @@ function nullstillSok() {
   document.getElementById('status-filter').value = '';
   hentOrdrer(0);
 }
-
 function visPaginering() {
-  const totSider = Math.ceil(totaltAntall / PAGE_SIZE);
+  const tot = Math.ceil(totaltAntall / PAGE_SIZE);
   document.getElementById('resultat-info').textContent = totaltAntall + ' ordre totalt';
-  if (totSider <= 1) { document.getElementById('paginering').style.display = 'none'; return; }
+  if (tot <= 1) { document.getElementById('paginering').style.display = 'none'; return; }
   document.getElementById('paginering').style.display = 'flex';
-  document.getElementById('side-info').textContent = 'Side ' + (gjeldendeSide + 1) + ' av ' + totSider;
+  document.getElementById('side-info').textContent = 'Side ' + (gjeldendeSide+1) + ' av ' + tot;
   document.getElementById('forrige-btn').disabled = gjeldendeSide === 0;
-  document.getElementById('neste-btn').disabled   = gjeldendeSide >= totSider - 1;
+  document.getElementById('neste-btn').disabled   = gjeldendeSide >= tot - 1;
 }
-
 function visOrdrer(ordrer) {
   const liste = document.getElementById('ordre-liste');
   if (!ordrer.length) { liste.innerHTML = '<div class="loader">Ingen ordrer funnet.</div>'; return; }
@@ -494,7 +568,7 @@ function visOrdrer(ordrer) {
     <div class="order-card" onclick='visDetalj(${JSON.stringify(JSON.stringify(o))})'>
       <div style="flex:1;min-width:0;">
         <div class="order-nr">#${o.order_number}</div>
-        <div class="order-kunde">${o.customer_name || '–'}</div>
+        <div class="order-kunde">${o.customer_name||'–'}</div>
         <div class="order-meta">
           <span>📅 ${fmtDato(o.delivery_date)}</span>
           ${o.department_name ? `<span>🏢 ${o.department_name}</span>` : ''}
@@ -503,33 +577,29 @@ function visOrdrer(ordrer) {
       </div>
       <div class="order-card-right">
         <div class="order-beloep">${fmtBeloep(o.net_amount)}</div>
-        <span class="status-badge ${statusFarge(o.status_name)}">${o.status_name || 'Ukjent'}</span>
+        <span class="status-badge ${statusFarge(o.status_name)}">${o.status_name||'Ukjent'}</span>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
-
 async function hentFilterverdier() {
-  const [avdRes, statRes] = await Promise.all([
-    sb.from('ps_ordrer').select('department_name').eq('category_id', 'Ordre').not('department_name', 'is', null),
-    sb.from('ps_ordrer').select('status_name').eq('category_id', 'Ordre').not('status_name', 'is', null)
+  const [a, s] = await Promise.all([
+    sb.from('ps_ordrer').select('department_name').eq('category_id','Ordre').not('department_name','is',null),
+    sb.from('ps_ordrer').select('status_name').eq('category_id','Ordre').not('status_name','is',null)
   ]);
-  const avd = [...new Set((avdRes.data||[]).map(r=>r.department_name))].filter(Boolean).sort();
+  const avd = [...new Set((a.data||[]).map(r=>r.department_name))].filter(Boolean).sort();
   const selA = document.getElementById('avdeling-filter');
-  avd.forEach(a => { const o=document.createElement('option'); o.value=a; o.textContent=a; selA.appendChild(o); });
-  const stat = [...new Set((statRes.data||[]).map(r=>r.status_name))].filter(Boolean).sort();
+  avd.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; selA.appendChild(o); });
+  const stat = [...new Set((s.data||[]).map(r=>r.status_name))].filter(Boolean).sort();
   const selS = document.getElementById('status-filter');
-  stat.forEach(s => { const o=document.createElement('option'); o.value=s; o.textContent=s; selS.appendChild(o); });
+  stat.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; selS.appendChild(o); });
 }
 
-// ── ORDRE DETALJ + TIMER ──────────────────────────────────────────────────
+// ── ORDRE DETALJ + ORDRETIMER ─────────────────────────────────────────────
 
 async function visDetalj(jsonStr) {
-  aktivOrdre = JSON.parse(jsonStr);
-  redigeringsId = null;
-
+  aktivOrdre = JSON.parse(jsonStr); redigeringsId = null;
   document.getElementById('modal-innhold').innerHTML = `
-    <div class="modal-title">#${aktivOrdre.order_number} – ${aktivOrdre.customer_name || '–'}</div>
+    <div class="modal-title">#${aktivOrdre.order_number} – ${aktivOrdre.customer_name||'–'}</div>
     <div class="detail-grid">
       <div class="detail-field"><label>Status</label>
         <span class="status-badge ${statusFarge(aktivOrdre.status_name)}">${aktivOrdre.status_name||'–'}</span></div>
@@ -538,197 +608,315 @@ async function visDetalj(jsonStr) {
       <div class="detail-field"><label>Verdi</label><span>${fmtBeloep(aktivOrdre.net_amount)}</span></div>
       <div class="detail-field"><label>Kundereferanse</label><span>${aktivOrdre.customer_reference||'–'}</span></div>
       <div class="detail-field"><label>Ref.nummer</label><span>${aktivOrdre.customer_reference_number||'–'}</span></div>
-      ${aktivOrdre.note ? `<div class="detail-field detail-full"><label>Notat</label><div class="detail-note">${aktivOrdre.note}</div></div>` : ''}
-    </div>
-  `;
-
+      ${aktivOrdre.note?`<div class="detail-field detail-full"><label>Notat</label><div class="detail-note">${aktivOrdre.note}</div></div>`:''}
+    </div>`;
   document.getElementById('detalj-modal').style.display = 'flex';
   await oppdaterTimerSeksjon();
 }
 
 async function oppdaterTimerSeksjon() {
   const seksjon = document.getElementById('timer-seksjon');
-  seksjon.innerHTML = '<div class="loader" style="padding:20px 0;"><div class="spinner"></div></div>';
-
+  seksjon.innerHTML = '<div class="loader" style="padding:16px 0;"><div class="spinner"></div></div>';
   const { data: session } = await sb.auth.getSession();
   const uid = session?.session?.user?.id;
-
   const { data: timer, error } = await sb.from('timeregistrering')
-    .select('*')
-    .eq('order_number', aktivOrdre.order_number)
-    .order('dato', { ascending: false })
-    .order('fra_tid', { ascending: false });
-
+    .select('*').eq('order_number', aktivOrdre.order_number)
+    .order('dato', { ascending: false });
   if (error) { seksjon.innerHTML = '<p style="color:var(--red)">Feil ved henting av timer.</p>'; return; }
-
-  const totalTimer = (timer||[]).reduce((s, t) => s + Number(t.timer), 0);
-
+  const totalTimer = (timer||[]).reduce((s,t) => s + Number(t.timer), 0);
   let html = `
     <div class="timer-header">
-      <div class="timer-heading">
-        ⏱ Timer
-        <span class="timer-count">${timer.length}</span>
+      <div class="timer-heading">⏱ Timer <span class="timer-count">${timer.length}</span>
         ${totalTimer > 0 ? `<span style="font-size:.82rem;font-weight:400;color:var(--muted)">${fmtTimer(totalTimer)} totalt</span>` : ''}
       </div>
-      <button class="btn btn-primary btn-sm" onclick="visTiFormSkjema()">+ Registrer timer</button>
-    </div>
-  `;
-
+      <button class="btn btn-primary btn-sm" onclick="visTimerForm()">+ Registrer timer</button>
+    </div>`;
   if (timer.length) {
     html += '<div class="timer-liste">';
     timer.forEach(t => {
       const erEgen = t.ansatt_id === uid;
-      const dot = t.er_fakturerbar
-        ? '<span class="fakturerbar-dot" title="Fakturerbar"></span>'
-        : '<span class="ikke-fakturerbar-dot" title="Ikke fakturerbar"></span>';
-      html += `
-        <div class="timer-rad" id="trad-${t.id}">
-          <div class="timer-rad-info">
-            <div class="timer-rad-top">
-              <span class="timer-dato">${fmtDato(t.dato)}</span>
-              <span class="timer-tid">${t.fra_tid.slice(0,5)}–${t.til_tid.slice(0,5)}</span>
-              <span class="timer-antall">${fmtTimer(Number(t.timer))}</span>
-              ${dot}
-            </div>
-            <div class="timer-akt">${t.aktivitet_navn}</div>
-            <div class="timer-komm" title="${t.kommentar}">${t.kommentar}</div>
-            <div class="timer-ansatt">👤 ${t.ansatt_epost}</div>
+      const dot = `<span class="fakt-dot ${t.er_fakturerbar?'ja':'nei'}" title="${t.er_fakturerbar?'Fakturerbar':'Ikke fakturerbar'}"></span>`;
+      html += `<div class="timer-rad" id="trad-${t.id}">
+        <div class="timer-rad-info">
+          <div class="timer-rad-top">
+            <span class="timer-dato">${fmtDato(t.dato)}</span>
+            <span class="timer-antall">${fmtTimer(t.timer)}</span>${dot}
           </div>
-          ${erEgen ? `
-          <div class="timer-rad-actions">
-            <button class="btn btn-secondary btn-sm" onclick="redigerTimer(${t.id})">Rediger</button>
-            <button class="btn btn-danger btn-sm" onclick="bekreftSlett(${t.id})">Slett</button>
-          </div>` : ''}
+          <div class="timer-akt">${t.aktivitet_navn}</div>
+          <div class="timer-komm">${t.kommentar}</div>
+          <div class="timer-ansatt">👤 ${t.ansatt_epost}</div>
         </div>
-      `;
+        ${erEgen?`<div class="timer-rad-actions">
+          <button class="btn btn-secondary btn-sm" onclick="redigerTimer(${t.id})">Rediger</button>
+          <button class="btn btn-danger btn-sm" onclick="bekreftSlett('timer',${t.id})">Slett</button>
+        </div>`:''}
+      </div>`;
     });
     html += '</div>';
   } else {
     html += '<p style="font-size:.9rem;color:var(--muted);margin-bottom:16px;">Ingen timer registrert på denne ordren ennå.</p>';
   }
-
   html += '<div id="timer-form-wrap"></div>';
   seksjon.innerHTML = html;
 }
 
-function visTiFormSkjema(prefill = null) {
+function visTimerForm(prefill = null) {
   redigeringsId = prefill ? prefill.id : null;
   const idag = new Date().toISOString().split('T')[0];
-
-  const aktivAlt = AKTIVITETER.map(a =>
-    `<option value="${a.kode}" ${prefill && prefill.aktivitet_kode == a.kode ? 'selected' : ''}>${a.navn}</option>`
-  ).join('');
-
+  const aktOpt = AKTIVITETER.map(a =>
+    `<option value="${a.kode}" ${prefill && prefill.aktivitet_kode==a.kode?'selected':''}>${a.navn}</option>`).join('');
   document.getElementById('timer-form-wrap').innerHTML = `
     <div class="timer-form">
-      <h3>${redigeringsId ? 'Rediger timeregistrering' : 'Registrer timer'}</h3>
+      <h3>${redigeringsId ? 'Rediger timer' : 'Registrer timer'}</h3>
       <div class="tform-grid">
         <div class="tform-group">
           <label>Dato *</label>
-          <input type="date" id="tf-dato" value="${prefill ? prefill.dato : idag}" required>
-        </div>
-        <div class="tform-group" style="align-self:end;">
-          <span class="timer-beregnet" id="tf-beregnet"></span>
+          <input type="date" id="tf-dato" value="${prefill?prefill.dato:idag}" required>
         </div>
         <div class="tform-group">
-          <label>Fra *</label>
-          <input type="time" id="tf-fra" value="${prefill ? prefill.fra_tid.slice(0,5) : ''}" oninput="oppdaterBeregnet()" required>
-        </div>
-        <div class="tform-group">
-          <label>Til *</label>
-          <input type="time" id="tf-til" value="${prefill ? prefill.til_tid.slice(0,5) : ''}" oninput="oppdaterBeregnet()" required>
+          <label>Antall timer *</label>
+          <input type="number" id="tf-timer" value="${prefill?prefill.timer:''}" placeholder="f.eks. 2.5" min="0.25" max="24" step="0.25" required>
         </div>
         <div class="tform-group full">
           <label>Aktivitet *</label>
-          <select id="tf-aktivitet">${aktivAlt}</select>
+          <select id="tf-aktivitet">${aktOpt}</select>
         </div>
         <div class="tform-group full">
           <label>Kommentar *</label>
-          <textarea id="tf-kommentar" placeholder="Beskriv arbeidet som ble utført..." required>${prefill ? prefill.kommentar : ''}</textarea>
+          <textarea id="tf-kommentar" placeholder="Beskriv arbeidet..." required>${prefill?prefill.kommentar:''}</textarea>
         </div>
       </div>
       <div class="tform-actions">
         <button type="button" class="btn btn-secondary" onclick="skjulTimerForm()">Avbryt</button>
-        <button type="button" class="btn btn-gold" onclick="lagreTimer()">${redigeringsId ? 'Oppdater' : 'Lagre timer'}</button>
+        <button type="button" class="btn btn-gold" onclick="lagreTimer()">${redigeringsId?'Oppdater':'Lagre timer'}</button>
       </div>
-    </div>
-  `;
-
-  if (prefill) oppdaterBeregnet();
-  document.getElementById('timer-form-wrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    </div>`;
+  document.getElementById('timer-form-wrap').scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 
 function skjulTimerForm() {
-  const wrap = document.getElementById('timer-form-wrap');
-  if (wrap) wrap.innerHTML = '';
+  const w = document.getElementById('timer-form-wrap');
+  if (w) w.innerHTML = '';
   redigeringsId = null;
 }
 
-function oppdaterBeregnet() {
-  const fra = document.getElementById('tf-fra')?.value;
-  const til = document.getElementById('tf-til')?.value;
-  const el  = document.getElementById('tf-beregnet');
-  if (!el) return;
-  const t = beregnTimer(fra, til);
-  el.textContent = t > 0 ? '= ' + fmtTimer(t) : '';
-}
-
 async function lagreTimer() {
-  const dato     = document.getElementById('tf-dato').value;
-  const fra      = document.getElementById('tf-fra').value;
-  const til      = document.getElementById('tf-til').value;
-  const aktKode  = parseInt(document.getElementById('tf-aktivitet').value);
-  const komm     = document.getElementById('tf-kommentar').value.trim();
-
-  if (!dato || !fra || !til || !komm) { toast('Fyll ut alle påkrevde felt', 'error'); return; }
-
-  const timer = beregnTimer(fra, til);
-  if (timer <= 0) { toast('Til-tid må være etter fra-tid', 'error'); return; }
-
+  const dato    = document.getElementById('tf-dato').value;
+  const timer   = parseFloat(document.getElementById('tf-timer').value);
+  const aktKode = parseInt(document.getElementById('tf-aktivitet').value);
+  const komm    = document.getElementById('tf-kommentar').value.trim();
+  if (!dato || !timer || !komm) { toast('Fyll ut alle påkrevde felt', 'error'); return; }
   const aktObj = AKTIVITETER.find(a => a.kode === aktKode);
-  const { data: sessionData } = await sb.auth.getSession();
-  const user = sessionData?.session?.user;
-
+  const { data: sd } = await sb.auth.getSession();
+  const user = sd?.session?.user;
   const rad = {
-    order_number:   aktivOrdre.order_number,
-    dato,
-    fra_tid:        fra,
-    til_tid:        til,
-    timer:          Math.round(timer * 100) / 100,
-    aktivitet_kode: aktKode,
-    aktivitet_navn: aktObj.navn,
-    er_fakturerbar: aktObj.fakturerbar,
-    kommentar:      komm,
-    ansatt_id:      user.id,
-    ansatt_epost:   user.email,
-    oppdatert_at:   new Date().toISOString()
+    order_number: aktivOrdre.order_number, dato, timer,
+    aktivitet_kode: aktKode, aktivitet_navn: aktObj.navn,
+    er_fakturerbar: aktObj.fakturerbar, kommentar: komm,
+    ansatt_id: user.id, ansatt_epost: user.email,
+    oppdatert_at: new Date().toISOString()
   };
-
   let error;
   if (redigeringsId) {
     ({ error } = await sb.from('timeregistrering').update(rad).eq('id', redigeringsId));
   } else {
     ({ error } = await sb.from('timeregistrering').insert(rad));
   }
-
   if (error) { toast('Feil: ' + error.message, 'error'); return; }
-
   toast(redigeringsId ? 'Timer oppdatert' : 'Timer lagret ✓', 'success');
   await oppdaterTimerSeksjon();
 }
 
 async function redigerTimer(id) {
   const { data } = await sb.from('timeregistrering').select('*').eq('id', id).single();
-  if (data) visTiFormSkjema(data);
+  if (data) visTimerForm(data);
 }
 
-function bekreftSlett(id) {
+function lukkModal() { document.getElementById('detalj-modal').style.display = 'none'; aktivOrdre = null; }
+function lukkModalKlikk(e) { if (e.target === document.getElementById('detalj-modal')) lukkModal(); }
+
+// ── MIN DAG ───────────────────────────────────────────────────────────────
+
+function settDagTilDag(d) {
+  const dato = d.toISOString().split('T')[0];
+  document.getElementById('dag-dato').value = dato;
+  lastDag();
+}
+function byttDag(retning) {
+  const d = new Date(document.getElementById('dag-dato').value + 'T12:00:00');
+  d.setDate(d.getDate() + retning);
+  settDagTilDag(d);
+}
+
+async function lastDag() {
+  const dato = document.getElementById('dag-dato').value;
+  if (!dato) return;
+  const { data, error } = await sb.from('arbeidsdag_logg')
+    .select('*').eq('dato', dato).order('fra_tid', { ascending: true });
+  if (error) { toast('Feil: ' + error.message, 'error'); return; }
+  visArbSummary(dato, data || []);
+  visArbListe(dato, data || []);
+}
+
+function visArbSummary(dato, perioder) {
+  const wrap = document.getElementById('dag-summary-wrap');
+  if (!perioder.length) { wrap.innerHTML = ''; return; }
+  const { totalNetto, ordinaer, ot50, ot100, erHelg } = beregnDagTotaler(perioder);
+  wrap.innerHTML = `
+    <div class="dag-summary ${erHelg?'helg':''}">
+      ${erHelg?'<div style="grid-column:1/-1;margin-bottom:4px;"><span class="dag-sum-helg-badge">🔴 Helg / Helligdag – 100% overtid fra første time</span></div>':''}
+      <div class="dag-sum-felt"><div class="verdi">${fmtTimer(totalNetto)}</div><div class="etikett">Totalt</div></div>
+      <div class="dag-sum-felt"><div class="verdi">${fmtTimer(ordinaer)}</div><div class="etikett">Ordinær</div></div>
+      <div class="dag-sum-felt"><div class="verdi">${fmtTimer(ot50)}</div><div class="etikett">50% overtid</div></div>
+      <div class="dag-sum-felt"><div class="verdi">${fmtTimer(ot100)}</div><div class="etikett">100% overtid</div></div>
+    </div>`;
+}
+
+function visArbListe(dato, perioder) {
+  const wrap = document.getElementById('arbeidsdag-liste-wrap');
+  if (!perioder.length) {
+    wrap.innerHTML = `<div class="loader" style="padding:32px 0;">Ingen registreringer for ${fmtDatoLang(dato)}.</div>`;
+    return;
+  }
+  const { totalNetto, ordinaer, ot50, ot100 } = beregnDagTotaler(perioder);
+  // beregn per periode hvilken overtidssone de er i (kumulativt)
+  let akkumulert = 0;
+  const html = perioder.map(p => {
+    const netto = Number(p.netto_timer);
+    const fraAkk = akkumulert;
+    akkumulert += netto;
+    let otBadge = '';
+    if (p.er_helg_helligdag) {
+      otBadge = '<span class="ot-badge helg">100% OT</span>';
+    } else if (fraAkk >= ORDINAER_TIMER + OT50_MAX) {
+      otBadge = '<span class="ot-badge ot100">100% OT</span>';
+    } else if (fraAkk >= ORDINAER_TIMER) {
+      otBadge = '<span class="ot-badge ot50">50% OT</span>';
+    } else if (akkumulert > ORDINAER_TIMER) {
+      otBadge = '<span class="ot-badge ot50">Delvis OT</span>';
+    }
+    return `<div class="arbeidsdag-rad">
+      <div class="arbeidsdag-rad-info">
+        <div class="arb-tid">${p.fra_tid.slice(0,5)} → ${p.til_tid.slice(0,5)} ${otBadge}</div>
+        <div class="arb-detalj">Pause: ${p.pause_minutter} min &nbsp;|&nbsp; Netto: ${fmtTimer(netto)}</div>
+        ${p.kommentar ? `<div class="arb-komm">${p.kommentar}</div>` : ''}
+      </div>
+      <div class="arb-actions">
+        <button class="btn btn-secondary btn-sm" onclick="redigerArbeidsdag(${p.id})">Rediger</button>
+        <button class="btn btn-danger btn-sm" onclick="bekreftSlett('arbeidsdag',${p.id})">Slett</button>
+      </div>
+    </div>`;
+  }).join('');
+  wrap.innerHTML = '<div class="arbeidsdag-liste">' + html + '</div>';
+}
+
+function visArbForm(prefill = null) {
+  redigeringsArbId = prefill ? prefill.id : null;
+  const dato = document.getElementById('dag-dato').value;
+  document.getElementById('arb-form-wrap').innerHTML = `
+    <div class="arb-form">
+      <h3>${redigeringsArbId ? 'Rediger arbeidsperiode' : 'Legg til arbeidsperiode'}</h3>
+      <div class="arb-form-grid">
+        <div class="arb-form-group">
+          <label>Fra *</label>
+          <input type="time" id="arb-fra" value="${prefill?prefill.fra_tid.slice(0,5):'07:30'}" oninput="oppdaterArbNetto()">
+        </div>
+        <div class="arb-form-group">
+          <label>Til *</label>
+          <input type="time" id="arb-til" value="${prefill?prefill.til_tid.slice(0,5):''}" oninput="oppdaterArbNetto()">
+        </div>
+        <div class="arb-form-group">
+          <label>Pause (min)</label>
+          <input type="number" id="arb-pause" value="${prefill?prefill.pause_minutter:30}" min="0" max="120" oninput="oppdaterArbNetto()">
+        </div>
+        <div class="arb-form-group full">
+          <div class="arb-netto-vis" id="arb-netto-vis"></div>
+        </div>
+        <div class="arb-form-group full">
+          <label>Kommentar</label>
+          <textarea id="arb-kommentar" placeholder="Valgfritt...">${prefill&&prefill.kommentar?prefill.kommentar:''}</textarea>
+        </div>
+      </div>
+      <div class="arb-form-actions">
+        <button type="button" class="btn btn-secondary" onclick="skjulArbForm()">Avbryt</button>
+        <button type="button" class="btn btn-gold" onclick="lagreArbeidsdag()">${redigeringsArbId?'Oppdater':'Lagre'}</button>
+      </div>
+    </div>`;
+  oppdaterArbNetto();
+  document.getElementById('arb-form-wrap').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function skjulArbForm() {
+  document.getElementById('arb-form-wrap').innerHTML = '';
+  redigeringsArbId = null;
+}
+
+function oppdaterArbNetto() {
+  const fra   = document.getElementById('arb-fra')?.value;
+  const til   = document.getElementById('arb-til')?.value;
+  const pause = parseInt(document.getElementById('arb-pause')?.value) || 0;
+  const vis   = document.getElementById('arb-netto-vis');
+  if (!vis) return;
+  if (!fra || !til) { vis.textContent = ''; return; }
+  const [fh,fm] = fra.split(':').map(Number);
+  const [th,tm] = til.split(':').map(Number);
+  const brutto = (th*60+tm) - (fh*60+fm);
+  const netto  = brutto - pause;
+  if (netto <= 0) { vis.textContent = '⚠ Til-tid må være etter fra-tid + pause'; return; }
+  vis.textContent = '= ' + fmtTimer(netto/60) + ' netto arbeidstid';
+}
+
+async function lagreArbeidsdag() {
+  const dato  = document.getElementById('dag-dato').value;
+  const fra   = document.getElementById('arb-fra').value;
+  const til   = document.getElementById('arb-til').value;
+  const pause = parseInt(document.getElementById('arb-pause').value) || 0;
+  const komm  = document.getElementById('arb-kommentar').value.trim();
+  if (!fra || !til) { toast('Fyll ut fra- og til-tid', 'error'); return; }
+  const [fh,fm] = fra.split(':').map(Number);
+  const [th,tm] = til.split(':').map(Number);
+  const nettoMin = (th*60+tm) - (fh*60+fm) - pause;
+  if (nettoMin <= 0) { toast('Netto arbeidstid må være positiv', 'error'); return; }
+  const { data: sd } = await sb.auth.getSession();
+  const user = sd?.session?.user;
+  const erHelg = erHelgEllerHelligdag(dato, fra);
+  const rad = {
+    dato, fra_tid: fra, til_tid: til,
+    pause_minutter: pause,
+    netto_timer: Math.round(nettoMin/60*100)/100,
+    er_helg_helligdag: erHelg,
+    ansatt_id: user.id, ansatt_epost: user.email,
+    kommentar: komm || null,
+    oppdatert_at: new Date().toISOString()
+  };
+  let error;
+  if (redigeringsArbId) {
+    ({ error } = await sb.from('arbeidsdag_logg').update(rad).eq('id', redigeringsArbId));
+  } else {
+    ({ error } = await sb.from('arbeidsdag_logg').insert(rad));
+  }
+  if (error) { toast('Feil: ' + error.message, 'error'); return; }
+  toast(redigeringsArbId ? 'Oppdatert' : 'Arbeidsperiode lagret ✓', 'success');
+  skjulArbForm();
+  await lastDag();
+}
+
+async function redigerArbeidsdag(id) {
+  const { data } = await sb.from('arbeidsdag_logg').select('*').eq('id', id).single();
+  if (data) visArbForm(data);
+}
+
+// ── SLETT (felles) ────────────────────────────────────────────────────────
+
+function bekreftSlett(type, id) {
+  document.getElementById('confirm-tittel').textContent = type === 'timer' ? 'Slett timeregistrering' : 'Slett arbeidsperiode';
+  document.getElementById('confirm-tekst').textContent  = 'Er du sikker? Dette kan ikke angres.';
   document.getElementById('confirm-overlay').style.display = 'flex';
-  document.getElementById('bekreft-ok-btn').onclick = () => slettTimer(id);
+  document.getElementById('bekreft-ok-btn').onclick = () =>
+    type === 'timer' ? slettTimer(id) : slettArbeidsdag(id);
 }
-function lukkBekreft() {
-  document.getElementById('confirm-overlay').style.display = 'none';
-}
+function lukkBekreft() { document.getElementById('confirm-overlay').style.display = 'none'; }
+
 async function slettTimer(id) {
   lukkBekreft();
   const { error } = await sb.from('timeregistrering').delete().eq('id', id);
@@ -736,22 +924,23 @@ async function slettTimer(id) {
   toast('Timeregistrering slettet', 'success');
   await oppdaterTimerSeksjon();
 }
-
-function lukkModal() { document.getElementById('detalj-modal').style.display = 'none'; aktivOrdre = null; }
-function lukkModalKlikk(e) { if (e.target === document.getElementById('detalj-modal')) lukkModal(); }
+async function slettArbeidsdag(id) {
+  lukkBekreft();
+  const { error } = await sb.from('arbeidsdag_logg').delete().eq('id', id);
+  if (error) { toast('Feil: ' + error.message, 'error'); return; }
+  toast('Arbeidsperiode slettet', 'success');
+  await lastDag();
+}
 
 // ── NY ORDRE ──────────────────────────────────────────────────────────────
 
 function leggTilOrdrelinje() {
-  if (document.getElementById('ordrelinjer') === null) return;
+  if (!document.getElementById('ordrelinjer')) return;
   linjeNr++;
   const div = document.createElement('div');
   div.className = 'orderline'; div.id = 'linje-' + linjeNr;
-  div.innerHTML = `
-    <div class="orderline-header">
-      <span class="orderline-title">Linje ${linjeNr}</span>
-      <button type="button" class="btn-remove" onclick="fjernLinje(${linjeNr})">✕</button>
-    </div>
+  div.innerHTML = `<div class="orderline-header"><span class="orderline-title">Linje ${linjeNr}</span>
+    <button type="button" class="btn-remove" onclick="fjernLinje(${linjeNr})">✕</button></div>
     <div class="form-grid">
       <div class="form-group"><label>Artikkelnr.</label><input type="text" name="l${linjeNr}_articleNumber"></div>
       <div class="form-group"><label>Antall</label><input type="number" name="l${linjeNr}_qty" value="1" min="0" step="any"></div>
@@ -769,44 +958,39 @@ function nullstillSkjema() {
 }
 function samlLinjer() {
   return [...document.querySelectorAll('.orderline')].map(el => {
-    const id = el.id.replace('linje-','');
-    const get = n => { const f=el.querySelector(`[name="l${id}_${n}"]`); return f?f.value:''; };
-    return { articleNumber:get('articleNumber'), qty:parseFloat(get('qty'))||0, price:parseFloat(get('price'))||0,
-             discount:parseFloat(get('discount'))||0, description:get('description'), type:1 };
+    const id=el.id.replace('linje-','');
+    const get=n=>{const f=el.querySelector(`[name="l${id}_${n}"]`);return f?f.value:'';};
+    return { articleNumber:get('articleNumber'), qty:parseFloat(get('qty'))||0,
+             price:parseFloat(get('price'))||0, discount:parseFloat(get('discount'))||0,
+             description:get('description'), type:1 };
   });
 }
 async function sendOrdre(e) {
   e.preventDefault();
-  const btn = document.getElementById('send-btn');
+  const btn=document.getElementById('send-btn');
   btn.disabled=true; btn.textContent='Sender...';
-  const leveringsDato = document.getElementById('f-deliveryDate').value;
-  const payload = {
-    customerId:             parseInt(document.getElementById('f-customerId').value)||0,
-    categoryId:             document.getElementById('f-categoryId').value||null,
-    orderNumber:            parseInt(document.getElementById('f-orderNumber').value)||0,
-    deliveryDate:           leveringsDato ? new Date(leveringsDato).toISOString() : null,
-    customerReference:      document.getElementById('f-customerReference').value||null,
+  const lev=document.getElementById('f-deliveryDate').value;
+  const payload={
+    customerId:parseInt(document.getElementById('f-customerId').value)||0,
+    categoryId:document.getElementById('f-categoryId').value||null,
+    orderNumber:parseInt(document.getElementById('f-orderNumber').value)||0,
+    deliveryDate:lev?new Date(lev).toISOString():null,
+    customerReference:document.getElementById('f-customerReference').value||null,
     customerReferenceNumber:document.getElementById('f-customerReferenceNumber').value||null,
-    paymentTermId:          parseInt(document.getElementById('f-paymentTermId').value)||0,
-    employeeResponsibleId:  parseInt(document.getElementById('f-employeeResponsibleId').value)||0,
-    note:                   document.getElementById('f-note').value||null,
-    orderLines:             samlLinjer()
+    paymentTermId:parseInt(document.getElementById('f-paymentTermId').value)||0,
+    employeeResponsibleId:parseInt(document.getElementById('f-employeeResponsibleId').value)||0,
+    note:document.getElementById('f-note').value||null,
+    orderLines:samlLinjer()
   };
   try {
-    const resp = await fetch(MAKE_WEBHOOK, { method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const res = await resp.json().catch(()=>({}));
-    toast('Ordre opprettet!' + (res.orderNumber ? ' #'+res.orderNumber : ''), 'success');
+    const resp=await fetch(MAKE_WEBHOOK,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const res=await resp.json().catch(()=>({}));
+    toast('Ordre opprettet!'+(res.orderNumber?' #'+res.orderNumber:''),'success');
     nullstillSkjema(); byttFane('sok'); hentOrdrer(0);
-  } catch(err) {
-    toast('Feil: ' + err.message, 'error');
-  } finally {
-    btn.disabled=false; btn.textContent='Opprett ordre';
-  }
+  } catch(err) { toast('Feil: '+err.message,'error'); }
+  finally { btn.disabled=false; btn.textContent='Opprett ordre'; }
 }
-
-// ── INIT ──────────────────────────────────────────────────────────────────
-// Auth state håndteres av onAuthStateChange over
 </script>
 </body>
 </html>
