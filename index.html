@@ -291,6 +291,7 @@ async function hentOrdrer(side) {
 
   let q = sb.from('ps_ordrer')
     .select('*', { count: 'exact' })
+    .eq('category_id', 'Ordre')
     .order('order_number', { ascending: false })
     .range(fra, fra + PAGE_SIZE - 1);
 
