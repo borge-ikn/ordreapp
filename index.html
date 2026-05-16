@@ -303,7 +303,7 @@ async function hentOrdrer(side) {
     }
   }
 
-  if (statusFilter) q = q.eq('status', statusFilter);
+  if (statusFilter) q = q.eq('status_name', statusFilter);
 
   const { data, error, count } = await q;
 
@@ -356,8 +356,8 @@ function visOrdrer(ordrer) {
         </div>
       </div>
       <div class="order-card-right">
-        <div class="order-beloep">${fmtBeloep(o.ordre_verdi)}</div>
-        <span class="status-badge ${statusFarge(o.status)}">${o.status || 'Ukjent'}</span>
+        <div class="order-beloep">${fmtBeloep(o.net_amount)}</div>
+        <span class="status-badge ${statusFarge(o.status_name)}">${o.status_name || 'Ukjent'}</span>
       </div>
     </div>
   `).join('');
@@ -370,7 +370,7 @@ function visDetalj(jsonStr) {
     <div class="detail-grid">
       <div class="detail-field">
         <label>Status</label>
-        <span class="status-badge ${statusFarge(o.status)}">${o.status || '–'}</span>
+        <span class="status-badge ${statusFarge(o.status_name)}">${o.status_name || '–'}</span>
       </div>
       <div class="detail-field">
         <label>Avdeling</label>
@@ -386,7 +386,7 @@ function visDetalj(jsonStr) {
       </div>
       <div class="detail-field">
         <label>Verdi</label>
-        <span>${fmtBeloep(o.ordre_verdi)}</span>
+        <span>${fmtBeloep(o.net_amount)}</span>
       </div>
       <div class="detail-field">
         <label>Kundereferanse</label>
@@ -407,9 +407,9 @@ function lukkModal(e) {
 // ── STATUS-FILTER ─────────────────────────────────────────────────────────
 
 async function hentStatuser() {
-  const { data } = await sb.from('ps_ordrer').select('status').not('status', 'is', null);
+  const { data } = await sb.from('ps_ordrer').select('status_name').not('status_name', 'is', null);
   if (!data) return;
-  const unike = [...new Set(data.map(r => r.status))].filter(Boolean).sort();
+  const unike = [...new Set(data.map(r => r.status_name))].filter(Boolean).sort();
   const sel = document.getElementById('status-filter');
   unike.forEach(s => {
     const opt = document.createElement('option');
