@@ -351,6 +351,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div id="dag-summary-wrap"></div>
     <div id="arbeidsdag-liste-wrap"></div>
     <div id="gap-vis-wrap"></div>
+    <div id="dag-ordretimer-wrap"></div>
     <div id="intern-tid-wrap"></div>
   </div>
 </div>
@@ -647,7 +648,8 @@ async function oppdaterTimerSeksjon(){
         <div class="timer-rad-info">
           <div class="timer-rad-top">
             <span class="timer-dato">${fmtDato(t.dato)}</span>
-            <span class="timer-antall">${fmtTimer(t.timer)}</span>${dot}
+            <span class="timer-antall">${fmtTimer(t.timer)}</span>
+            ${timeart_badge(t.timeart)}${dot}
           </div>
           <div class="timer-akt">${t.aktivitet_navn}</div>
           <div class="timer-komm">${t.kommentar}</div>
@@ -667,18 +669,35 @@ async function oppdaterTimerSeksjon(){
   seksjon.innerHTML=html;
 }
 
-function visTimerForm(prefill=null){
+async function visTimerForm(prefill=null){
   redigeringsId=prefill?prefill.id:null;
   const idag=new Date().toISOString().split('T')[0];
+  const dato=prefill?prefill.dato:idag;
   const aktOpt=AKTIVITETER.map(a=>`<option value="${a.kode}" ${prefill&&prefill.aktivitet_kode==a.kode?'selected':''}>${a.navn}</option>`).join('');
+
+  // Auto-foreslå timeart basert på arbeidsdag for valgt dato
+  let foreslattTimeart=prefill?prefill.timeart:'Ordinær tid';
+  if(!prefill){
+    const uid=await getUid();
+    const{data:arbPer}=await sb.from('arbeidsdag_logg').select('*').eq('dato',dato).eq('ansatt_id',uid);
+    if(arbPer&&arbPer.length){
+      const{totalNetto}=beregnDagTotaler(arbPer);
+      if(totalNetto>=ORDINAER_TIMER+OT50_MAX) foreslattTimeart='Overtid 100%';
+      else if(totalNetto>=ORDINAER_TIMER) foreslattTimeart='Overtid 50%';
+    }
+  }
+  const taOpt=['Ordinær tid','Overtid 50%','Overtid 100%'].map(v=>`<option value="${v}" ${v===foreslattTimeart?'selected':''}>${v}</option>`).join('');
+
   document.getElementById('timer-form-wrap').innerHTML=`
     <div class="timer-form">
       <h3>${redigeringsId?'Rediger timer':'Registrer timer'}</h3>
       <div class="tform-grid">
         <div class="tform-group"><label>Dato *</label>
-          <input type="date" id="tf-dato" value="${prefill?prefill.dato:idag}" required></div>
+          <input type="date" id="tf-dato" value="${dato}" required></div>
         <div class="tform-group"><label>Antall timer *</label>
           <input type="number" id="tf-timer" value="${prefill?prefill.timer:''}" placeholder="f.eks. 2.5" min="0.25" max="24" step="0.25" required></div>
+        <div class="tform-group"><label>Timeart *</label>
+          <select id="tf-timeart">${taOpt}</select></div>
         <div class="tform-group full"><label>Aktivitet *</label>
           <select id="tf-aktivitet">${aktOpt}</select></div>
         <div class="tform-group full"><label>Kommentar *</label>
@@ -698,10 +717,12 @@ async function lagreTimer(){
   const timer=parseFloat(document.getElementById('tf-timer').value);
   const aktKode=parseInt(document.getElementById('tf-aktivitet').value);
   const komm=document.getElementById('tf-kommentar').value.trim();
+  const timeart=document.getElementById('tf-timeart').value;
   if(!dato||!timer||!komm){toast('Fyll ut alle påkrevde felt','error');return;}
   const aktObj=AKTIVITETER.find(a=>a.kode===aktKode);
   const user=await getUser();
-  const rad={order_number:aktivOrdre.order_number,dato,timer,
+  const rad={order_number:aktivOrdre.order_number,dato,timer,timeart,
+    kundenavn:aktivOrdre.customer_name||null,
     aktivitet_kode:aktKode,aktivitet_navn:aktObj.navn,
     er_fakturerbar:aktObj.fakturerbar,kommentar:komm,
     ansatt_id:user.id,ansatt_epost:user.email,oppdatert_at:new Date().toISOString()};
@@ -736,8 +757,8 @@ async function lastDag(){
   const uid=await getUid();
   const[arbRes,ordreRes,internRes]=await Promise.all([
     sb.from('arbeidsdag_logg').select('*').eq('dato',dato).order('fra_tid',{ascending:true}),
-    sb.from('timeregistrering').select('timer,aktivitet_navn,er_fakturerbar')
-      .eq('dato',dato).eq('ansatt_id',uid).not('order_number','is',null),
+    sb.from('timeregistrering').select('id,order_number,kundenavn,aktivitet_navn,timer,timeart,er_fakturerbar,kommentar')
+      .eq('dato',dato).eq('ansatt_id',uid).not('order_number','is',null).order('opprettet_at',{ascending:true}),
     sb.from('timeregistrering').select('*')
       .eq('dato',dato).eq('ansatt_id',uid).is('order_number',null)
       .order('opprettet_at',{ascending:true})
@@ -748,6 +769,7 @@ async function lastDag(){
   visArbSummary(dato,arb);
   visArbListe(dato,arb);
   visGapVisualisering(dato,arb,ordre,intern);
+  visOrdretimerDag(dato,ordre);
   visInternTidListe(dato,intern);
 }
 
@@ -850,6 +872,42 @@ function visGapVisualisering(dato,arbPerioder,ordretimer,internTid){
       ${gap>0.25?`<button class="btn btn-sm btn-secondary" onclick="visInternTidForm()">+ Legg til intern tid</button>`:''}
     </div>
   </div>`;
+}
+
+// ── MIN DAG: ORDRETIMER LISTE ─────────────────────────────────────────────
+
+function timeart_badge(ta){
+  if(!ta||ta==='Ordinær tid') return `<span style="font-size:.75rem;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:20px;font-weight:600;">Ordinær</span>`;
+  if(ta==='Overtid 50%')      return `<span style="font-size:.75rem;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-weight:600;">OT 50%</span>`;
+  if(ta==='Overtid 100%')     return `<span style="font-size:.75rem;background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px;font-weight:600;">OT 100%</span>`;
+  return `<span style="font-size:.75rem;background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:20px;">${ta}</span>`;
+}
+
+function visOrdretimerDag(dato, ordretimer){
+  const wrap = document.getElementById('dag-ordretimer-wrap');
+  if(!ordretimer||!ordretimer.length){ wrap.innerHTML=''; return; }
+  const sumTimer = ordretimer.reduce((s,t)=>s+Number(t.timer),0);
+  const rader = ordretimer.map(t=>`
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--bg);border-radius:8px;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-weight:700;color:var(--accent);font-size:.9rem;">#${t.order_number}</span>
+          ${t.kundenavn?`<span style="font-size:.85rem;color:var(--text);">${t.kundenavn}</span>`:''}
+          ${timeart_badge(t.timeart)}
+          ${t.er_fakturerbar?'':'<span style="font-size:.75rem;background:#f3f4f6;color:var(--muted);padding:2px 8px;border-radius:20px;">Ikke fakt.</span>'}
+        </div>
+        <div style="font-size:.85rem;color:var(--muted);margin-top:3px;">${t.aktivitet_navn}${t.kommentar?` — ${t.kommentar}`:''}</div>
+      </div>
+      <div style="font-weight:700;font-size:.95rem;white-space:nowrap;">${fmtTimer(t.timer)}</div>
+    </div>`).join('');
+  wrap.innerHTML=`
+    <div class="intern-seksjon">
+      <div class="intern-header">
+        <div class="intern-tittel">📋 Ordretimer denne dagen</div>
+        <div style="font-size:.85rem;color:var(--muted);">Totalt: <strong>${fmtTimer(sumTimer)}</strong></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">${rader}</div>
+    </div>`;
 }
 
 // ── MIN DAG: INTERN TID ───────────────────────────────────────────────────
