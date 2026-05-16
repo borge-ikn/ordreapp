@@ -595,9 +595,11 @@ async function hentFilterverdier(){
   ]);
   const avd=[...new Set((a.data||[]).map(r=>r.department_name))].filter(Boolean).sort();
   const selA=document.getElementById('avdeling-filter');
+  selA.innerHTML='<option value="">Alle avdelinger</option>';
   avd.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;selA.appendChild(o);});
   const stat=[...new Set((s.data||[]).map(r=>r.status_name))].filter(Boolean).sort();
   const selS=document.getElementById('status-filter');
+  selS.innerHTML='<option value="">Alle statuser</option>';
   stat.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;selS.appendChild(o);});
 }
 
