@@ -25,41 +25,62 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-.header {
-  background: var(--accent); color: #fff;
-  padding: 0 24px; height: 60px;
-  display: flex; align-items: center; justify-content: space-between;
-  box-shadow: 0 2px 8px rgba(0,0,0,.2);
-  position: sticky; top: 0; z-index: 100;
-}
+/* ── LOGIN ── */
+.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.login-card { background: var(--surface); border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,.12); padding: 40px 36px; width: 100%; max-width: 420px; text-align: center; }
+.login-logo { width: 52px; height: 52px; background: var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.3rem; color: #fff; margin: 0 auto 20px; }
+.login-title { font-size: 1.4rem; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+.login-sub { font-size: .9rem; color: var(--muted); margin-bottom: 28px; }
+.login-input { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 1rem; outline: none; margin-bottom: 12px; transition: border-color .15s; }
+.login-input:focus { border-color: var(--accent); }
+.login-btn { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background .15s; }
+.login-btn:hover { background: var(--accent-hover); }
+.login-btn:disabled { opacity: .5; cursor: not-allowed; }
+.login-info { margin-top: 16px; font-size: .85rem; color: var(--muted); background: var(--bg); border-radius: 8px; padding: 12px; }
+.login-error { margin-top: 12px; font-size: .85rem; color: var(--red); }
+
+/* ── HEADER ── */
+.header { background: var(--accent); color: #fff; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,.2); position: sticky; top: 0; z-index: 100; }
 .logo { display: flex; align-items: center; gap: 10px; }
 .logo-box { width:32px;height:32px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem;color:#fff; }
 .logo-navn { font-size: 1.1rem; font-weight: 700; letter-spacing: .5px; }
-.logo-sub { font-size: .7rem; opacity: .7; display: block; letter-spacing: .3px; }
+.logo-sub { font-size: .7rem; opacity: .7; display: block; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.bruker-epost { font-size: .8rem; opacity: .8; }
+.btn-loggut { background: rgba(255,255,255,.15); border: none; color: #fff; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: .85rem; transition: background .15s; }
+.btn-loggut:hover { background: rgba(255,255,255,.25); }
 
+/* ── TABS ── */
 .tabs { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; padding: 0 24px; }
 .tab { padding: 14px 20px; font-size: .9rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; }
 .tab:hover { color: var(--accent); }
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
+/* ── MAIN ── */
 .main { max-width: 960px; margin: 24px auto; padding: 0 16px; }
 
+/* ── SEARCH ── */
 .search-bar { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.search-input { flex: 1; min-width: 200px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: .95rem; outline: none; transition: border-color .15s; }
+.search-input { flex: 1; min-width: 180px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: .95rem; outline: none; transition: border-color .15s; }
 .search-input:focus { border-color: var(--accent); }
 .select-filter { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: .9rem; outline: none; background: var(--surface); color: var(--text); cursor: pointer; }
 .select-filter:focus { border-color: var(--accent); }
+.result-info { font-size: .85rem; color: var(--muted); margin-bottom: 12px; }
 
-.btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: .9rem; font-weight: 600; transition: background .15s; }
-.btn-primary { background: var(--accent); color: #fff; }
+/* ── BUTTONS ── */
+.btn { padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: .9rem; font-weight: 600; transition: background .15s; }
+.btn-primary   { background: var(--accent); color: #fff; }
 .btn-primary:hover { background: var(--accent-hover); }
 .btn-secondary { background: var(--surface2); color: var(--text); }
 .btn-secondary:hover { background: #d1d5db; }
-.btn-gold { background: var(--gold); color: #fff; }
+.btn-gold      { background: var(--gold); color: #fff; }
 .btn-gold:hover { background: #d4901a; }
-.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-danger    { background: var(--red); color: #fff; }
+.btn-danger:hover { background: #b91c1c; }
+.btn-sm        { padding: 5px 12px; font-size: .8rem; }
+.btn:disabled  { opacity: .5; cursor: not-allowed; }
 
-.result-info { font-size: .85rem; color: var(--muted); margin-bottom: 12px; }
+/* ── ORDER LIST ── */
 .order-list { display: flex; flex-direction: column; gap: 10px; }
 .order-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 20px; cursor: pointer; transition: box-shadow .15s, transform .1s; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .order-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); transform: translateY(-1px); }
@@ -70,28 +91,64 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .order-card-right { text-align: right; flex-shrink: 0; }
 .order-beloep { font-size: .95rem; font-weight: 600; }
 .status-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; margin-top: 6px; }
-.status-badge.green { background: #d1fae5; color: #065f46; }
+.status-badge.green  { background: #d1fae5; color: #065f46; }
 .status-badge.yellow { background: #fef3c7; color: #92400e; }
-.status-badge.blue { background: #dbeafe; color: #1e40af; }
-.status-badge.gray { background: #f3f4f6; color: #374151; }
+.status-badge.blue   { background: #dbeafe; color: #1e40af; }
+.status-badge.gray   { background: #f3f4f6; color: #374151; }
 
+/* ── PAGINATION ── */
 .pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 20px; }
 .pagination span { font-size: .9rem; color: var(--muted); }
 
+/* ── LOADER ── */
 .loader { text-align: center; padding: 48px; color: var(--muted); font-size: .95rem; }
 .spinner { width: 36px; height: 36px; border: 3px solid var(--surface2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
-.modal { background: var(--surface); border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,.2); width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; padding: 28px; position: relative; }
-.modal-close { position: absolute; top: 16px; right: 16px; background: var(--surface2); border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
-.modal-title { font-size: 1.3rem; font-weight: 700; color: var(--accent); margin-bottom: 20px; }
-.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.detail-field label { font-size: .75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 3px; }
-.detail-field span { font-size: .95rem; }
+/* ── MODAL ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; display: flex; align-items: flex-start; justify-content: center; padding: 20px 16px; overflow-y: auto; }
+.modal { background: var(--surface); border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,.2); width: 100%; max-width: 720px; padding: 28px; position: relative; margin: auto; }
+.modal-close { position: absolute; top: 16px; right: 16px; background: var(--surface2); border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1rem; }
+.modal-title { font-size: 1.25rem; font-weight: 700; color: var(--accent); margin-bottom: 18px; padding-right: 36px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 4px; }
+.detail-field label { font-size: .72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 2px; }
+.detail-field span { font-size: .92rem; }
 .detail-full { grid-column: 1 / -1; }
 .detail-note { background: var(--bg); border-radius: 8px; padding: 10px 14px; font-size: .9rem; white-space: pre-wrap; }
 
+/* ── TIMER SECTION ── */
+.timer-divider { border: none; border-top: 1px solid var(--border); margin: 22px 0 18px; }
+.timer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.timer-heading { font-size: 1rem; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+.timer-count { background: var(--accent); color: #fff; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.timer-liste { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.timer-rad { background: var(--bg); border-radius: 8px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.timer-rad-info { flex: 1; min-width: 0; }
+.timer-rad-top { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.timer-dato { font-size: .85rem; font-weight: 600; }
+.timer-tid  { font-size: .82rem; color: var(--muted); }
+.timer-antall { font-size: .85rem; font-weight: 700; color: var(--accent); }
+.timer-akt  { font-size: .82rem; margin-top: 3px; }
+.timer-komm { font-size: .8rem; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.timer-ansatt { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+.timer-rad-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.fakturerbar-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-left: 4px; title: "Fakturerbar"; }
+.ikke-fakturerbar-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); margin-left: 4px; }
+
+/* ── TIMER FORM ── */
+.timer-form { background: var(--bg); border-radius: 10px; padding: 18px; margin-top: 8px; }
+.timer-form h3 { font-size: .9rem; font-weight: 700; color: var(--accent); margin-bottom: 14px; }
+.tform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tform-group { display: flex; flex-direction: column; gap: 4px; }
+.tform-group.full { grid-column: 1 / -1; }
+.tform-group label { font-size: .75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.tform-group input, .tform-group select, .tform-group textarea { border: 1px solid var(--border); border-radius: 7px; padding: 9px 12px; font-size: .92rem; font-family: inherit; outline: none; background: var(--surface); color: var(--text); transition: border-color .15s; }
+.tform-group input:focus, .tform-group select:focus, .tform-group textarea:focus { border-color: var(--accent); }
+.tform-group textarea { resize: vertical; min-height: 64px; }
+.timer-beregnet { font-size: .85rem; color: var(--accent); font-weight: 600; margin-top: 2px; }
+.tform-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+
+/* ── NY ORDRE FORM ── */
 .form-section { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; margin-bottom: 20px; }
 .form-section h2 { font-size: 1rem; font-weight: 700; color: var(--accent); margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -101,7 +158,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .form-group input, .form-group textarea, .form-group select { border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: .95rem; font-family: inherit; outline: none; transition: border-color .15s; background: var(--surface); color: var(--text); }
 .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--accent); }
 .form-group textarea { min-height: 80px; resize: vertical; }
-
 .orderline { background: var(--bg); border-radius: 8px; padding: 14px; margin-bottom: 10px; }
 .orderline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .orderline-title { font-size: .85rem; font-weight: 700; color: var(--accent); }
@@ -110,14 +166,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .add-line-btn { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--accent); background: none; border: 2px dashed var(--border); border-radius: 8px; padding: 10px; width: 100%; cursor: pointer; font-size: .9rem; font-weight: 500; transition: all .15s; }
 .add-line-btn:hover { border-color: var(--accent); background: #eef1f8; }
 
+/* ── CONFIRM DIALOG ── */
+.confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 400; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.confirm-box { background: var(--surface); border-radius: var(--radius); box-shadow: 0 12px 40px rgba(0,0,0,.2); padding: 28px; max-width: 380px; width: 100%; text-align: center; }
+.confirm-ikon { font-size: 2rem; margin-bottom: 12px; }
+.confirm-tittel { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+.confirm-tekst { font-size: .9rem; color: var(--muted); margin-bottom: 22px; }
+.confirm-actions { display: flex; gap: 10px; justify-content: center; }
+
+/* ── TOAST ── */
 .toast { position: fixed; bottom: 24px; right: 24px; background: #1f2937; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: .9rem; box-shadow: 0 8px 24px rgba(0,0,0,.2); z-index: 999; transform: translateY(80px); opacity: 0; transition: all .25s; max-width: 340px; }
-.toast.show { transform: translateY(0); opacity: 1; }
+.toast.show   { transform: translateY(0); opacity: 1; }
 .toast.success { background: var(--green); }
-.toast.error { background: var(--red); }
+.toast.error   { background: var(--red); }
 
 @media (max-width: 600px) {
-  .detail-grid, .form-grid { grid-template-columns: 1fr; }
-  .form-group.full { grid-column: 1; }
+  .detail-grid, .form-grid, .tform-grid { grid-template-columns: 1fr; }
+  .form-group.full, .tform-group.full { grid-column: 1; }
   .order-card { flex-direction: column; }
   .order-card-right { text-align: left; }
 }
@@ -125,108 +190,118 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </head>
 <body>
 
-<header class="header">
-  <div class="logo">
-    <div class="logo-box">IK</div>
-    <div>
-      <span class="logo-navn">Industrikran</span>
-      <span class="logo-sub">Ordreapp</span>
+<!-- ── LOGIN ─────────────────────────────────────────────────────────────── -->
+<div id="login-screen" style="display:none;">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-logo">IK</div>
+      <div class="login-title">Industrikran Ordreapp</div>
+      <div class="login-sub">Logg inn med din @industrikran.no e-postadresse</div>
+      <input class="login-input" id="login-epost" type="email" placeholder="navn@industrikran.no" onkeydown="if(event.key==='Enter')sendMagicLink()">
+      <button class="login-btn" id="login-btn" onclick="sendMagicLink()">Send innloggingslenke</button>
+      <div id="login-melding" style="display:none;" class="login-info">
+        ✉️ Sjekk innboksen din! Vi har sendt en innloggingslenke til <strong id="login-epost-vis"></strong>
+      </div>
+      <div id="login-feil" class="login-error"></div>
     </div>
   </div>
-</header>
-
-<div class="tabs">
-  <div class="tab active" id="tab-sok" onclick="byttFane('sok')">🔍 Ordresøk</div>
-  <div class="tab" id="tab-ny" onclick="byttFane('ny')">➕ Ny ordre</div>
 </div>
 
-<!-- ORDRESØK -->
-<div class="main" id="side-sok">
-  <div class="search-bar">
-    <input class="search-input" id="sokeord" type="text" placeholder="Søk på kundenavn eller ordrenummer..." onkeydown="if(event.key==='Enter')sokOrdrer()">
-    <select class="select-filter" id="avdeling-filter" onchange="sokOrdrer()">
-      <option value="">Alle avdelinger</option>
-    </select>
-    <select class="select-filter" id="status-filter" onchange="sokOrdrer()">
-      <option value="">Alle statuser</option>
-    </select>
-    <button class="btn btn-primary" onclick="sokOrdrer()">Søk</button>
-    <button class="btn btn-secondary" onclick="nullstillSok()">Nullstill</button>
-  </div>
-  <div id="resultat-info" class="result-info"></div>
-  <div id="ordre-liste" class="order-list">
-    <div class="loader"><div class="spinner"></div>Henter ordrer...</div>
-  </div>
-  <div class="pagination" id="paginering" style="display:none;">
-    <button class="btn btn-secondary" id="forrige-btn" onclick="forrigeSide()">← Forrige</button>
-    <span id="side-info"></span>
-    <button class="btn btn-secondary" id="neste-btn" onclick="nesteSide()">Neste →</button>
-  </div>
-</div>
-
-<!-- NY ORDRE -->
-<div class="main" id="side-ny" style="display:none;">
-  <form id="ny-ordre-form" onsubmit="sendOrdre(event)">
-    <div class="form-section">
-      <h2>Ordredetaljer</h2>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Kunde-ID *</label>
-          <input type="number" id="f-customerId" placeholder="f.eks. 1042" required>
-        </div>
-        <div class="form-group">
-          <label>Kategori-ID</label>
-          <input type="text" id="f-categoryId" placeholder="f.eks. Ordre">
-        </div>
-        <div class="form-group">
-          <label>Leveringsdato</label>
-          <input type="date" id="f-deliveryDate">
-        </div>
-        <div class="form-group">
-          <label>Ordrenummer</label>
-          <input type="number" id="f-orderNumber" placeholder="Genereres automatisk">
-        </div>
-        <div class="form-group">
-          <label>Kundereferanse</label>
-          <input type="text" id="f-customerReference" placeholder="Ref. hos kunde">
-        </div>
-        <div class="form-group">
-          <label>Kundens referansenummer</label>
-          <input type="text" id="f-customerReferenceNumber" placeholder="PO-nummer e.l.">
-        </div>
-        <div class="form-group">
-          <label>Betalingsbetingelse-ID</label>
-          <input type="number" id="f-paymentTermId">
-        </div>
-        <div class="form-group">
-          <label>Ansvarlig ansatt-ID</label>
-          <input type="number" id="f-employeeResponsibleId">
-        </div>
-        <div class="form-group full">
-          <label>Notat</label>
-          <textarea id="f-note" placeholder="Intern merknad til ordren..."></textarea>
-        </div>
+<!-- ── APP ───────────────────────────────────────────────────────────────── -->
+<div id="app" style="display:none;">
+  <header class="header">
+    <div class="logo">
+      <div class="logo-box">IK</div>
+      <div>
+        <span class="logo-navn">Industrikran</span>
+        <span class="logo-sub">Ordreapp</span>
       </div>
     </div>
-
-    <div class="form-section">
-      <h2>Ordrelinjer</h2>
-      <div id="ordrelinjer"></div>
-      <button type="button" class="add-line-btn" onclick="leggTilOrdrelinje()">＋ Legg til ordrelinje</button>
+    <div class="header-right">
+      <span class="bruker-epost" id="bruker-epost"></span>
+      <button class="btn-loggut" onclick="loggUt()">Logg ut</button>
     </div>
+  </header>
 
-    <div style="display:flex;gap:12px;justify-content:flex-end;padding-bottom:40px;">
-      <button type="button" class="btn btn-secondary" onclick="nullstillSkjema()">Nullstill</button>
-      <button type="submit" class="btn btn-gold" id="send-btn">Opprett ordre</button>
+  <div class="tabs">
+    <div class="tab active" id="tab-sok" onclick="byttFane('sok')">🔍 Ordresøk</div>
+    <div class="tab" id="tab-ny" onclick="byttFane('ny')">➕ Ny ordre</div>
+  </div>
+
+  <!-- ORDRESØK -->
+  <div class="main" id="side-sok">
+    <div class="search-bar">
+      <input class="search-input" id="sokeord" type="text" placeholder="Søk på kundenavn eller ordrenummer..." onkeydown="if(event.key==='Enter')sokOrdrer()">
+      <select class="select-filter" id="avdeling-filter" onchange="sokOrdrer()">
+        <option value="">Alle avdelinger</option>
+      </select>
+      <select class="select-filter" id="status-filter" onchange="sokOrdrer()">
+        <option value="">Alle statuser</option>
+      </select>
+      <button class="btn btn-primary" onclick="sokOrdrer()">Søk</button>
+      <button class="btn btn-secondary" onclick="nullstillSok()">Nullstill</button>
     </div>
-  </form>
+    <div id="resultat-info" class="result-info"></div>
+    <div id="ordre-liste" class="order-list">
+      <div class="loader"><div class="spinner"></div>Henter ordrer...</div>
+    </div>
+    <div class="pagination" id="paginering" style="display:none;">
+      <button class="btn btn-secondary" id="forrige-btn" onclick="forrigeSide()">← Forrige</button>
+      <span id="side-info"></span>
+      <button class="btn btn-secondary" id="neste-btn" onclick="nesteSide()">Neste →</button>
+    </div>
+  </div>
+
+  <!-- NY ORDRE -->
+  <div class="main" id="side-ny" style="display:none;">
+    <form id="ny-ordre-form" onsubmit="sendOrdre(event)">
+      <div class="form-section">
+        <h2>Ordredetaljer</h2>
+        <div class="form-grid">
+          <div class="form-group"><label>Kunde-ID *</label><input type="number" id="f-customerId" required></div>
+          <div class="form-group"><label>Kategori-ID</label><input type="text" id="f-categoryId" placeholder="f.eks. Ordre"></div>
+          <div class="form-group"><label>Leveringsdato</label><input type="date" id="f-deliveryDate"></div>
+          <div class="form-group"><label>Ordrenummer</label><input type="number" id="f-orderNumber" placeholder="Genereres automatisk"></div>
+          <div class="form-group"><label>Kundereferanse</label><input type="text" id="f-customerReference"></div>
+          <div class="form-group"><label>Kundens referansenummer</label><input type="text" id="f-customerReferenceNumber"></div>
+          <div class="form-group"><label>Betalingsbetingelse-ID</label><input type="number" id="f-paymentTermId"></div>
+          <div class="form-group"><label>Ansvarlig ansatt-ID</label><input type="number" id="f-employeeResponsibleId"></div>
+          <div class="form-group full"><label>Notat</label><textarea id="f-note"></textarea></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <h2>Ordrelinjer</h2>
+        <div id="ordrelinjer"></div>
+        <button type="button" class="add-line-btn" onclick="leggTilOrdrelinje()">＋ Legg til ordrelinje</button>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;padding-bottom:40px;">
+        <button type="button" class="btn btn-secondary" onclick="nullstillSkjema()">Nullstill</button>
+        <button type="submit" class="btn btn-gold" id="send-btn">Opprett ordre</button>
+      </div>
+    </form>
+  </div>
 </div>
 
-<!-- DETALJ MODAL -->
-<div class="modal-overlay" id="detalj-modal" style="display:none;" onclick="lukkModal(event)">
+<!-- ── ORDRE DETALJ MODAL ──────────────────────────────────────────────── -->
+<div class="modal-overlay" id="detalj-modal" style="display:none;" onclick="lukkModalKlikk(event)">
   <div class="modal">
     <button class="modal-close" onclick="lukkModal()">✕</button>
     <div id="modal-innhold"></div>
+    <hr class="timer-divider">
+    <div id="timer-seksjon"></div>
+  </div>
+</div>
+
+<!-- ── BEKREFT DIALOG ─────────────────────────────────────────────────── -->
+<div class="confirm-overlay" id="confirm-overlay" style="display:none;">
+  <div class="confirm-box">
+    <div class="confirm-ikon">🗑️</div>
+    <div class="confirm-tittel">Slett timeregistrering</div>
+    <div class="confirm-tekst">Er du sikker på at du vil slette denne timeregistreringen? Dette kan ikke angres.</div>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" onclick="lukkBekreft()">Avbryt</button>
+      <button class="btn btn-danger" id="bekreft-ok-btn">Ja, slett</button>
+    </div>
   </div>
 </div>
 
@@ -243,6 +318,87 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let gjeldendeSide = 0;
 let totaltAntall  = 0;
 let linjeNr = 0;
+let aktivOrdre = null;   // ordre som er åpen i modal
+let redigeringsId = null; // timer-rad som redigeres
+
+const AKTIVITETER = [
+  { kode: 119, navn: 'Administrativt arbeid',               fakturerbar: true  },
+  { kode: 104, navn: 'AMU og Vernetjenesten',               fakturerbar: false },
+  { kode: 904, navn: 'Barns sykdom',                        fakturerbar: false },
+  { kode: 112, navn: 'Driftsstans',                         fakturerbar: true  },
+  { kode: 108, navn: 'Ekstraarbeider',                      fakturerbar: true  },
+  { kode: 113, navn: 'Feilsøking',                          fakturerbar: true  },
+  { kode: 907, navn: 'Ferie',                               fakturerbar: false },
+  { kode: 116, navn: 'Hjemmekontor',                        fakturerbar: false },
+  { kode: 906, navn: 'Militærtjeneste',                     fakturerbar: false },
+  { kode: 106, navn: 'Montasje',                            fakturerbar: true  },
+  { kode: 115, navn: 'Opplæring',                           fakturerbar: false },
+  { kode: 901, navn: 'Permisjon med lønn',                  fakturerbar: false },
+  { kode: 905, navn: 'Permisjon uten lønn',                 fakturerbar: false },
+  { kode: 804, navn: 'Renhold (kun renholdspersonell)',     fakturerbar: false },
+  { kode: 118, navn: 'Salgsarbeid',                         fakturerbar: false },
+  { kode: 120, navn: 'Stab',                                fakturerbar: false },
+  { kode: 902, navn: 'Syk med egenmelding',                 fakturerbar: false },
+  { kode: 903, navn: 'Syk med sykemelding',                 fakturerbar: false },
+  { kode: 802, navn: 'Ufakturerbare timer',                 fakturerbar: false },
+  { kode: 107, navn: 'Utbedringer',                         fakturerbar: true  },
+  { kode: 900, navn: 'Velferdspermisjon',                   fakturerbar: false },
+  { kode: 109, navn: 'Venting',                             fakturerbar: true  },
+  { kode: 114, navn: 'Årskontroll annet',                   fakturerbar: true  },
+  { kode: 110, navn: 'Årskontroll kraner',                  fakturerbar: true  },
+  { kode: 111, navn: 'Årskontroll løfteutstyr',             fakturerbar: true  },
+];
+
+// ── AUTH ──────────────────────────────────────────────────────────────────
+
+async function sendMagicLink() {
+  const epost = document.getElementById('login-epost').value.trim().toLowerCase();
+  const feilEl = document.getElementById('login-feil');
+  feilEl.textContent = '';
+
+  if (!epost.endsWith('@industrikran.no')) {
+    feilEl.textContent = 'Kun @industrikran.no e-postadresser er tillatt.';
+    return;
+  }
+
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sender...';
+
+  const { error } = await sb.auth.signInWithOtp({
+    email: epost,
+    options: { emailRedirectTo: window.location.origin + window.location.pathname }
+  });
+
+  if (error) {
+    feilEl.textContent = 'Feil: ' + error.message;
+    btn.disabled = false;
+    btn.textContent = 'Send innloggingslenke';
+    return;
+  }
+
+  document.getElementById('login-epost-vis').textContent = epost;
+  document.getElementById('login-melding').style.display = 'block';
+  btn.textContent = 'Sendt ✓';
+}
+
+async function loggUt() {
+  await sb.auth.signOut();
+}
+
+sb.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('bruker-epost').textContent = session.user.email;
+    hentFilterverdier();
+    hentOrdrer(0);
+    leggTilOrdrelinje();
+  } else {
+    document.getElementById('login-screen').style.display = 'block';
+    document.getElementById('app').style.display = 'none';
+  }
+});
 
 // ── UTILS ─────────────────────────────────────────────────────────────────
 
@@ -252,17 +408,14 @@ function toast(msg, type = '') {
   el.className = 'toast show ' + type;
   setTimeout(() => { el.className = 'toast'; }, 3500);
 }
-
 function fmtBeloep(v) {
   if (v == null) return '–';
   return Number(v).toLocaleString('nb-NO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' kr';
 }
-
 function fmtDato(d) {
   if (!d) return '–';
   return new Date(d).toLocaleDateString('nb-NO');
 }
-
 function statusFarge(s) {
   if (!s) return 'gray';
   const l = s.toLowerCase();
@@ -272,6 +425,19 @@ function statusFarge(s) {
   if (l.includes('vent') || l.includes('tilbud')) return 'yellow';
   return 'gray';
 }
+function beregnTimer(fra, til) {
+  if (!fra || !til) return 0;
+  const [fh, fm] = fra.split(':').map(Number);
+  const [th, tm] = til.split(':').map(Number);
+  const mins = (th * 60 + tm) - (fh * 60 + fm);
+  return Math.max(0, mins / 60);
+}
+function fmtTimer(t) {
+  if (!t && t !== 0) return '–';
+  const h = Math.floor(t);
+  const m = Math.round((t - h) * 60);
+  return h + 't' + (m > 0 ? ' ' + m + 'm' : '');
+}
 
 function byttFane(fane) {
   document.getElementById('side-sok').style.display = fane === 'sok' ? '' : 'none';
@@ -280,7 +446,7 @@ function byttFane(fane) {
   document.getElementById('tab-' + fane).classList.add('active');
 }
 
-// ── ORDRESØK ──────────────────────────────────────────────────────────────
+// ── ORDRESØK ─────────────────────────────────────────────────────────────
 
 async function hentOrdrer(side) {
   const liste = document.getElementById('ordre-liste');
@@ -288,7 +454,8 @@ async function hentOrdrer(side) {
   document.getElementById('paginering').style.display = 'none';
   document.getElementById('resultat-info').textContent = '';
 
-  const sokeord     = document.getElementById('sokeord').value.trim();
+  const sokeord      = document.getElementById('sokeord').value.trim();
+  const avdFilter    = document.getElementById('avdeling-filter').value;
   const statusFilter = document.getElementById('status-filter').value;
   const fra = side * PAGE_SIZE;
 
@@ -300,23 +467,13 @@ async function hentOrdrer(side) {
 
   if (sokeord) {
     const tall = parseInt(sokeord);
-    if (!isNaN(tall)) {
-      q = q.eq('order_number', tall);
-    } else {
-      q = q.ilike('customer_name', '%' + sokeord + '%');
-    }
+    q = !isNaN(tall) ? q.eq('order_number', tall) : q.ilike('customer_name', '%' + sokeord + '%');
   }
-
-  const avdelingFilter = document.getElementById('avdeling-filter').value;
-  if (avdelingFilter) q = q.eq('department_name', avdelingFilter);
+  if (avdFilter)    q = q.eq('department_name', avdFilter);
   if (statusFilter) q = q.eq('status_name', statusFilter);
 
   const { data, error, count } = await q;
-
-  if (error) {
-    liste.innerHTML = '<div class="loader">⚠ ' + error.message + '</div>';
-    return;
-  }
+  if (error) { liste.innerHTML = '<div class="loader">⚠ ' + error.message + '</div>'; return; }
 
   gjeldendeSide = side;
   totaltAntall  = count || 0;
@@ -327,7 +484,6 @@ async function hentOrdrer(side) {
 function sokOrdrer()   { hentOrdrer(0); }
 function nesteSide()   { hentOrdrer(gjeldendeSide + 1); }
 function forrigeSide() { hentOrdrer(gjeldendeSide - 1); }
-
 function nullstillSok() {
   document.getElementById('sokeord').value = '';
   document.getElementById('avdeling-filter').value = '';
@@ -347,10 +503,7 @@ function visPaginering() {
 
 function visOrdrer(ordrer) {
   const liste = document.getElementById('ordre-liste');
-  if (!ordrer.length) {
-    liste.innerHTML = '<div class="loader">Ingen ordrer funnet.</div>';
-    return;
-  }
+  if (!ordrer.length) { liste.innerHTML = '<div class="loader">Ingen ordrer funnet.</div>'; return; }
   liste.innerHTML = ordrer.map(o => `
     <div class="order-card" onclick='visDetalj(${JSON.stringify(JSON.stringify(o))})'>
       <div style="flex:1;min-width:0;">
@@ -370,188 +523,304 @@ function visOrdrer(ordrer) {
   `).join('');
 }
 
-function visDetalj(jsonStr) {
-  const o = JSON.parse(jsonStr);
-  document.getElementById('modal-innhold').innerHTML = `
-    <div class="modal-title">#${o.order_number} – ${o.customer_name || '–'}</div>
-    <div class="detail-grid">
-      <div class="detail-field">
-        <label>Status</label>
-        <span class="status-badge ${statusFarge(o.status_name)}">${o.status_name || '–'}</span>
-      </div>
-      <div class="detail-field">
-        <label>Avdeling</label>
-        <span>${o.department_name || '–'}</span>
-      </div>
-      <div class="detail-field">
-        <label>Leveringsdato</label>
-        <span>${fmtDato(o.delivery_date)}</span>
-      </div>
-      <div class="detail-field">
-        <label>Ordredato</label>
-        <span>${fmtDato(o.date)}</span>
-      </div>
-      <div class="detail-field">
-        <label>Verdi</label>
-        <span>${fmtBeloep(o.net_amount)}</span>
-      </div>
-      <div class="detail-field">
-        <label>Kundereferanse</label>
-        <span>${o.customer_reference || '–'}</span>
-      </div>
-      ${o.note ? `<div class="detail-field detail-full"><label>Notat</label><div class="detail-note">${o.note}</div></div>` : ''}
-    </div>
-  `;
-  document.getElementById('detalj-modal').style.display = 'flex';
-}
-
-function lukkModal(e) {
-  if (!e || e.target === document.getElementById('detalj-modal')) {
-    document.getElementById('detalj-modal').style.display = 'none';
-  }
-}
-
-// ── STATUS-FILTER ─────────────────────────────────────────────────────────
-
 async function hentFilterverdier() {
   const [avdRes, statRes] = await Promise.all([
     sb.from('ps_ordrer').select('department_name').eq('category_id', 'Ordre').not('department_name', 'is', null),
     sb.from('ps_ordrer').select('status_name').eq('category_id', 'Ordre').not('status_name', 'is', null)
   ]);
-
-  const avdelinger = [...new Set((avdRes.data || []).map(r => r.department_name))].filter(Boolean).sort();
-  const selAvd = document.getElementById('avdeling-filter');
-  avdelinger.forEach(a => {
-    const opt = document.createElement('option');
-    opt.value = a; opt.textContent = a;
-    selAvd.appendChild(opt);
-  });
-
-  const statuser = [...new Set((statRes.data || []).map(r => r.status_name))].filter(Boolean).sort();
-  const selStat = document.getElementById('status-filter');
-  statuser.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s; opt.textContent = s;
-    selStat.appendChild(opt);
-  });
+  const avd = [...new Set((avdRes.data||[]).map(r=>r.department_name))].filter(Boolean).sort();
+  const selA = document.getElementById('avdeling-filter');
+  avd.forEach(a => { const o=document.createElement('option'); o.value=a; o.textContent=a; selA.appendChild(o); });
+  const stat = [...new Set((statRes.data||[]).map(r=>r.status_name))].filter(Boolean).sort();
+  const selS = document.getElementById('status-filter');
+  stat.forEach(s => { const o=document.createElement('option'); o.value=s; o.textContent=s; selS.appendChild(o); });
 }
 
-// ── NY ORDRE (→ Make → prodsys) ───────────────────────────────────────────
+// ── ORDRE DETALJ + TIMER ──────────────────────────────────────────────────
+
+async function visDetalj(jsonStr) {
+  aktivOrdre = JSON.parse(jsonStr);
+  redigeringsId = null;
+
+  document.getElementById('modal-innhold').innerHTML = `
+    <div class="modal-title">#${aktivOrdre.order_number} – ${aktivOrdre.customer_name || '–'}</div>
+    <div class="detail-grid">
+      <div class="detail-field"><label>Status</label>
+        <span class="status-badge ${statusFarge(aktivOrdre.status_name)}">${aktivOrdre.status_name||'–'}</span></div>
+      <div class="detail-field"><label>Avdeling</label><span>${aktivOrdre.department_name||'–'}</span></div>
+      <div class="detail-field"><label>Leveringsdato</label><span>${fmtDato(aktivOrdre.delivery_date)}</span></div>
+      <div class="detail-field"><label>Verdi</label><span>${fmtBeloep(aktivOrdre.net_amount)}</span></div>
+      <div class="detail-field"><label>Kundereferanse</label><span>${aktivOrdre.customer_reference||'–'}</span></div>
+      <div class="detail-field"><label>Ref.nummer</label><span>${aktivOrdre.customer_reference_number||'–'}</span></div>
+      ${aktivOrdre.note ? `<div class="detail-field detail-full"><label>Notat</label><div class="detail-note">${aktivOrdre.note}</div></div>` : ''}
+    </div>
+  `;
+
+  document.getElementById('detalj-modal').style.display = 'flex';
+  await oppdaterTimerSeksjon();
+}
+
+async function oppdaterTimerSeksjon() {
+  const seksjon = document.getElementById('timer-seksjon');
+  seksjon.innerHTML = '<div class="loader" style="padding:20px 0;"><div class="spinner"></div></div>';
+
+  const { data: session } = await sb.auth.getSession();
+  const uid = session?.session?.user?.id;
+
+  const { data: timer, error } = await sb.from('timeregistrering')
+    .select('*')
+    .eq('order_number', aktivOrdre.order_number)
+    .order('dato', { ascending: false })
+    .order('fra_tid', { ascending: false });
+
+  if (error) { seksjon.innerHTML = '<p style="color:var(--red)">Feil ved henting av timer.</p>'; return; }
+
+  const totalTimer = (timer||[]).reduce((s, t) => s + Number(t.timer), 0);
+
+  let html = `
+    <div class="timer-header">
+      <div class="timer-heading">
+        ⏱ Timer
+        <span class="timer-count">${timer.length}</span>
+        ${totalTimer > 0 ? `<span style="font-size:.82rem;font-weight:400;color:var(--muted)">${fmtTimer(totalTimer)} totalt</span>` : ''}
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="visTiFormSkjema()">+ Registrer timer</button>
+    </div>
+  `;
+
+  if (timer.length) {
+    html += '<div class="timer-liste">';
+    timer.forEach(t => {
+      const erEgen = t.ansatt_id === uid;
+      const dot = t.er_fakturerbar
+        ? '<span class="fakturerbar-dot" title="Fakturerbar"></span>'
+        : '<span class="ikke-fakturerbar-dot" title="Ikke fakturerbar"></span>';
+      html += `
+        <div class="timer-rad" id="trad-${t.id}">
+          <div class="timer-rad-info">
+            <div class="timer-rad-top">
+              <span class="timer-dato">${fmtDato(t.dato)}</span>
+              <span class="timer-tid">${t.fra_tid.slice(0,5)}–${t.til_tid.slice(0,5)}</span>
+              <span class="timer-antall">${fmtTimer(Number(t.timer))}</span>
+              ${dot}
+            </div>
+            <div class="timer-akt">${t.aktivitet_navn}</div>
+            <div class="timer-komm" title="${t.kommentar}">${t.kommentar}</div>
+            <div class="timer-ansatt">👤 ${t.ansatt_epost}</div>
+          </div>
+          ${erEgen ? `
+          <div class="timer-rad-actions">
+            <button class="btn btn-secondary btn-sm" onclick="redigerTimer(${t.id})">Rediger</button>
+            <button class="btn btn-danger btn-sm" onclick="bekreftSlett(${t.id})">Slett</button>
+          </div>` : ''}
+        </div>
+      `;
+    });
+    html += '</div>';
+  } else {
+    html += '<p style="font-size:.9rem;color:var(--muted);margin-bottom:16px;">Ingen timer registrert på denne ordren ennå.</p>';
+  }
+
+  html += '<div id="timer-form-wrap"></div>';
+  seksjon.innerHTML = html;
+}
+
+function visTiFormSkjema(prefill = null) {
+  redigeringsId = prefill ? prefill.id : null;
+  const idag = new Date().toISOString().split('T')[0];
+
+  const aktivAlt = AKTIVITETER.map(a =>
+    `<option value="${a.kode}" ${prefill && prefill.aktivitet_kode == a.kode ? 'selected' : ''}>${a.navn}</option>`
+  ).join('');
+
+  document.getElementById('timer-form-wrap').innerHTML = `
+    <div class="timer-form">
+      <h3>${redigeringsId ? 'Rediger timeregistrering' : 'Registrer timer'}</h3>
+      <div class="tform-grid">
+        <div class="tform-group">
+          <label>Dato *</label>
+          <input type="date" id="tf-dato" value="${prefill ? prefill.dato : idag}" required>
+        </div>
+        <div class="tform-group" style="align-self:end;">
+          <span class="timer-beregnet" id="tf-beregnet"></span>
+        </div>
+        <div class="tform-group">
+          <label>Fra *</label>
+          <input type="time" id="tf-fra" value="${prefill ? prefill.fra_tid.slice(0,5) : ''}" oninput="oppdaterBeregnet()" required>
+        </div>
+        <div class="tform-group">
+          <label>Til *</label>
+          <input type="time" id="tf-til" value="${prefill ? prefill.til_tid.slice(0,5) : ''}" oninput="oppdaterBeregnet()" required>
+        </div>
+        <div class="tform-group full">
+          <label>Aktivitet *</label>
+          <select id="tf-aktivitet">${aktivAlt}</select>
+        </div>
+        <div class="tform-group full">
+          <label>Kommentar *</label>
+          <textarea id="tf-kommentar" placeholder="Beskriv arbeidet som ble utført..." required>${prefill ? prefill.kommentar : ''}</textarea>
+        </div>
+      </div>
+      <div class="tform-actions">
+        <button type="button" class="btn btn-secondary" onclick="skjulTimerForm()">Avbryt</button>
+        <button type="button" class="btn btn-gold" onclick="lagreTimer()">${redigeringsId ? 'Oppdater' : 'Lagre timer'}</button>
+      </div>
+    </div>
+  `;
+
+  if (prefill) oppdaterBeregnet();
+  document.getElementById('timer-form-wrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function skjulTimerForm() {
+  const wrap = document.getElementById('timer-form-wrap');
+  if (wrap) wrap.innerHTML = '';
+  redigeringsId = null;
+}
+
+function oppdaterBeregnet() {
+  const fra = document.getElementById('tf-fra')?.value;
+  const til = document.getElementById('tf-til')?.value;
+  const el  = document.getElementById('tf-beregnet');
+  if (!el) return;
+  const t = beregnTimer(fra, til);
+  el.textContent = t > 0 ? '= ' + fmtTimer(t) : '';
+}
+
+async function lagreTimer() {
+  const dato     = document.getElementById('tf-dato').value;
+  const fra      = document.getElementById('tf-fra').value;
+  const til      = document.getElementById('tf-til').value;
+  const aktKode  = parseInt(document.getElementById('tf-aktivitet').value);
+  const komm     = document.getElementById('tf-kommentar').value.trim();
+
+  if (!dato || !fra || !til || !komm) { toast('Fyll ut alle påkrevde felt', 'error'); return; }
+
+  const timer = beregnTimer(fra, til);
+  if (timer <= 0) { toast('Til-tid må være etter fra-tid', 'error'); return; }
+
+  const aktObj = AKTIVITETER.find(a => a.kode === aktKode);
+  const { data: sessionData } = await sb.auth.getSession();
+  const user = sessionData?.session?.user;
+
+  const rad = {
+    order_number:   aktivOrdre.order_number,
+    dato,
+    fra_tid:        fra,
+    til_tid:        til,
+    timer:          Math.round(timer * 100) / 100,
+    aktivitet_kode: aktKode,
+    aktivitet_navn: aktObj.navn,
+    er_fakturerbar: aktObj.fakturerbar,
+    kommentar:      komm,
+    ansatt_id:      user.id,
+    ansatt_epost:   user.email,
+    oppdatert_at:   new Date().toISOString()
+  };
+
+  let error;
+  if (redigeringsId) {
+    ({ error } = await sb.from('timeregistrering').update(rad).eq('id', redigeringsId));
+  } else {
+    ({ error } = await sb.from('timeregistrering').insert(rad));
+  }
+
+  if (error) { toast('Feil: ' + error.message, 'error'); return; }
+
+  toast(redigeringsId ? 'Timer oppdatert' : 'Timer lagret ✓', 'success');
+  await oppdaterTimerSeksjon();
+}
+
+async function redigerTimer(id) {
+  const { data } = await sb.from('timeregistrering').select('*').eq('id', id).single();
+  if (data) visTiFormSkjema(data);
+}
+
+function bekreftSlett(id) {
+  document.getElementById('confirm-overlay').style.display = 'flex';
+  document.getElementById('bekreft-ok-btn').onclick = () => slettTimer(id);
+}
+function lukkBekreft() {
+  document.getElementById('confirm-overlay').style.display = 'none';
+}
+async function slettTimer(id) {
+  lukkBekreft();
+  const { error } = await sb.from('timeregistrering').delete().eq('id', id);
+  if (error) { toast('Feil: ' + error.message, 'error'); return; }
+  toast('Timeregistrering slettet', 'success');
+  await oppdaterTimerSeksjon();
+}
+
+function lukkModal() { document.getElementById('detalj-modal').style.display = 'none'; aktivOrdre = null; }
+function lukkModalKlikk(e) { if (e.target === document.getElementById('detalj-modal')) lukkModal(); }
+
+// ── NY ORDRE ──────────────────────────────────────────────────────────────
 
 function leggTilOrdrelinje() {
+  if (document.getElementById('ordrelinjer') === null) return;
   linjeNr++;
   const div = document.createElement('div');
-  div.className = 'orderline';
-  div.id = 'linje-' + linjeNr;
+  div.className = 'orderline'; div.id = 'linje-' + linjeNr;
   div.innerHTML = `
     <div class="orderline-header">
       <span class="orderline-title">Linje ${linjeNr}</span>
       <button type="button" class="btn-remove" onclick="fjernLinje(${linjeNr})">✕</button>
     </div>
     <div class="form-grid">
-      <div class="form-group">
-        <label>Artikkelnr.</label>
-        <input type="text" name="l${linjeNr}_articleNumber" placeholder="Art.nr.">
-      </div>
-      <div class="form-group">
-        <label>Antall</label>
-        <input type="number" name="l${linjeNr}_qty" value="1" min="0" step="any">
-      </div>
-      <div class="form-group">
-        <label>Pris</label>
-        <input type="number" name="l${linjeNr}_price" placeholder="0" step="any">
-      </div>
-      <div class="form-group">
-        <label>Rabatt %</label>
-        <input type="number" name="l${linjeNr}_discount" placeholder="0" min="0" max="100" step="any">
-      </div>
-      <div class="form-group full">
-        <label>Beskrivelse</label>
-        <input type="text" name="l${linjeNr}_description" placeholder="Beskrivelse av vare/tjeneste">
-      </div>
-    </div>
-  `;
+      <div class="form-group"><label>Artikkelnr.</label><input type="text" name="l${linjeNr}_articleNumber"></div>
+      <div class="form-group"><label>Antall</label><input type="number" name="l${linjeNr}_qty" value="1" min="0" step="any"></div>
+      <div class="form-group"><label>Pris</label><input type="number" name="l${linjeNr}_price" placeholder="0" step="any"></div>
+      <div class="form-group"><label>Rabatt %</label><input type="number" name="l${linjeNr}_discount" placeholder="0" min="0" max="100" step="any"></div>
+      <div class="form-group full"><label>Beskrivelse</label><input type="text" name="l${linjeNr}_description"></div>
+    </div>`;
   document.getElementById('ordrelinjer').appendChild(div);
 }
-
-function fjernLinje(nr) {
-  const el = document.getElementById('linje-' + nr);
-  if (el) el.remove();
-}
-
+function fjernLinje(nr) { const el=document.getElementById('linje-'+nr); if(el) el.remove(); }
 function nullstillSkjema() {
   document.getElementById('ny-ordre-form').reset();
-  document.getElementById('ordrelinjer').innerHTML = '';
-  linjeNr = 0;
-  leggTilOrdrelinje();
+  document.getElementById('ordrelinjer').innerHTML='';
+  linjeNr=0; leggTilOrdrelinje();
 }
-
 function samlLinjer() {
   return [...document.querySelectorAll('.orderline')].map(el => {
-    const id = el.id.replace('linje-', '');
-    const get = n => { const f = el.querySelector(`[name="l${id}_${n}"]`); return f ? f.value : ''; };
-    return {
-      articleNumber: get('articleNumber'),
-      qty:      parseFloat(get('qty'))      || 0,
-      price:    parseFloat(get('price'))    || 0,
-      discount: parseFloat(get('discount')) || 0,
-      description: get('description'),
-      type: 1
-    };
+    const id = el.id.replace('linje-','');
+    const get = n => { const f=el.querySelector(`[name="l${id}_${n}"]`); return f?f.value:''; };
+    return { articleNumber:get('articleNumber'), qty:parseFloat(get('qty'))||0, price:parseFloat(get('price'))||0,
+             discount:parseFloat(get('discount'))||0, description:get('description'), type:1 };
   });
 }
-
 async function sendOrdre(e) {
   e.preventDefault();
   const btn = document.getElementById('send-btn');
-  btn.disabled = true;
-  btn.textContent = 'Sender...';
-
+  btn.disabled=true; btn.textContent='Sender...';
   const leveringsDato = document.getElementById('f-deliveryDate').value;
   const payload = {
-    customerId:             parseInt(document.getElementById('f-customerId').value) || 0,
-    categoryId:             document.getElementById('f-categoryId').value || null,
-    orderNumber:            parseInt(document.getElementById('f-orderNumber').value) || 0,
+    customerId:             parseInt(document.getElementById('f-customerId').value)||0,
+    categoryId:             document.getElementById('f-categoryId').value||null,
+    orderNumber:            parseInt(document.getElementById('f-orderNumber').value)||0,
     deliveryDate:           leveringsDato ? new Date(leveringsDato).toISOString() : null,
-    customerReference:      document.getElementById('f-customerReference').value || null,
-    customerReferenceNumber:document.getElementById('f-customerReferenceNumber').value || null,
-    paymentTermId:          parseInt(document.getElementById('f-paymentTermId').value) || 0,
-    employeeResponsibleId:  parseInt(document.getElementById('f-employeeResponsibleId').value) || 0,
-    note:                   document.getElementById('f-note').value || null,
+    customerReference:      document.getElementById('f-customerReference').value||null,
+    customerReferenceNumber:document.getElementById('f-customerReferenceNumber').value||null,
+    paymentTermId:          parseInt(document.getElementById('f-paymentTermId').value)||0,
+    employeeResponsibleId:  parseInt(document.getElementById('f-employeeResponsibleId').value)||0,
+    note:                   document.getElementById('f-note').value||null,
     orderLines:             samlLinjer()
   };
-
   try {
-    // text/plain unngår CORS preflight mot Make-webhook
-    const resp = await fetch(MAKE_WEBHOOK, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload)
-    });
-
+    const resp = await fetch(MAKE_WEBHOOK, { method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
-
-    const resultat = await resp.json().catch(() => ({}));
-    toast('Ordre opprettet!' + (resultat.orderNumber ? ' #' + resultat.orderNumber : ''), 'success');
-    nullstillSkjema();
-    byttFane('sok');
-    hentOrdrer(0);
-
-  } catch (err) {
+    const res = await resp.json().catch(()=>({}));
+    toast('Ordre opprettet!' + (res.orderNumber ? ' #'+res.orderNumber : ''), 'success');
+    nullstillSkjema(); byttFane('sok'); hentOrdrer(0);
+  } catch(err) {
     toast('Feil: ' + err.message, 'error');
   } finally {
-    btn.disabled = false;
-    btn.textContent = 'Opprett ordre';
+    btn.disabled=false; btn.textContent='Opprett ordre';
   }
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────
-
-window.addEventListener('load', () => {
-  hentFilterverdier();
-  hentOrdrer(0);
-  leggTilOrdrelinje();
-});
+// Auth state håndteres av onAuthStateChange over
 </script>
 </body>
 </html>
