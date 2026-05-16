@@ -283,9 +283,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </header>
 
   <div class="tabs">
-    <div class="tab active" id="tab-sok"    onclick="byttFane('sok')">🔍 Ordresøk</div>
-    <div class="tab"        id="tab-ny"     onclick="byttFane('ny')">➕ Ny ordre</div>
-    <div class="tab"        id="tab-mindag" onclick="byttFane('mindag')">📅 Min dag</div>
+    <div class="tab active" id="tab-sok"        onclick="byttFane('sok')">🔍 Ordresøk</div>
+    <div class="tab"        id="tab-ny"         onclick="byttFane('ny')">➕ Ny ordre</div>
+    <div class="tab"        id="tab-mindag"     onclick="byttFane('mindag')">📅 Min dag</div>
+    <div class="tab"        id="tab-godkjenner" onclick="byttFane('godkjenner')" style="display:none;">👥 Godkjenner</div>
   </div>
 
   <!-- ORDRESØK -->
@@ -356,6 +357,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </div>
 </div>
 
+  <!-- GODKJENNER -->
+  <div class="main" id="side-godkjenner" style="display:none;">
+    <div class="dag-nav">
+      <button class="dag-nav-btn" onclick="byttGodkjennerDag(-1)">←</button>
+      <input type="date" class="dag-dato-input" id="gk-dato" onchange="lastGodkjenner()">
+      <button class="dag-nav-btn" onclick="byttGodkjennerDag(1)">→</button>
+      <button class="btn btn-secondary" onclick="settGodkjennerDagTilDag(new Date())">I dag</button>
+    </div>
+    <div id="godkjenner-innhold"></div>
+  </div>
+</div>
+
 <!-- ORDRE DETALJ MODAL -->
 <div class="modal-overlay" id="detalj-modal" style="display:none;" onclick="lukkModalKlikk(event)">
   <div class="modal">
@@ -393,6 +406,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let gjeldendeSide = 0, totaltAntall = 0, linjeNr = 0;
 let aktivOrdre = null, redigeringsId = null, redigeringsArbId = null, redigeringsInternId = null;
+let brukerRolle = 'tekniker';
 
 const AKTIVITETER = [
   { kode:119, navn:'Administrativt arbeid',    fakturerbar:true  },
@@ -427,20 +441,32 @@ async function loggInn() {
 
 async function loggUt() { await sb.auth.signOut(); }
 
-sb.auth.onAuthStateChange((event, session) => {
+sb.auth.onAuthStateChange(async (event, session) => {
   if (session) {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('bruker-epost').textContent = session.user.email;
+    await lastBrukerRolle();
     hentFilterverdier();
     hentOrdrer(0);
     leggTilOrdrelinje();
     settDagTilDag(new Date());
+    settGodkjennerDagTilDag(new Date());
   } else {
+    brukerRolle = 'tekniker';
     document.getElementById('login-screen').style.display = 'block';
     document.getElementById('app').style.display = 'none';
   }
 });
+
+async function lastBrukerRolle() {
+  const uid = await getUid();
+  if (!uid) return;
+  const { data } = await sb.from('profiles').select('rolle').eq('id', uid).single();
+  brukerRolle = data?.rolle || 'tekniker';
+  const godkjennerTab = document.getElementById('tab-godkjenner');
+  if (godkjennerTab) godkjennerTab.style.display = brukerRolle === 'godkjenner' ? '' : 'none';
+}
 
 // ── UTILS ─────────────────────────────────────────────────────────────────
 
@@ -473,10 +499,14 @@ function statusFarge(s) {
   return 'gray';
 }
 function byttFane(fane) {
-  ['sok','ny','mindag'].forEach(f => document.getElementById('side-'+f).style.display = f===fane?'':'none');
+  ['sok','ny','mindag','godkjenner'].forEach(f => {
+    const el = document.getElementById('side-'+f);
+    if (el) el.style.display = f===fane ? '' : 'none';
+  });
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+fane).classList.add('active');
   if (fane === 'mindag') lastDag();
+  if (fane === 'godkjenner') lastGodkjenner();
 }
 async function getUid() {
   const { data } = await sb.auth.getSession();
@@ -1185,6 +1215,108 @@ async function utforSlett(type,id){
   toast(melding,'success');
   if(type==='timer')await oppdaterTimerSeksjon();
   else await lastDag();
+}
+
+// ── GODKJENNER ────────────────────────────────────────────────────────────
+
+function settGodkjennerDagTilDag(d){
+  document.getElementById('gk-dato').value = d.toISOString().split('T')[0];
+  lastGodkjenner();
+}
+function byttGodkjennerDag(r){
+  const d = new Date(document.getElementById('gk-dato').value + 'T12:00:00');
+  d.setDate(d.getDate() + r); settGodkjennerDagTilDag(d);
+}
+
+async function lastGodkjenner(){
+  const dato = document.getElementById('gk-dato').value;
+  if(!dato) { settGodkjennerDagTilDag(new Date()); return; }
+  const wrap = document.getElementById('godkjenner-innhold');
+  wrap.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  // Hent alle ansatte med data denne dagen
+  const [arbRes, timerRes] = await Promise.all([
+    sb.from('arbeidsdag_logg').select('*').eq('dato',dato).order('ansatt_epost'),
+    sb.from('timeregistrering').select('*').eq('dato',dato).order('ansatt_epost')
+  ]);
+
+  const arb = arbRes.data || [];
+  const timer = timerRes.data || [];
+
+  // Samle unike ansatte
+  const ansatteMap = {};
+  arb.forEach(r => { if(!ansatteMap[r.ansatt_id]) ansatteMap[r.ansatt_id] = {epost:r.ansatt_epost,arb:[],timer:[]}; ansatteMap[r.ansatt_id].arb.push(r); });
+  timer.forEach(r => { if(!ansatteMap[r.ansatt_id]) ansatteMap[r.ansatt_id] = {epost:r.ansatt_epost,arb:[],timer:[]}; ansatteMap[r.ansatt_id].timer.push(r); });
+
+  const ansatte = Object.values(ansatteMap).sort((a,b)=>a.epost.localeCompare(b.epost));
+
+  if(!ansatte.length){
+    wrap.innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted);">Ingen registreringer for ${fmtDatoLang(dato)}</div>`;
+    return;
+  }
+
+  wrap.innerHTML = `<div style="font-size:.9rem;color:var(--muted);margin-bottom:16px;">${fmtDatoLang(dato)} — ${ansatte.length} ansatt${ansatte.length>1?'e':''} med registreringer</div>` +
+    ansatte.map(a => visGodkjennerAnsatt(a, dato)).join('');
+}
+
+function visGodkjennerAnsatt(a, dato){
+  const ordretimer = a.timer.filter(t => t.order_number !== null);
+  const internTid  = a.timer.filter(t => t.order_number === null);
+  const sumOrdre   = ordretimer.reduce((s,t)=>s+Number(t.timer),0);
+  const sumIntern  = internTid.reduce((s,t)=>s+Number(t.timer),0);
+
+  // Arbeidsdag
+  let arbHtml = '';
+  if(a.arb.length){
+    const{totalNetto,perioder} = beregnDagTotaler(a.arb);
+    const {ordinaer,ot50,ot100} = beregnOvertid(totalNetto, a.arb[0]?.er_helg_helligdag);
+    arbHtml = `<div style="margin-bottom:10px;">
+      ${a.arb.map(p=>`<div style="font-size:.85rem;color:var(--muted);">⏱ ${p.fra_tid}–${p.til_tid}${p.pause_minutter?` (${p.pause_minutter}m pause)`:''} = <strong>${fmtTimer((new Date('1970-01-01T'+p.til_tid)-new Date('1970-01-01T'+p.fra_tid))/3600000 - (p.pause_minutter||0)/60)}</strong></div>`).join('')}
+      <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:.8rem;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:20px;">Ordinær: ${fmtTimer(ordinaer)}</span>
+        ${ot50>0?`<span style="font-size:.8rem;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;">OT 50%: ${fmtTimer(ot50)}</span>`:''}
+        ${ot100>0?`<span style="font-size:.8rem;background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px;">OT 100%: ${fmtTimer(ot100)}</span>`:''}
+      </div>
+    </div>`;
+  } else {
+    arbHtml = `<div style="font-size:.85rem;color:var(--muted);font-style:italic;margin-bottom:10px;">Ingen arbeidsdag registrert</div>`;
+  }
+
+  // Ordretimer
+  let ordreHtml = '';
+  if(ordretimer.length){
+    ordreHtml = `<div style="margin-bottom:10px;">
+      <div style="font-size:.8rem;font-weight:600;color:var(--accent);margin-bottom:4px;">Ordretimer (${fmtTimer(sumOrdre)})</div>
+      ${ordretimer.map(t=>`<div style="font-size:.82rem;color:var(--muted);padding:3px 0;border-bottom:1px solid var(--border);">
+        <span style="font-weight:600;">#${t.order_number}</span>${t.kundenavn?' · '+t.kundenavn:''} — ${t.aktivitet_navn} — ${fmtTimer(t.timer)} ${timeart_badge(t.timeart)}
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // Intern tid
+  let internHtml = '';
+  if(internTid.length){
+    internHtml = `<div style="margin-bottom:4px;">
+      <div style="font-size:.8rem;font-weight:600;color:var(--accent);margin-bottom:4px;">Intern tid (${fmtTimer(sumIntern)})</div>
+      ${internTid.map(t=>`<div style="font-size:.82rem;color:var(--muted);">${t.aktivitet_navn} — ${fmtTimer(t.timer)}${t.kommentar?' · '+t.kommentar:''}</div>`).join('')}
+    </div>`;
+  }
+
+  // Gap
+  const totalArb = a.arb.length ? beregnDagTotaler(a.arb).totalNetto : 0;
+  const forklart = sumOrdre + sumIntern;
+  const uforklart = Math.max(0, totalArb - forklart);
+  const gapFarge = uforklart > 0.25 ? 'var(--red)' : 'var(--green)';
+
+  return `<div style="background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-weight:700;color:var(--accent);">👤 ${a.epost}</div>
+      <div style="font-size:.85rem;color:${gapFarge};font-weight:600;">
+        ${uforklart>0.25?`⚠ ${fmtTimer(uforklart)} uforklart`:'✓ Komplett'}
+      </div>
+    </div>
+    ${arbHtml}${ordreHtml}${internHtml}
+  </div>`;
 }
 
 // ── NY ORDRE ──────────────────────────────────────────────────────────────
