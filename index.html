@@ -144,6 +144,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <div class="main" id="side-sok">
   <div class="search-bar">
     <input class="search-input" id="sokeord" type="text" placeholder="Søk på kundenavn eller ordrenummer..." onkeydown="if(event.key==='Enter')sokOrdrer()">
+    <select class="select-filter" id="avdeling-filter" onchange="sokOrdrer()">
+      <option value="">Alle avdelinger</option>
+    </select>
     <select class="select-filter" id="status-filter" onchange="sokOrdrer()">
       <option value="">Alle statuser</option>
     </select>
@@ -304,6 +307,8 @@ async function hentOrdrer(side) {
     }
   }
 
+  const avdelingFilter = document.getElementById('avdeling-filter').value;
+  if (avdelingFilter) q = q.eq('department_name', avdelingFilter);
   if (statusFilter) q = q.eq('status_name', statusFilter);
 
   const { data, error, count } = await q;
@@ -325,6 +330,7 @@ function forrigeSide() { hentOrdrer(gjeldendeSide - 1); }
 
 function nullstillSok() {
   document.getElementById('sokeord').value = '';
+  document.getElementById('avdeling-filter').value = '';
   document.getElementById('status-filter').value = '';
   hentOrdrer(0);
 }
@@ -407,15 +413,26 @@ function lukkModal(e) {
 
 // ── STATUS-FILTER ─────────────────────────────────────────────────────────
 
-async function hentStatuser() {
-  const { data } = await sb.from('ps_ordrer').select('status_name').not('status_name', 'is', null);
-  if (!data) return;
-  const unike = [...new Set(data.map(r => r.status_name))].filter(Boolean).sort();
-  const sel = document.getElementById('status-filter');
-  unike.forEach(s => {
+async function hentFilterverdier() {
+  const [avdRes, statRes] = await Promise.all([
+    sb.from('ps_ordrer').select('department_name').eq('category_id', 'Ordre').not('department_name', 'is', null),
+    sb.from('ps_ordrer').select('status_name').eq('category_id', 'Ordre').not('status_name', 'is', null)
+  ]);
+
+  const avdelinger = [...new Set((avdRes.data || []).map(r => r.department_name))].filter(Boolean).sort();
+  const selAvd = document.getElementById('avdeling-filter');
+  avdelinger.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a; opt.textContent = a;
+    selAvd.appendChild(opt);
+  });
+
+  const statuser = [...new Set((statRes.data || []).map(r => r.status_name))].filter(Boolean).sort();
+  const selStat = document.getElementById('status-filter');
+  statuser.forEach(s => {
     const opt = document.createElement('option');
     opt.value = s; opt.textContent = s;
-    sel.appendChild(opt);
+    selStat.appendChild(opt);
   });
 }
 
@@ -531,7 +548,7 @@ async function sendOrdre(e) {
 // ── INIT ──────────────────────────────────────────────────────────────────
 
 window.addEventListener('load', () => {
-  hentStatuser();
+  hentFilterverdier();
   hentOrdrer(0);
   leggTilOrdrelinje();
 });
