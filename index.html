@@ -898,7 +898,11 @@ function visOrdretimerDag(dato, ordretimer){
         </div>
         <div style="font-size:.85rem;color:var(--muted);margin-top:3px;">${t.aktivitet_navn}${t.kommentar?` — ${t.kommentar}`:''}</div>
       </div>
-      <div style="font-weight:700;font-size:.95rem;white-space:nowrap;">${fmtTimer(t.timer)}</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <span style="font-weight:700;font-size:.95rem;">${fmtTimer(t.timer)}</span>
+        <button class="btn btn-secondary btn-sm" onclick="redigerOrdretimeDag(${t.id})">Rediger</button>
+        <button class="btn btn-danger btn-sm" onclick="bekreftSlett('timer',${t.id})">Slett</button>
+      </div>
     </div>`).join('');
   wrap.innerHTML=`
     <div class="intern-seksjon">
@@ -906,8 +910,53 @@ function visOrdretimerDag(dato, ordretimer){
         <div class="intern-tittel">📋 Ordretimer denne dagen</div>
         <div style="font-size:.85rem;color:var(--muted);">Totalt: <strong>${fmtTimer(sumTimer)}</strong></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">${rader}</div>
+      <div id="dag-ordretimer-liste" style="display:flex;flex-direction:column;gap:8px;">${rader}</div>
+      <div id="dag-ordretimer-form-wrap"></div>
     </div>`;
+}
+
+async function redigerOrdretimeDag(id){
+  const{data:t}=await sb.from('timeregistrering').select('*').eq('id',id).single();
+  if(!t)return;
+  const aktOpt=AKTIVITETER.map(a=>`<option value="${a.kode}" ${a.kode==t.aktivitet_kode?'selected':''}>${a.navn}</option>`).join('');
+  const taOpt=['Ordinær tid','Overtid 50%','Overtid 100%'].map(v=>`<option value="${v}" ${v===t.timeart?'selected':''}>${v}</option>`).join('');
+  const wrap=document.getElementById('dag-ordretimer-form-wrap');
+  wrap.innerHTML=`
+    <div class="timer-form" style="margin-top:14px;">
+      <h3>Rediger ordretimer — #${t.order_number}${t.kundenavn?' · '+t.kundenavn:''}</h3>
+      <div class="tform-grid">
+        <div class="tform-group"><label>Antall timer *</label>
+          <input type="number" id="dot-timer" value="${t.timer}" min="0.25" max="24" step="0.25" required></div>
+        <div class="tform-group"><label>Timeart *</label>
+          <select id="dot-timeart">${taOpt}</select></div>
+        <div class="tform-group full"><label>Aktivitet *</label>
+          <select id="dot-aktivitet">${aktOpt}</select></div>
+        <div class="tform-group full"><label>Kommentar *</label>
+          <textarea id="dot-kommentar" required>${t.kommentar||''}</textarea></div>
+      </div>
+      <div class="tform-actions">
+        <button class="btn btn-secondary" onclick="document.getElementById('dag-ordretimer-form-wrap').innerHTML=''">Avbryt</button>
+        <button class="btn btn-gold" onclick="lagreOrdretimeDag(${id})">Oppdater</button>
+      </div>
+    </div>`;
+  wrap.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+async function lagreOrdretimeDag(id){
+  const timer=parseFloat(document.getElementById('dot-timer').value);
+  const timeart=document.getElementById('dot-timeart').value;
+  const aktKode=parseInt(document.getElementById('dot-aktivitet').value);
+  const komm=document.getElementById('dot-kommentar').value.trim();
+  if(!timer||!komm){toast('Fyll ut alle felt','error');return;}
+  const aktObj=AKTIVITETER.find(a=>a.kode===aktKode);
+  const{error}=await sb.from('timeregistrering').update({
+    timer,timeart,aktivitet_kode:aktKode,aktivitet_navn:aktObj.navn,
+    er_fakturerbar:aktObj.fakturerbar,kommentar:komm,
+    oppdatert_at:new Date().toISOString()
+  }).eq('id',id);
+  if(error){toast('Feil: '+error.message,'error');return;}
+  toast('Oppdatert ✓','success');
+  await lastDag();
 }
 
 // ── MIN DAG: INTERN TID ───────────────────────────────────────────────────
