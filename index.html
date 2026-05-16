@@ -445,12 +445,11 @@ sb.auth.onAuthStateChange(async (event, session) => {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('bruker-epost').textContent = session.user.email;
-    await lastBrukerRolle();
     hentFilterverdier();
     hentOrdrer(0);
     leggTilOrdrelinje();
     settDagTilDag(new Date());
-    settGodkjennerDagTilDag(new Date());
+    lastBrukerRolle(); // fire-and-forget, viser godkjenner-fane når klar
   } else {
     brukerRolle = 'tekniker';
     document.getElementById('login-screen').style.display = 'block';
