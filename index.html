@@ -320,7 +320,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
             <div id="kunde-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:200;max-height:240px;overflow-y:auto;"></div>
             <div id="f-kundenavn-vis" style="font-size:.8rem;color:var(--green);margin-top:4px;"></div>
           </div>
-          <div class="form-group"><label>Kategori-ID</label><input type="text" id="f-categoryId" placeholder="f.eks. Ordre"></div>
+          <div class="form-group"><label>Gruppe</label>
+            <select id="f-orderGroup">
+              <option value="">– Velg gruppe –</option>
+              <option>Årlig kontroll - Serviceavtale</option>
+              <option>Deler</option>
+              <option>Dokumentasjon</option>
+              <option>Garanti - Reklamasjon</option>
+              <option>HB-kran - Lettbane - Taljebane</option>
+              <option>Indeva</option>
+              <option>Kjettingtalje</option>
+              <option>Kurs</option>
+              <option>Løfteutstyr</option>
+              <option>LPK</option>
+              <option>Svingkran</option>
+              <option>Timer</option>
+              <option>Traverskran</option>
+              <option>Wireheisverk</option>
+            </select>
+          </div>
           <div class="form-group"><label>Leveringsdato</label><input type="date" id="f-deliveryDate"></div>
           <div class="form-group"><label>Ordrenummer</label><input type="number" id="f-orderNumber" placeholder="Genereres automatisk"></div>
           <div class="form-group"><label>Kundereferanse</label><input type="text" id="f-customerReference"></div>
@@ -1411,7 +1429,8 @@ async function sendOrdre(e){
   const lev=document.getElementById('f-deliveryDate').value;
   const payload={
     customerId:parseInt(document.getElementById('f-customerId').value)||null,
-    categoryId:document.getElementById('f-categoryId').value||null,
+    categoryId:'Ordre',
+    orderGroup:document.getElementById('f-orderGroup').value||null,
     orderNumber:parseInt(document.getElementById('f-orderNumber').value)||0,
     deliveryDate:lev?new Date(lev).toISOString():null,
     customerReference:document.getElementById('f-customerReference').value||null,
