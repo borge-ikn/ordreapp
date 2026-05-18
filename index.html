@@ -37,6 +37,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .login-btn { width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:13px;font-size:1rem;font-weight:600;cursor:pointer;transition:background .15s; }
 .login-btn:hover { background:var(--accent-hover); }
 .login-btn:disabled { opacity:.5;cursor:not-allowed; }
+.login-btn-ms { width:100%;background:#fff;color:#1a1a1a;border:1px solid #d0d0d0;border-radius:8px;padding:13px 16px;font-size:1rem;font-weight:600;cursor:pointer;transition:box-shadow .15s,border-color .15s;display:flex;align-items:center;justify-content:center;gap:12px; }
+.login-btn-ms:hover { box-shadow:0 2px 8px rgba(0,0,0,.15);border-color:#aaa; }
+.login-btn-ms:disabled { opacity:.5;cursor:not-allowed; }
 .login-info { margin-top:16px;font-size:.85rem;color:var(--muted);background:var(--bg);border-radius:8px;padding:12px; }
 .login-error { margin-top:12px;font-size:.85rem;color:var(--red); }
 
@@ -261,9 +264,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="login-logo">IK</div>
       <div class="login-title">Industrikran Ordreapp</div>
       <div class="login-sub">Logg inn med din Industrikran-konto</div>
-      <input class="login-input" id="login-epost" type="email" placeholder="navn@industrikran.no" autocomplete="email">
-      <input class="login-input" id="login-passord" type="password" placeholder="Passord" autocomplete="current-password" onkeydown="if(event.key==='Enter')loggInn()">
-      <button class="login-btn" id="login-btn" onclick="loggInn()">Logg inn</button>
+      <button class="login-btn-ms" id="login-btn" onclick="loggInnMicrosoft()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21">
+          <rect x="1"  y="1"  width="9" height="9" fill="#f25022"/>
+          <rect x="11" y="1"  width="9" height="9" fill="#7fba00"/>
+          <rect x="1"  y="11" width="9" height="9" fill="#00a4ef"/>
+          <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+        </svg>
+        Logg inn med Microsoft
+      </button>
       <div id="login-feil" class="login-error"></div>
     </div>
   </div>
@@ -461,18 +470,21 @@ const AKTIVITETER = [
 
 // ── AUTH ──────────────────────────────────────────────────────────────────
 
-async function loggInn() {
-  const epost = document.getElementById('login-epost').value.trim().toLowerCase();
-  const passord = document.getElementById('login-passord').value;
+async function loggInnMicrosoft() {
   const feilEl = document.getElementById('login-feil');
   feilEl.textContent = '';
-  if (!epost || !passord) { feilEl.textContent = 'Fyll inn e-post og passord.'; return; }
   const btn = document.getElementById('login-btn');
-  btn.disabled = true; btn.textContent = 'Logger inn...';
-  const { error } = await sb.auth.signInWithPassword({ email: epost, password: passord });
+  btn.disabled = true;
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'azure',
+    options: {
+      redirectTo: 'https://ordreapp.netlify.app',
+      scopes: 'email profile'
+    }
+  });
   if (error) {
-    feilEl.textContent = 'Feil brukernavn eller passord.';
-    btn.disabled = false; btn.textContent = 'Logg inn';
+    feilEl.textContent = 'Feil ved innlogging: ' + error.message;
+    btn.disabled = false;
   }
 }
 
@@ -498,9 +510,23 @@ sb.auth.onAuthStateChange(async (event, session) => {
 async function lastBrukerRolle() {
   const uid = await getUid();
   if (!uid) return;
-  const { data } = await sb.from('profiles').select('rolle, prodsys_id').eq('id', uid).single();
-  brukerRolle = data?.rolle || 'tekniker';
-  brukerProdsysId = data?.prodsys_id || null;
+
+  // Hent rolle og prodsys_id fra profiles (prodsys_id er fallback)
+  const { data: profil } = await sb.from('profiles').select('rolle, prodsys_id').eq('id', uid).single();
+  brukerRolle = profil?.rolle || 'tekniker';
+
+  // Slå opp employee_number i ps_ansatte via e-post (primær kilde)
+  const user = await getUser();
+  if (user?.email) {
+    const { data: ansatt } = await sb.from('ps_ansatte')
+      .select('employee_number')
+      .eq('email', user.email)
+      .single();
+    brukerProdsysId = ansatt?.employee_number ? parseInt(ansatt.employee_number) : (profil?.prodsys_id || null);
+  } else {
+    brukerProdsysId = profil?.prodsys_id || null;
+  }
+
   const godkjennerTab = document.getElementById('tab-godkjenner');
   if (godkjennerTab) godkjennerTab.style.display = brukerRolle === 'godkjenner' ? '' : 'none';
 }
