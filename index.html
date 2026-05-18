@@ -1461,7 +1461,7 @@ async function sendOrdre(e){
     categoryId:'Ordre',
     orderGroup:document.getElementById('f-orderGroup').value||null,
     departmentName:document.getElementById('f-departmentName').value||null,
-    orderNumber:parseInt(document.getElementById('f-orderNumber').value)||null,
+    orderNumber:parseInt(document.getElementById('f-orderNumber').value)||0,
     deliveryDate:lev?new Date(lev).toISOString():null,
     customerReference:document.getElementById('f-customerReference').value||null,
     customerReferenceNumber:document.getElementById('f-customerReferenceNumber').value||null,
