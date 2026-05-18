@@ -1441,7 +1441,7 @@ async function sendOrdre(e){
     orderLines:samlLinjer()
   };
   try{
-    const resp=await fetch(MAKE_WEBHOOK,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
+    const resp=await fetch(MAKE_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'d='+encodeURIComponent(JSON.stringify(payload))});
     if(!resp.ok)throw new Error('HTTP '+resp.status);
     const res=await resp.json().catch(()=>({}));
     toast('Ordre opprettet!'+(res.orderNumber?' #'+res.orderNumber:''),'success');
