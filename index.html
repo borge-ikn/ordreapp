@@ -343,8 +343,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <div class="form-group"><label>Ordrenummer</label><input type="number" id="f-orderNumber" placeholder="Genereres automatisk"></div>
           <div class="form-group"><label>Kundereferanse</label><input type="text" id="f-customerReference"></div>
           <div class="form-group"><label>Kundens referansenummer</label><input type="text" id="f-customerReferenceNumber"></div>
-          <div class="form-group"><label>Betalingsbetingelse-ID</label><input type="number" id="f-paymentTermId"></div>
-          <div class="form-group"><label>Ansvarlig ansatt-ID</label><input type="number" id="f-employeeResponsibleId"></div>
+          <div class="form-group"><label>Avdeling *</label>
+            <select id="f-departmentName">
+              <option value="">– Velg avdeling –</option>
+              <option>Agder</option>
+              <option>Bergen</option>
+              <option>Møre og Romsdal</option>
+              <option>Nord Norge</option>
+              <option>Oslo</option>
+              <option>Østlandet</option>
+              <option>Sandnes</option>
+              <option>Stab</option>
+              <option>Trondheim</option>
+            </select>
+          </div>
+          <input type="hidden" id="f-employeeResponsibleId">
           <div class="form-group full"><label>Notat</label><textarea id="f-note"></textarea></div>
         </div>
       </div>
@@ -430,6 +443,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let gjeldendeSide = 0, totaltAntall = 0, linjeNr = 0;
 let aktivOrdre = null, redigeringsId = null, redigeringsArbId = null, redigeringsInternId = null;
 let brukerRolle = 'tekniker';
+let brukerProdsysId = null;
 
 const AKTIVITETER = [
   { kode:119, navn:'Administrativt arbeid',    fakturerbar:true  },
@@ -484,8 +498,9 @@ sb.auth.onAuthStateChange(async (event, session) => {
 async function lastBrukerRolle() {
   const uid = await getUid();
   if (!uid) return;
-  const { data } = await sb.from('profiles').select('rolle').eq('id', uid).single();
+  const { data } = await sb.from('profiles').select('rolle, prodsys_id').eq('id', uid).single();
   brukerRolle = data?.rolle || 'tekniker';
+  brukerProdsysId = data?.prodsys_id || null;
   const godkjennerTab = document.getElementById('tab-godkjenner');
   if (godkjennerTab) godkjennerTab.style.display = brukerRolle === 'godkjenner' ? '' : 'none';
 }
@@ -529,6 +544,9 @@ function byttFane(fane) {
   document.getElementById('tab-'+fane).classList.add('active');
   if (fane === 'mindag') lastDag();
   if (fane === 'godkjenner') lastGodkjenner();
+  if (fane === 'ny' && brukerProdsysId) {
+    document.getElementById('f-employeeResponsibleId').value = brukerProdsysId;
+  }
 }
 async function getUid() {
   const { data } = await sb.auth.getSession();
@@ -1408,6 +1426,7 @@ function nullstillSkjema(){
   document.getElementById('f-customerId').value='';
   document.getElementById('f-kundenavn-vis').textContent='';
   document.getElementById('ordrelinjer').innerHTML='';
+  if(brukerProdsysId) document.getElementById('f-employeeResponsibleId').value=brukerProdsysId;
   linjeNr=0;leggTilOrdrelinje();
 }
 function samlLinjer(){
@@ -1424,6 +1443,16 @@ async function sendOrdre(e){
   if(!document.getElementById('f-customerId').value){
     toast('Velg en kunde fra listen','error'); return;
   }
+  if(!document.getElementById('f-orderGroup').value){
+    toast('Velg en gruppe','error'); return;
+  }
+  if(!document.getElementById('f-departmentName').value){
+    toast('Velg avdeling','error'); return;
+  }
+  const empId=parseInt(document.getElementById('f-employeeResponsibleId').value)||0;
+  if(!empId){
+    toast('Prodsys-ID mangler på din profil — kontakt administrator','error'); return;
+  }
   const btn=document.getElementById('send-btn');
   btn.disabled=true;btn.textContent='Sender...';
   const lev=document.getElementById('f-deliveryDate').value;
@@ -1431,12 +1460,12 @@ async function sendOrdre(e){
     customerId:parseInt(document.getElementById('f-customerId').value)||null,
     categoryId:'Ordre',
     orderGroup:document.getElementById('f-orderGroup').value||null,
-    orderNumber:parseInt(document.getElementById('f-orderNumber').value)||0,
+    departmentName:document.getElementById('f-departmentName').value||null,
+    orderNumber:parseInt(document.getElementById('f-orderNumber').value)||null,
     deliveryDate:lev?new Date(lev).toISOString():null,
     customerReference:document.getElementById('f-customerReference').value||null,
     customerReferenceNumber:document.getElementById('f-customerReferenceNumber').value||null,
-    paymentTermId:parseInt(document.getElementById('f-paymentTermId').value)||0,
-    employeeResponsibleId:parseInt(document.getElementById('f-employeeResponsibleId').value)||0,
+    employeeResponsibleId:empId,
     note:document.getElementById('f-note').value||null,
     orderLines:samlLinjer()
   };
