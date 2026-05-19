@@ -302,6 +302,29 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .pl-avd-badge { font-size:0.68rem; font-weight:500; opacity:0.55; margin-top:1px; }
 .mine-tildelte-seksjon { margin-bottom:16px; }
 .mine-tildelte-seksjon .seksjon-tittel { font-weight:700; font-size:0.9rem; margin-bottom:8px; padding:0 2px; }
+/* Pool-kolonne */
+.pl-pool { min-width:240px; max-width:240px; border-right:2px solid rgba(255,255,255,0.08); }
+/* Tildelt-badge på pool-kort */
+.pl-tildelt-badge { display:inline-block; font-size:0.68rem; font-weight:600;
+  background:var(--accent); color:#fff; border-radius:10px; padding:1px 6px;
+  margin-left:4px; vertical-align:middle; }
+.pl-tildelt-badge.pl-ikke-tildelt { background:rgba(255,255,255,0.12); color:var(--text-muted,#888); }
+/* ✕-knapp på tekniker-kort */
+.pl-fjern-btn { float:right; background:none; border:none; color:rgba(255,255,255,0.35);
+  cursor:pointer; font-size:0.8rem; padding:0 0 0 6px; line-height:1; }
+.pl-fjern-btn:hover { color:#ef4444; }
+/* Oversikt-tabell */
+.pl-oversikt { width:100%; overflow:auto; padding:0 16px 16px; height:calc(100vh - 130px); }
+.pl-oversikt-tabell { width:100%; border-collapse:collapse; font-size:0.85rem; }
+.pl-oversikt-tabell th { text-align:left; padding:8px 10px; border-bottom:2px solid var(--accent);
+  font-size:0.78rem; opacity:0.7; white-space:nowrap; }
+.pl-oversikt-tabell td { padding:7px 10px; border-bottom:1px solid rgba(255,255,255,0.06); vertical-align:top; }
+.pl-oversikt-tabell tr:hover td { background:rgba(255,255,255,0.03); }
+.pl-tildelt-navn { display:inline-block; background:rgba(255,255,255,0.08);
+  border-radius:10px; padding:2px 8px; margin:1px; font-size:0.78rem; }
+.pl-ikke-tildelt-tekst { opacity:0.4; font-style:italic; font-size:0.82rem; }
+.pl-oversikt-tabell .pk-nr a { color:var(--accent); cursor:pointer; font-weight:700; }
+.pl-oversikt-tabell .pk-nr a:hover { text-decoration:underline; }
 #side-dokumenter {
   display: none;
   flex-direction: column;
@@ -373,6 +396,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="tab"        id="tab-godkjenner" onclick="byttFane('godkjenner')" style="display:none;">👥 Godkjenner</div>
     <div class="tab"        id="tab-dokumenter" onclick="byttFane('dokumenter')">📄 Dokumenter</div>
     <div class="tab"        id="tab-planlegger" onclick="byttFane('planlegger')" style="display:none;">📋 Planlegger</div>
+    <div class="tab"        id="tab-oversikt"   onclick="byttFane('oversikt')"   style="display:none;">📊 Oversikt</div>
   </div>
 
   <!-- ORDRESØK -->
@@ -530,6 +554,44 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
 
+  <div id="side-oversikt" style="display:none;">
+    <div class="planlegger-toolbar">
+      <select id="ov-avdeling" onchange="lastOversikt()">
+        <option value="">Avdeling (ansatt)</option>
+        <option value="1">Stab</option>
+        <option value="2">Agder</option>
+        <option value="3">Bergen</option>
+        <option value="4">Møre og Romsdal</option>
+        <option value="5">Sandnes</option>
+        <option value="6">Trondheim</option>
+        <option value="8">Østlandet</option>
+        <option value="9">Nord Norge</option>
+        <option value="12">Oslo</option>
+      </select>
+      <div style="width:1px;background:rgba(255,255,255,0.12);align-self:stretch;margin:0 4px;"></div>
+      <select id="ov-ordre-avd" onchange="filterOgRenderOversikt()" style="min-width:130px;">
+        <option value="">Avdeling (ordre)</option>
+        <option>Agder</option><option>Bergen</option><option>Møre og Romsdal</option>
+        <option>Nord Norge</option><option>Oslo</option><option>Østlandet</option>
+        <option>Sandnes</option><option>Stab</option><option>Trondheim</option>
+      </select>
+      <select id="ov-kategori" onchange="filterOgRenderOversikt()" style="min-width:130px;">
+        <option value="">Alle kategorier</option>
+      </select>
+      <input type="search" id="ov-sok" placeholder="Søk ordre/kunde…" oninput="filterOgRenderOversikt()" style="width:150px;">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <label style="font-size:0.82rem;">Fra</label>
+        <input type="date" id="ov-fra" onchange="lastOversikt()">
+        <label style="font-size:0.82rem;">Til</label>
+        <input type="date" id="ov-til" onchange="lastOversikt()">
+        <button class="btn btn-secondary" onclick="lastOversikt()">Oppdater</button>
+      </div>
+    </div>
+    <div id="oversikt-board" style="padding:0 16px;">
+      <div style="padding:20px;opacity:0.5;">Velg en avdeling for å se oversikten.</div>
+    </div>
+  </div>
+
   <div id="side-dokumenter">
     <div class="dok-topbar">
       <span style="font-weight:600;color:var(--text);">📄 Styrende dokumenter</span>
@@ -670,6 +732,8 @@ async function lastBrukerRolle() {
   if (godkjennerTab) godkjennerTab.style.display = brukerRolle === 'godkjenner' ? '' : 'none';
   const planleggerTab = document.getElementById('tab-planlegger');
   if (planleggerTab) planleggerTab.style.display = brukerRolle === 'godkjenner' ? '' : 'none';
+  const oversiktTab = document.getElementById('tab-oversikt');
+  if (oversiktTab) oversiktTab.style.display = brukerRolle === 'godkjenner' ? '' : 'none';
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────
@@ -703,8 +767,9 @@ function statusFarge(s) {
   return 'gray';
 }
 let planleggerInitiert = false;
+let oversiktInitiert = false;
 function byttFane(fane) {
-  ['sok','ny','mindag','godkjenner','dokumenter','planlegger'].forEach(f => {
+  ['sok','ny','mindag','godkjenner','dokumenter','planlegger','oversikt'].forEach(f => {
     const el = document.getElementById('side-'+f);
     if (el) el.style.display = f===fane ? (f==='dokumenter'?'flex':'') : 'none';
   });
@@ -728,6 +793,15 @@ function byttFane(fane) {
     if (brukerAvdelingKode) document.getElementById('pl-avdeling').value = brukerAvdelingKode;
   }
   if (fane === 'planlegger') lastPlanlegger();
+  if (fane === 'oversikt' && !oversiktInitiert) {
+    oversiktInitiert = true;
+    const idag = new Date();
+    const om30 = new Date(); om30.setDate(om30.getDate() + 30);
+    document.getElementById('ov-fra').value = idag.toISOString().slice(0,10);
+    document.getElementById('ov-til').value = om30.toISOString().slice(0,10);
+    if (brukerAvdelingKode) document.getElementById('ov-avdeling').value = brukerAvdelingKode;
+  }
+  if (fane === 'oversikt') lastOversikt();
 }
 async function getUid() {
   const { data } = await sb.auth.getSession();
@@ -1015,11 +1089,17 @@ function filterOgRenderPlanlegger() {
 }
 
 async function hentPlanleggerOrdrer(fra, til, avdNavn) {
-  const parts = [["categoryId","=","Ordre"]];
-  if (avdNavn) parts.push("and", ["departmentName","=",avdNavn]);
-  if (fra) parts.push("and", ["deliveryDate",">=",fra]);
-  if (til) parts.push("and", ["deliveryDate","<=",til]);
-  const filter = parts.length === 1 ? parts[0] : parts;
+  const parts = [];
+  if (avdNavn) parts.push(["departmentName","=",avdNavn]);
+  if (fra) parts.push(["deliveryDate",">=",fra]);
+  if (til) parts.push(["deliveryDate","<=",til]);
+  let filter = null;
+  if (parts.length === 1) {
+    filter = parts[0];
+  } else if (parts.length > 1) {
+    filter = [parts[0]];
+    for (let i = 1; i < parts.length; i++) filter.push("and", parts[i]);
+  }
   const body = JSON.stringify({ dxLoadOptions: {
     filter, sort:[{selector:"orderNumber",desc:true}],
     skip:0, take:500, requireTotalCount:false,
@@ -1036,50 +1116,131 @@ async function hentPlanleggerOrdrer(fra, til, avdNavn) {
 
 function renderPlanlegger(teknikere, ordrer, tildelinger) {
   const board = document.getElementById('planlegger-board');
+  // tildMap: { order_number: Set(employee_number) }
   const tildMap = {};
-  tildelinger.forEach(t => { tildMap[t.order_number] = t.employee_number; });
-  const kolonner = [{ id: '', navn: 'Ikke tildelt', dept: '', ordrer: [] }];
-  teknikere.forEach(t => kolonner.push({ id: t.employee_number, navn: t.name, dept: t.dept, ordrer: [] }));
-  ordrer.forEach(o => {
-    const empNr = tildMap[o.order_number] || '';
-    const kol = kolonner.find(k => k.id === empNr) || kolonner[0];
-    kol.ordrer.push(o);
+  tildelinger.forEach(t => {
+    if (!tildMap[t.order_number]) tildMap[t.order_number] = new Set();
+    tildMap[t.order_number].add(String(t.employee_number));
   });
-  board.innerHTML = kolonner.map(kol => `
+
+  // Bygg tekniker-kolonner med sine tildelte ordrer
+  const tekKolonner = teknikere.map(t => ({
+    id: t.employee_number, navn: t.name, dept: t.dept,
+    ordrer: ordrer.filter(o => tildMap[o.order_number]?.has(t.employee_number))
+  }));
+
+  // Pool-kolonne: alle ordrer med tildelt-badge
+  const poolHTML = `
+    <div class="pl-kolonne pl-pool" data-emp="pool">
+      <div class="pl-kolonne-tittel">Ordrer <span style="font-weight:400;opacity:0.55;">(${ordrer.length})</span></div>
+      <div class="pl-liste pl-pool-liste" data-employee-number="">
+        ${ordrer.map(o => {
+          const ant = tildMap[o.order_number]?.size || 0;
+          const badge = ant > 0
+            ? `<span class="pl-tildelt-badge">${ant} tildelt</span>`
+            : `<span class="pl-tildelt-badge pl-ikke-tildelt">Ikke tildelt</span>`;
+          return `<div class="pl-kort" data-order-number="${o.order_number}">
+            <div class="pk-nr">#${o.order_number} ${badge}</div>
+            <div class="pk-kunde">${o.customer_name||'–'}</div>
+            <div class="pk-dato">📅 ${fmtDato(o.delivery_date)}${o.status_name?' · '+o.status_name:''}</div>
+            ${o.category_id?`<div class="pl-avd-badge">${o.category_id}</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  // Tekniker-kolonner
+  const tekHTML = tekKolonner.map(kol => `
     <div class="pl-kolonne" data-emp="${kol.navn}">
       <div class="pl-kolonne-tittel">${kol.navn} <span style="font-weight:400;opacity:0.55;">(${kol.ordrer.length})</span>
-        ${kol.dept ? `<div class="pl-avd-badge">${kol.dept}</div>` : ''}
+        ${kol.dept?`<div class="pl-avd-badge">${kol.dept}</div>`:''}
       </div>
       <div class="pl-liste" data-employee-number="${kol.id}">
         ${kol.ordrer.map(o => `
           <div class="pl-kort" data-order-number="${o.order_number}">
+            <button class="pl-fjern-btn" onclick="fjernTildeling(${o.order_number},'${kol.id}',this)" title="Fjern tildeling">✕</button>
             <div class="pk-nr">#${o.order_number}</div>
             <div class="pk-kunde">${o.customer_name||'–'}</div>
             <div class="pk-dato">📅 ${fmtDato(o.delivery_date)}${o.status_name?' · '+o.status_name:''}</div>
           </div>`).join('')}
       </div>
     </div>`).join('');
-  board.querySelectorAll('.pl-liste').forEach(el => {
+
+  board.innerHTML = poolHTML + tekHTML;
+
+  // SortableJS: pool → klone (originalen forblir i pool)
+  Sortable.create(board.querySelector('.pl-pool-liste'), {
+    group: { name:'planlegger-ordrer', pull:'clone', put:false },
+    animation:150, ghostClass:'pl-ghost', sort:false,
+    onClone(evt) { evt.clone.querySelector('.pl-fjern-btn')?.remove(); }
+  });
+
+  // SortableJS: tekniker-kolonner
+  board.querySelectorAll('.pl-liste:not(.pl-pool-liste)').forEach(el => {
     Sortable.create(el, {
-      group: 'planlegger-ordrer', animation: 150, ghostClass: 'pl-ghost',
-      onEnd(evt) {
+      group:'planlegger-ordrer', animation:150, ghostClass:'pl-ghost',
+      onAdd(evt) {
         const orderNumber = parseInt(evt.item.dataset.orderNumber);
-        const employeeNumber = evt.to.dataset.employeeNumber || null;
-        lagreTildeling(orderNumber, employeeNumber || null);
+        const toEmp = evt.to.dataset.employeeNumber;
+        const fromEmp = evt.from.dataset.employeeNumber;
+        if (fromEmp && fromEmp !== toEmp) {
+          // Flytt mellom teknikere: fjern gammel, legg til ny
+          fjernTildelingDB(orderNumber, fromEmp);
+        }
+        lagreTildelingDB(orderNumber, toEmp);
+        oppdaterPoolBadge(orderNumber);
       }
     });
   });
 }
 
-async function lagreTildeling(orderNumber, employeeNumber) {
+async function lagreTildelingDB(orderNumber, employeeNumber) {
   const uid = await getUid();
-  if (!employeeNumber) {
-    await sb.from('ordre_tildeling').delete().eq('order_number', orderNumber);
+  await sb.from('ordre_tildeling').upsert(
+    { order_number: orderNumber, employee_number: String(employeeNumber),
+      assigned_by: uid, assigned_at: new Date().toISOString() },
+    { onConflict: 'order_number,employee_number', ignoreDuplicates: true }
+  );
+}
+
+async function fjernTildelingDB(orderNumber, employeeNumber) {
+  await sb.from('ordre_tildeling')
+    .delete()
+    .eq('order_number', orderNumber)
+    .eq('employee_number', String(employeeNumber));
+}
+
+function fjernTildeling(orderNumber, employeeNumber, btn) {
+  btn.closest('.pl-kort').remove();
+  fjernTildelingDB(orderNumber, employeeNumber);
+  oppdaterPoolBadge(orderNumber);
+}
+
+function oppdaterPoolBadge(orderNumber) {
+  const board = document.getElementById('planlegger-board');
+  if (!board) return;
+  const ant = board.querySelectorAll(
+    `.pl-liste:not(.pl-pool-liste) .pl-kort[data-order-number="${orderNumber}"]`
+  ).length;
+  const poolKort = board.querySelector(`.pl-pool-liste .pl-kort[data-order-number="${orderNumber}"]`);
+  if (!poolKort) return;
+  const badge = poolKort.querySelector('.pl-tildelt-badge');
+  if (!badge) return;
+  if (ant > 0) {
+    badge.textContent = `${ant} tildelt`;
+    badge.classList.remove('pl-ikke-tildelt');
   } else {
-    await sb.from('ordre_tildeling').upsert({
-      order_number: orderNumber, employee_number: String(employeeNumber),
-      assigned_by: uid, assigned_at: new Date().toISOString()
-    });
+    badge.textContent = 'Ikke tildelt';
+    badge.classList.add('pl-ikke-tildelt');
+  }
+}
+
+// Beholdes for bakoverkompatibilitet
+async function lagreTildeling(orderNumber, employeeNumber) {
+  if (!employeeNumber) {
+    await fjernTildelingDB(orderNumber, employeeNumber);
+  } else {
+    await lagreTildelingDB(orderNumber, employeeNumber);
   }
 }
 
@@ -1705,6 +1866,114 @@ async function utforSlett(type,id){
   toast(melding,'success');
   if(type==='timer')await oppdaterTimerSeksjon();
   else await lastDag();
+}
+
+// ── OVERSIKT ──────────────────────────────────────────────────────────────
+
+let alleOversiktTeknikere = [];
+let alleOversiktOrdrer    = [];
+let alleOversiktTildelinger = [];
+
+async function lastOversikt() {
+  const avdKode = document.getElementById('ov-avdeling').value;
+  const fra     = document.getElementById('ov-fra').value;
+  const til     = document.getElementById('ov-til').value;
+  const board   = document.getElementById('oversikt-board');
+  if (!avdKode) {
+    board.innerHTML = '<div style="padding:20px;opacity:0.5;">Velg en avdeling for å se oversikten.</div>';
+    return;
+  }
+  board.innerHTML = '<div class="loader"><div class="spinner"></div>Laster oversikt...</div>';
+  const [tekRes, ordrer, tildRes] = await Promise.all([
+    sb.from('po_ansatte').select('number,first_name,last_name')
+      .eq('is_archived', false).eq('department_code', avdKode).order('last_name'),
+    hentPlanleggerOrdrer(fra, til, null),
+    sb.from('ordre_tildeling').select('order_number,employee_number')
+  ]);
+  alleOversiktTeknikere   = (tekRes.data||[]).map(r => ({
+    employee_number: String(r.number), name: `${r.first_name} ${r.last_name}`
+  }));
+  alleOversiktOrdrer      = ordrer;
+  alleOversiktTildelinger = tildRes.data || [];
+  filterOgRenderOversikt();
+}
+
+function filterOgRenderOversikt() {
+  const avd = document.getElementById('ov-ordre-avd')?.value || '';
+  const kat = document.getElementById('ov-kategori')?.value  || '';
+  const sok = (document.getElementById('ov-sok')?.value || '').toLowerCase();
+
+  const filtrerte = alleOversiktOrdrer.filter(o => {
+    if (avd && o.department_name !== avd) return false;
+    if (kat && o.category_id !== kat) return false;
+    if (sok) {
+      const tall = parseInt(sok);
+      const treffNr    = !isNaN(tall) && String(o.order_number).includes(sok);
+      const treffKunde = (o.customer_name||'').toLowerCase().includes(sok);
+      if (!treffNr && !treffKunde) return false;
+    }
+    return true;
+  });
+
+  // Fyll kategori-dropdown dynamisk
+  const katSel = document.getElementById('ov-kategori');
+  if (katSel) {
+    const valgt    = katSel.value;
+    const unikeKat = [...new Set(alleOversiktOrdrer.map(o => o.category_id).filter(Boolean))].sort();
+    katSel.innerHTML = '<option value="">Alle kategorier</option>'
+      + unikeKat.map(k => `<option value="${k}" ${k===valgt?'selected':''}>${k}</option>`).join('');
+  }
+
+  renderOversikt(alleOversiktTeknikere, filtrerte, alleOversiktTildelinger);
+}
+
+function renderOversikt(teknikere, ordrer, tildelinger) {
+  const board = document.getElementById('oversikt-board');
+
+  // Bygg tildelt-kart: order_number → [tekniker-navn]
+  const tildMap = {};
+  tildelinger.forEach(t => {
+    const tek = teknikere.find(t2 => t2.employee_number === String(t.employee_number));
+    if (!tek) return;
+    if (!tildMap[t.order_number]) tildMap[t.order_number] = [];
+    tildMap[t.order_number].push(tek.name);
+  });
+
+  // Sorter etter leveringsdato
+  const sortert = [...ordrer].sort((a,b) =>
+    (a.delivery_date||'') < (b.delivery_date||'') ? -1 : 1);
+
+  if (!sortert.length) {
+    board.innerHTML = '<div style="padding:20px;opacity:0.5;">Ingen ordrer funnet for valgte filtre og periode.</div>';
+    return;
+  }
+
+  board.innerHTML = `
+    <div class="pl-oversikt">
+      <table class="pl-oversikt-tabell">
+        <thead><tr>
+          <th>Dato</th><th>Ordre</th><th>Kunde</th>
+          <th>Avdeling</th><th>Kategori</th><th>Status</th><th>Tildelt</th>
+        </tr></thead>
+        <tbody>
+          ${sortert.map(o => {
+            const tildelte = tildMap[o.order_number];
+            const tildeltHTML = tildelte?.length
+              ? tildelte.map(n => `<span class="pl-tildelt-navn">${n}</span>`).join(' ')
+              : `<span class="pl-ikke-tildelt-tekst">Ikke tildelt</span>`;
+            return `<tr>
+              <td>${fmtDato(o.delivery_date)}</td>
+              <td class="pk-nr"><a onclick='visDetalj(${JSON.stringify(JSON.stringify(o))})'>#${o.order_number}</a></td>
+              <td>${o.customer_name||'–'}</td>
+              <td>${o.department_name||'–'}</td>
+              <td>${o.category_id||'–'}</td>
+              <td><span class="status-badge ${statusFarge(o.status_name)}">${o.status_name||'Ukjent'}</span></td>
+              <td>${tildeltHTML}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
 }
 
 // ── GODKJENNER ────────────────────────────────────────────────────────────
