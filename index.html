@@ -1159,9 +1159,9 @@ function visArbForm(prefill=null){
       <h3>${redigeringsArbId?'Rediger arbeidsperiode':'Legg til arbeidsperiode'}</h3>
       <div class="arb-form-grid">
         <div class="arb-form-group"><label>Fra *</label>
-          <input type="time" id="arb-fra" value="${prefill?prefill.fra_tid.slice(0,5):'07:30'}" oninput="oppdaterArbNetto()"></div>
+          <input type="time" id="arb-fra" value="${prefill?prefill.fra_tid.slice(0,5):'07:00'}" oninput="oppdaterArbNetto()"></div>
         <div class="arb-form-group"><label>Til *</label>
-          <input type="time" id="arb-til" value="${prefill?prefill.til_tid.slice(0,5):''}" oninput="oppdaterArbNetto()"></div>
+          <input type="time" id="arb-til" value="${prefill?prefill.til_tid.slice(0,5):'15:00'}" oninput="oppdaterArbNetto()"></div>
         <div class="arb-form-group"><label>Pause (min)</label>
           <input type="number" id="arb-pause" value="${prefill?prefill.pause_minutter:30}" min="0" max="120" oninput="oppdaterArbNetto()"></div>
         <div class="arb-form-group full">
