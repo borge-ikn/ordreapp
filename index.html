@@ -465,7 +465,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
   <div id="side-planlegger" style="display:none;">
     <div class="planlegger-toolbar">
-      <input type="search" id="pl-sok" placeholder="Filtrer ansatt…" oninput="filterPlanlegger()" style="width:160px;">
+      <select id="pl-avdeling" onchange="lastPlanlegger()">
+        <option value="">– Velg avdeling –</option>
+        <option value="1">Stab</option>
+        <option value="2">Agder</option>
+        <option value="3">Bergen</option>
+        <option value="4">Møre og Romsdal</option>
+        <option value="5">Sandnes</option>
+        <option value="6">Trondheim</option>
+        <option value="8">Østlandet</option>
+        <option value="9">Nord Norge</option>
+        <option value="12">Oslo</option>
+      </select>
+      <input type="search" id="pl-sok" placeholder="Filtrer navn…" oninput="filterPlanlegger()" style="width:140px;">
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <label style="font-size:0.82rem;">Fra</label>
         <input type="date" id="pl-fra" onchange="lastPlanlegger()">
@@ -529,6 +541,7 @@ let gjeldendeSide = 0, totaltAntall = 0, linjeNr = 0;
 let aktivOrdre = null, redigeringsId = null, redigeringsArbId = null, redigeringsInternId = null;
 let brukerRolle = 'tekniker';
 let brukerProdsysId = null;
+let brukerAvdelingKode = null;
 
 const AKTIVITETER = [
   { kode:119, navn:'Administrativt arbeid',    fakturerbar:true  },
@@ -603,6 +616,13 @@ async function lastBrukerRolle() {
     brukerProdsysId = profil?.prodsys_id || null;
   }
 
+  // Hent avdelingskode fra po_ansatte (brukes til å forhåndsvelge avdeling i planlegger)
+  if (brukerProdsysId) {
+    const { data: poA } = await sb.from('po_ansatte')
+      .select('department_code').eq('number', brukerProdsysId).single();
+    brukerAvdelingKode = poA?.department_code ? String(poA.department_code) : null;
+  }
+
   const godkjennerTab = document.getElementById('tab-godkjenner');
   if (godkjennerTab) godkjennerTab.style.display = brukerRolle === 'godkjenner' ? '' : 'none';
   const planleggerTab = document.getElementById('tab-planlegger');
@@ -658,11 +678,11 @@ function byttFane(fane) {
   }
   if (fane === 'planlegger' && !planleggerInitiert) {
     planleggerInitiert = true;
-    // Sett standarddatoer: i dag → +30 dager
     const idag = new Date();
     const om30 = new Date(); om30.setDate(om30.getDate() + 30);
     document.getElementById('pl-fra').value = idag.toISOString().slice(0,10);
     document.getElementById('pl-til').value = om30.toISOString().slice(0,10);
+    if (brukerAvdelingKode) document.getElementById('pl-avdeling').value = brukerAvdelingKode;
   }
   if (fane === 'planlegger') lastPlanlegger();
 }
@@ -881,22 +901,29 @@ const PO_DEPT_NAMES = {
 let allePlanleggerTeknikere = [];
 
 async function lastPlanlegger() {
+  const avdKode = document.getElementById('pl-avdeling').value;
   const fra = document.getElementById('pl-fra').value;
   const til = document.getElementById('pl-til').value;
   const board = document.getElementById('planlegger-board');
+  if (!avdKode) {
+    board.innerHTML = '<div style="padding:20px;opacity:0.5;">Velg en avdeling for å se planleggeren.</div>';
+    return;
+  }
   board.innerHTML = '<div class="loader"><div class="spinner"></div>Laster planlegger...</div>';
+  const avdNavn = PO_DEPT_NAMES[avdKode] || '';
   const [teknikereRes, ordrer, tildelingerRes] = await Promise.all([
     sb.from('po_ansatte')
       .select('number, first_name, last_name, department_code')
       .eq('is_archived', false)
-      .order('department_code').order('last_name'),
-    hentPlanleggerOrdrer(fra, til),
+      .eq('department_code', avdKode)
+      .order('last_name'),
+    hentPlanleggerOrdrer(fra, til, avdNavn),
     sb.from('ordre_tildeling').select('order_number, employee_number')
   ]);
   allePlanleggerTeknikere = (teknikereRes.data || []).map(r => ({
     employee_number: String(r.number),
     name: `${r.first_name} ${r.last_name}`,
-    dept: PO_DEPT_NAMES[r.department_code] || r.department_code || '–'
+    dept: avdNavn
   }));
   renderPlanlegger(allePlanleggerTeknikere, ordrer, tildelingerRes.data || []);
 }
@@ -910,8 +937,9 @@ function filterPlanlegger() {
   });
 }
 
-async function hentPlanleggerOrdrer(fra, til) {
+async function hentPlanleggerOrdrer(fra, til, avdNavn) {
   const parts = [["categoryId","=","Ordre"]];
+  if (avdNavn) parts.push("and", ["departmentName","=",avdNavn]);
   if (fra) parts.push("and", ["deliveryDate",">=",fra]);
   if (til) parts.push("and", ["deliveryDate","<=",til]);
   const filter = parts.length === 1 ? parts[0] : parts;
