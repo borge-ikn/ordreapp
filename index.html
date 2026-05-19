@@ -180,13 +180,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .gap-kort { background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin-bottom:16px; }
 .gap-tittel { font-size:.85rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px; }
 .gap-rad { display:flex;align-items:center;gap:12px;margin-bottom:10px; }
-.gap-etikett { font-size:.85rem;width:110px;flex-shrink:0; }
+.gap-etikett { font-size:.85rem;min-width:80px;flex-shrink:1; }
 .gap-bar-wrap { flex:1;background:var(--surface2);border-radius:4px;height:10px;overflow:hidden; }
 .gap-bar { height:100%;border-radius:4px;transition:width .4s; }
 .gap-bar.ordre  { background:var(--accent); }
 .gap-bar.intern { background:var(--gold); }
 .gap-bar.uforklart { background:#fee2e2; }
-.gap-verdi { font-size:.85rem;font-weight:600;width:48px;text-align:right;flex-shrink:0; }
+.gap-verdi { font-size:.85rem;font-weight:600;min-width:44px;text-align:right;flex-shrink:0; }
 .gap-status { margin-top:14px;padding:10px 14px;border-radius:8px;font-size:.88rem;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:10px; }
 .gap-status.ok  { background:#d1fae5;color:#065f46; }
 .gap-status.advarsel { background:#fef3c7;color:#92400e; }
@@ -251,8 +251,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   .form-group.full,.tform-group.full { grid-column:1; }
   .order-card { flex-direction:column; }
   .order-card-right { text-align:left; }
-  .dag-summary { grid-template-columns:repeat(2,1fr); }
+  .dag-summary { grid-template-columns:repeat(2,1fr); padding:12px 16px; }
   .arb-form-grid { grid-template-columns:1fr 1fr; }
+  /* Header */
+  .header { padding:0 12px; }
+  /* Tab-bar: horisontal scroll */
+  .tabs { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:0 8px; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tab { padding:14px 13px; font-size:.82rem; }
+  /* Søk: filter-panel skjules som standard */
+  .filter-panel { display:none; width:100%; gap:8px; }
+  .filter-panel.open { display:flex; flex-wrap:wrap; }
+  .btn-filter { display:inline-flex; align-items:center; gap:4px; }
+  .search-input { min-width:0; }
+  /* Dag-nav: to rader */
+  .dag-nav-actions { width:100%; margin-left:0 !important; }
+  .dag-nav-actions .btn { flex:1; justify-content:center; font-size:.82rem; }
+}
+/* Filter-knapp med aktiv-indikator */
+.btn-filter { position:relative; }
+.btn-filter.har-filter::after {
+  content:''; position:absolute; top:6px; right:6px;
+  width:6px; height:6px; border-radius:50%;
+  background:var(--accent); }
+/* På desktop: filter-panel alltid synlig */
+@media (min-width:601px) {
+  .filter-panel { display:contents; }
+  .btn-filter { display:none; }
 }
 .planlegger-toolbar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:12px 16px 8px; }
 .planlegger-toolbar select, .planlegger-toolbar input[type=date] {
@@ -354,10 +379,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div class="main" id="side-sok">
     <div class="search-bar">
       <input class="search-input" id="sokeord" type="text" placeholder="Søk på kundenavn eller ordrenummer..." onkeydown="if(event.key==='Enter')sokOrdrer()">
-      <select class="select-filter" id="avdeling-filter" onchange="sokOrdrer()"><option value="">Alle avdelinger</option></select>
-      <select class="select-filter" id="status-filter"   onchange="sokOrdrer()"><option value="">Alle statuser</option></select>
-      <button class="btn btn-primary"   onclick="sokOrdrer()">Søk</button>
-      <button class="btn btn-secondary" onclick="nullstillSok()">Nullstill</button>
+      <button class="btn btn-secondary btn-filter" id="filter-btn" onclick="toggleFilterPanel()">⚙ Filter</button>
+      <div class="filter-panel" id="filter-panel">
+        <select class="select-filter" id="avdeling-filter" onchange="sokOrdrer();oppdaterFilterIndikator()"><option value="">Alle avdelinger</option></select>
+        <select class="select-filter" id="status-filter"   onchange="sokOrdrer();oppdaterFilterIndikator()"><option value="">Alle statuser</option></select>
+        <button class="btn btn-secondary" onclick="nullstillSok()">Nullstill</button>
+      </div>
+      <button class="btn btn-primary" onclick="sokOrdrer()">Søk</button>
     </div>
     <div id="resultat-info" class="result-info"></div>
     <div id="ordre-liste" class="order-list"><div class="loader"><div class="spinner"></div>Henter ordrer...</div></div>
@@ -441,7 +469,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <input type="date" class="dag-dato-input" id="dag-dato" onchange="lastDag()">
       <button class="dag-nav-btn" onclick="byttDag(1)">→</button>
       <button class="btn btn-secondary" onclick="settDagTilDag(new Date())">I dag</button>
-      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
+      <div class="dag-nav-actions" style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn btn-secondary" id="forslag-btn" onclick="forslagsArbeidsdag()" title="Foreslå arbeidsdag basert på ordretimer">💡 Foreslå fra ordretimer</button>
         <button class="btn btn-primary" onclick="visArbForm()">+ Legg til arbeidsperiode</button>
       </div>
@@ -862,7 +890,21 @@ function nullstillSok(){
   document.getElementById('sokeord').value='';
   document.getElementById('avdeling-filter').value='';
   document.getElementById('status-filter').value='';
+  const panel=document.getElementById('filter-panel');
+  if(panel) panel.classList.remove('open');
+  const btn=document.getElementById('filter-btn');
+  if(btn) btn.classList.remove('har-filter');
   hentOrdrer(0);
+}
+function toggleFilterPanel(){
+  const panel=document.getElementById('filter-panel');
+  if(panel) panel.classList.toggle('open');
+}
+function oppdaterFilterIndikator(){
+  const avd=document.getElementById('avdeling-filter').value;
+  const st=document.getElementById('status-filter').value;
+  const btn=document.getElementById('filter-btn');
+  if(btn) btn.classList.toggle('har-filter', !!(avd||st));
 }
 function visPaginering(){
   const tot=Math.ceil(totaltAntall/PAGE_SIZE);
