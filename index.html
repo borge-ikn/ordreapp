@@ -1959,10 +1959,10 @@ function renderOversikt(teknikere, ordrer, tildelinger) {
     return;
   }
 
-  // Grupper etter leveringsdato
+  // Grupper etter leveringsdato (normaliser til YYYY-MM-DD så klokkeslett ikke splitter)
   const datoGrupper = {};
   sortert.forEach(o => {
-    const key = o.delivery_date || 'Udatert';
+    const key = o.delivery_date ? o.delivery_date.slice(0,10) : 'Udatert';
     if (!datoGrupper[key]) datoGrupper[key] = [];
     datoGrupper[key].push(o);
   });
