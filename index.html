@@ -1507,12 +1507,31 @@ async function sendOrdre(e){
     note:document.getElementById('f-note').value||null,
     orderLines:samlLinjer()
   };
+  // Ta vare på visningsnavn før skjema nullstilles
+  const kundenavn = document.getElementById('f-kundesok').value;
   try{
     const resp=await fetch(MAKE_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'d='+encodeURIComponent(JSON.stringify(payload))});
     if(!resp.ok)throw new Error('HTTP '+resp.status);
     const res=await resp.json().catch(()=>({}));
-    toast('Ordre opprettet!'+(res.orderNumber?' #'+res.orderNumber:''),'success');
-    nullstillSkjema();byttFane('sok');hentOrdrer(0);
+    const ordreNr = res.orderNumber || res.id || payload.orderNumber || 0;
+    toast('Ordre opprettet!'+(ordreNr?' #'+ordreNr:''),'success');
+    nullstillSkjema();
+    byttFane('sok');
+    hentOrdrer(0); // oppdater liste i bakgrunnen
+
+    // Åpne den nyopprettede ordren i modal umiddelbart
+    const nyOrdre = {
+      order_number:   ordreNr,
+      customer_name:  kundenavn || null,
+      status_name:    res.statusName || res.status_name || 'Ny',
+      department_name: payload.departmentName,
+      delivery_date:  payload.deliveryDate,
+      net_amount:     res.netAmount || res.net_amount || 0,
+      customer_reference:        payload.customerReference,
+      customer_reference_number: payload.customerReferenceNumber,
+      note:           payload.note
+    };
+    visDetalj(JSON.stringify(nyOrdre));
   }catch(err){toast('Feil: '+err.message,'error');}
   finally{btn.disabled=false;btn.textContent='Opprett ordre';}
 }
