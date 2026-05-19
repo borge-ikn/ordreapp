@@ -1511,8 +1511,14 @@ async function sendOrdre(e){
   const kundenavn = document.getElementById('f-kundesok').value;
   try{
     const resp=await fetch(MAKE_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'d='+encodeURIComponent(JSON.stringify(payload))});
-    if(!resp.ok)throw new Error('HTTP '+resp.status);
     const res=await resp.json().catch(()=>({}));
+    if(!resp.ok){
+      // Hent faktisk feilmelding fra Prodsys
+      const errDetalj = res?.errors
+        ? Object.values(res.errors).flat().join(' | ')
+        : (res?.title || res?.detail || res?.message || ('HTTP '+resp.status));
+      throw new Error(errDetalj);
+    }
     const ordreNr = res.orderNumber || res.id || payload.orderNumber || 0;
     toast('Ordre opprettet!'+(ordreNr?' #'+ordreNr:''),'success');
     nullstillSkjema();
