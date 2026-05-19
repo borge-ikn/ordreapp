@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Industrikran – Ordreapp</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <style>
 :root {
   --bg: #f0f2f5;
@@ -253,6 +254,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   .dag-summary { grid-template-columns:repeat(2,1fr); }
   .arb-form-grid { grid-template-columns:1fr 1fr; }
 }
+.planlegger-toolbar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:12px 16px 8px; }
+.planlegger-toolbar select, .planlegger-toolbar input[type=date] {
+  background:var(--surface); color:var(--text); border:1px solid rgba(255,255,255,0.1);
+  border-radius:6px; padding:6px 10px; font-size:0.85rem; }
+.planlegger-board { display:flex; gap:12px; overflow-x:auto; padding:0 16px 20px; min-height:300px; align-items:flex-start; }
+.pl-kolonne { background:var(--surface); border-radius:10px; min-width:220px; max-width:220px;
+  display:flex; flex-direction:column; flex-shrink:0; }
+.pl-kolonne-tittel { font-weight:700; font-size:0.83rem; padding:10px 10px 8px;
+  border-bottom:2px solid var(--accent); }
+.pl-liste { display:flex; flex-direction:column; gap:6px; padding:8px; min-height:60px; }
+.pl-kort { background:var(--bg); border-radius:8px; padding:8px 10px; cursor:grab;
+  border:1px solid rgba(255,255,255,0.06); user-select:none; transition:opacity 0.15s; }
+.pl-kort:active { cursor:grabbing; }
+.pl-ghost { opacity:0.35; }
+.pl-kort .pk-nr { font-weight:700; font-size:0.8rem; color:var(--accent); }
+.pl-kort .pk-kunde { font-size:0.82rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+.pl-kort .pk-dato { font-size:0.75rem; opacity:0.6; margin-top:3px; }
+.mine-tildelte-seksjon { margin-bottom:16px; }
+.mine-tildelte-seksjon .seksjon-tittel { font-weight:700; font-size:0.9rem; margin-bottom:8px; padding:0 2px; }
 #side-dokumenter {
   display: none;
   flex-direction: column;
@@ -323,6 +343,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="tab"        id="tab-mindag"     onclick="byttFane('mindag')">📅 Min dag</div>
     <div class="tab"        id="tab-godkjenner" onclick="byttFane('godkjenner')" style="display:none;">👥 Godkjenner</div>
     <div class="tab"        id="tab-dokumenter" onclick="byttFane('dokumenter')">📄 Dokumenter</div>
+    <div class="tab"        id="tab-planlegger" onclick="byttFane('planlegger')" style="display:none;">📋 Planlegger</div>
   </div>
 
   <!-- ORDRESØK -->
@@ -421,6 +442,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <button class="btn btn-primary" onclick="visArbForm()">+ Legg til arbeidsperiode</button>
       </div>
     </div>
+    <div id="mine-tildelte-wrap"></div>
     <div id="arb-form-wrap"></div>
     <div id="dag-summary-wrap"></div>
     <div id="arbeidsdag-liste-wrap"></div>
@@ -438,6 +460,32 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <button class="btn btn-secondary" onclick="settGodkjennerDagTilDag(new Date())">I dag</button>
     </div>
     <div id="godkjenner-innhold"></div>
+  </div>
+
+  <div id="side-planlegger" style="display:none;">
+    <div class="planlegger-toolbar">
+      <select id="pl-avdeling" onchange="lastPlanlegger()">
+        <option value="">– Velg avdeling –</option>
+        <option>1 Stab</option>
+        <option>2 Agder</option>
+        <option>3 Bergen</option>
+        <option>4 Møre og Romsdal</option>
+        <option>5 Sandnes</option>
+        <option>6 Trondheim</option>
+        <option>8 Østlandet</option>
+        <option>9 Nord Norge</option>
+      </select>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <label style="font-size:0.82rem;">Fra</label>
+        <input type="date" id="pl-fra" onchange="lastPlanlegger()">
+        <label style="font-size:0.82rem;">Til</label>
+        <input type="date" id="pl-til" onchange="lastPlanlegger()">
+        <button class="btn btn-secondary" onclick="lastPlanlegger()">Oppdater</button>
+      </div>
+    </div>
+    <div id="planlegger-board" class="planlegger-board">
+      <div style="padding:20px;opacity:0.5;">Velg en avdeling for å se planleggeren.</div>
+    </div>
   </div>
 
   <div id="side-dokumenter">
@@ -566,6 +614,8 @@ async function lastBrukerRolle() {
 
   const godkjennerTab = document.getElementById('tab-godkjenner');
   if (godkjennerTab) godkjennerTab.style.display = brukerRolle === 'godkjenner' ? '' : 'none';
+  const planleggerTab = document.getElementById('tab-planlegger');
+  if (planleggerTab) planleggerTab.style.display = brukerRolle === 'godkjenner' ? '' : 'none';
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────
@@ -598,8 +648,9 @@ function statusFarge(s) {
   if (l.includes('vent') || l.includes('tilbud')) return 'yellow';
   return 'gray';
 }
+let planleggerInitiert = false;
 function byttFane(fane) {
-  ['sok','ny','mindag','godkjenner','dokumenter'].forEach(f => {
+  ['sok','ny','mindag','godkjenner','dokumenter','planlegger'].forEach(f => {
     const el = document.getElementById('side-'+f);
     if (el) el.style.display = f===fane ? (f==='dokumenter'?'flex':'') : 'none';
   });
@@ -614,6 +665,15 @@ function byttFane(fane) {
     const iframe = document.getElementById('sharepoint-iframe');
     if (!iframe.src) iframe.src = SHAREPOINT_URL;
   }
+  if (fane === 'planlegger' && !planleggerInitiert) {
+    planleggerInitiert = true;
+    // Sett standarddatoer: i dag → +30 dager
+    const idag = new Date();
+    const om30 = new Date(); om30.setDate(om30.getDate() + 30);
+    document.getElementById('pl-fra').value = idag.toISOString().slice(0,10);
+    document.getElementById('pl-til').value = om30.toISOString().slice(0,10);
+  }
+  if (fane === 'planlegger') lastPlanlegger();
 }
 async function getUid() {
   const { data } = await sb.auth.getSession();
@@ -821,6 +881,138 @@ async function hentFilterverdier(){
   stat.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;selS.appendChild(o);});
 }
 
+// ── PLANLEGGER ───────────────────────────────────────────────────────────
+
+async function lastPlanlegger() {
+  const avdeling = document.getElementById('pl-avdeling').value;
+  const fra = document.getElementById('pl-fra').value;
+  const til = document.getElementById('pl-til').value;
+  const board = document.getElementById('planlegger-board');
+  if (!avdeling) {
+    board.innerHTML = '<div style="padding:20px;opacity:0.5;">Velg en avdeling for å se planleggeren.</div>';
+    return;
+  }
+  board.innerHTML = '<div class="loader"><div class="spinner"></div>Laster planlegger...</div>';
+  const [teknikereRes, ordrer, tildelingerRes] = await Promise.all([
+    sb.from('ps_ansatte').select('employee_number, name').eq('department', avdeling).eq('is_active', true).order('name'),
+    hentPlanleggerOrdrer(fra, til),
+    sb.from('ordre_tildeling').select('order_number, employee_number')
+  ]);
+  renderPlanlegger(teknikereRes.data || [], ordrer, tildelingerRes.data || []);
+}
+
+async function hentPlanleggerOrdrer(fra, til) {
+  const parts = [["categoryId","=","Ordre"]];
+  if (fra) parts.push("and", ["deliveryDate",">=",fra]);
+  if (til) parts.push("and", ["deliveryDate","<=",til]);
+  const filter = parts.length === 1 ? parts[0] : parts;
+  const body = JSON.stringify({ dxLoadOptions: {
+    filter, sort:[{selector:"orderNumber",desc:true}],
+    skip:0, take:500, requireTotalCount:false,
+    searchOperation:"contains", searchValue:null, userData:{}, group:null
+  }});
+  try {
+    const resp = await fetch(MAKE_ORDERS_WEBHOOK, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'d='+encodeURIComponent(body)});
+    const wrapper = await resp.json().catch(()=>({}));
+    const raw = wrapper.data || wrapper;
+    const arr = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
+    return arr.map(mapProdsysOrdre);
+  } catch(e) { return []; }
+}
+
+function renderPlanlegger(teknikere, ordrer, tildelinger) {
+  const board = document.getElementById('planlegger-board');
+  const tildMap = {};
+  tildelinger.forEach(t => { tildMap[t.order_number] = t.employee_number; });
+  const kolonner = [{ id: '', navn: 'Ikke tildelt', ordrer: [] }];
+  teknikere.forEach(t => kolonner.push({ id: t.employee_number, navn: t.name, ordrer: [] }));
+  ordrer.forEach(o => {
+    const empNr = tildMap[o.order_number] || '';
+    const kol = kolonner.find(k => k.id === empNr) || kolonner[0];
+    kol.ordrer.push(o);
+  });
+  board.innerHTML = kolonner.map(kol => `
+    <div class="pl-kolonne">
+      <div class="pl-kolonne-tittel">${kol.navn} <span style="font-weight:400;opacity:0.55;">(${kol.ordrer.length})</span></div>
+      <div class="pl-liste" data-employee-number="${kol.id}">
+        ${kol.ordrer.map(o => `
+          <div class="pl-kort" data-order-number="${o.order_number}">
+            <div class="pk-nr">#${o.order_number}</div>
+            <div class="pk-kunde">${o.customer_name||'–'}</div>
+            <div class="pk-dato">📅 ${fmtDato(o.delivery_date)}${o.status_name?' · '+o.status_name:''}</div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+  board.querySelectorAll('.pl-liste').forEach(el => {
+    Sortable.create(el, {
+      group: 'planlegger-ordrer', animation: 150, ghostClass: 'pl-ghost',
+      onEnd(evt) {
+        const orderNumber = parseInt(evt.item.dataset.orderNumber);
+        const employeeNumber = evt.to.dataset.employeeNumber || null;
+        lagreTildeling(orderNumber, employeeNumber || null);
+      }
+    });
+  });
+}
+
+async function lagreTildeling(orderNumber, employeeNumber) {
+  const uid = await getUid();
+  if (!employeeNumber) {
+    await sb.from('ordre_tildeling').delete().eq('order_number', orderNumber);
+  } else {
+    await sb.from('ordre_tildeling').upsert({
+      order_number: orderNumber, employee_number: String(employeeNumber),
+      assigned_by: uid, assigned_at: new Date().toISOString()
+    });
+  }
+}
+
+async function lastMineTildelte() {
+  const wrap = document.getElementById('mine-tildelte-wrap');
+  if (!wrap) return;
+  if (!brukerProdsysId) { wrap.innerHTML = ''; return; }
+  const { data: tildelinger } = await sb.from('ordre_tildeling')
+    .select('order_number').eq('employee_number', String(brukerProdsysId));
+  if (!tildelinger?.length) {
+    wrap.innerHTML = '<div style="padding:4px 2px 12px;opacity:0.5;font-size:0.85rem;">Ingen ordrer tildelt deg for øyeblikket.</div>';
+    return;
+  }
+  const filterParts = tildelinger.map(t => ["orderNumber","=",t.order_number]);
+  let filter = filterParts.length === 1 ? filterParts[0] : [filterParts[0]];
+  for (let i = 1; i < filterParts.length; i++) { if(Array.isArray(filter)) filter.push("or", filterParts[i]); }
+  const body = JSON.stringify({ dxLoadOptions: {
+    filter, sort:[{selector:"deliveryDate",desc:false}],
+    skip:0, take:100, requireTotalCount:false,
+    searchOperation:"contains", searchValue:null, userData:{}, group:null
+  }});
+  try {
+    const resp = await fetch(MAKE_ORDERS_WEBHOOK, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'d='+encodeURIComponent(body)});
+    const wrapper = await resp.json().catch(()=>({}));
+    const raw = wrapper.data || wrapper;
+    const arr = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
+    const ordrer = arr.map(mapProdsysOrdre);
+    if (!ordrer.length) { wrap.innerHTML = ''; return; }
+    wrap.innerHTML = `<div class="mine-tildelte-seksjon">
+      <div class="seksjon-tittel">📋 Mine tildelte ordrer</div>
+      ${ordrer.map(o=>`
+        <div class="order-card" onclick='visDetalj(${JSON.stringify(JSON.stringify(o))})'>
+          <div style="flex:1;min-width:0;">
+            <div class="order-nr">#${o.order_number}</div>
+            <div class="order-kunde">${o.customer_name||'–'}</div>
+            <div class="order-meta">
+              <span>📅 ${fmtDato(o.delivery_date)}</span>
+              ${o.department_name?`<span>🏢 ${o.department_name}</span>`:''}
+            </div>
+          </div>
+          <div class="order-card-right">
+            <div class="order-beloep">${fmtBeloep(o.net_amount)}</div>
+            <span class="status-badge ${statusFarge(o.status_name)}">${o.status_name||'Ukjent'}</span>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  } catch(e) { wrap.innerHTML = ''; }
+}
+
 // ── ORDRE DETALJ + ORDRETIMER ─────────────────────────────────────────────
 
 async function visDetalj(jsonStr){
@@ -955,6 +1147,7 @@ function byttDag(r){
 async function lastDag(){
   const dato=document.getElementById('dag-dato').value;
   if(!dato)return;
+  lastMineTildelte();
   const uid=await getUid();
   const[arbRes,ordreRes,internRes]=await Promise.all([
     sb.from('arbeidsdag_logg').select('*').eq('dato',dato).order('fra_tid',{ascending:true}),
