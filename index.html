@@ -442,7 +442,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <script>
 const SUPABASE_URL      = 'https://eeikodpeeybrzgxcsflh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlaWtvZHBlZXlicnpneGNzZmxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzY3MjcsImV4cCI6MjA5MzYxMjcyN30.nJFkmdOvpHrq2MGaDIyF0GShPBUOnOB9h-cf9-elsTY';
-const MAKE_WEBHOOK      = 'https://hook.eu1.make.com/4xa8o3um368rto24hc6oq9edgwo25bvt';
+const MAKE_WEBHOOK        = 'https://hook.eu1.make.com/4xa8o3um368rto24hc6oq9edgwo25bvt';
+const MAKE_ORDERS_WEBHOOK = 'https://hook.eu1.make.com/5l3wj9ejndmng98am5y6ip3jb5rlvpym';
 const PAGE_SIZE         = 30;
 const ORDINAER_TIMER    = 7.5;
 const OT50_MAX          = 5;
@@ -583,6 +584,38 @@ async function getUser() {
   return data?.session?.user;
 }
 
+// ── PRODSYS ORDRE PROXY HELPERS ───────────────────────────────────────────
+
+function mapProdsysOrdre(o) {
+  return {
+    order_number: o.orderNumber,
+    customer_name: o.customerName,
+    delivery_date: o.deliveryDate,
+    department_name: o.departmentName,
+    customer_reference: o.customerReference,
+    customer_reference_number: o.customerReferenceNumber,
+    net_amount: o.netAmount,
+    status_name: o.statusName,
+    category_id: o.categoryId,
+    note: o.note
+  };
+}
+function byggDxFilter(sokeord, avdFilter, statusFilter) {
+  const parts = [];
+  if (sokeord) {
+    const tall = parseInt(sokeord);
+    parts.push((!isNaN(tall) && String(tall) === sokeord)
+      ? ["orderNumber","=",tall] : ["customerName","contains",sokeord]);
+  }
+  if (avdFilter)   parts.push(["departmentName","=",avdFilter]);
+  if (statusFilter) parts.push(["statusName","=",statusFilter]);
+  if (!parts.length) return null;
+  if (parts.length === 1) return parts[0];
+  const combined = [parts[0]];
+  for (let i = 1; i < parts.length; i++) combined.push("and", parts[i]);
+  return combined;
+}
+
 // ── NORSKE HELLIGDAGER ────────────────────────────────────────────────────
 
 function beregnPaaske(aar) {
@@ -638,9 +671,24 @@ async function beregnTimeart(dato, ansattId, excludeId=null){
 }
 
 async function visDetaljFraOrdrNr(orderNumber){
-  const{data}=await sb.from('ps_ordrer').select('*').eq('order_number',orderNumber).single();
-  if(!data){toast('Fant ikke ordre #'+orderNumber,'error');return;}
-  visDetalj(JSON.stringify(data));
+  try {
+    const body = JSON.stringify({ dxLoadOptions: {
+      filter: ["orderNumber","=",parseInt(orderNumber)],
+      sort: [{ selector:"orderNumber", desc:true }],
+      skip: 0, take: 1, requireTotalCount: false,
+      searchOperation:"contains", searchValue:null, userData:{}, group:null
+    }});
+    const resp = await fetch(MAKE_ORDERS_WEBHOOK, {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'d='+encodeURIComponent(body)
+    });
+    const wrapper = await resp.json().catch(()=>({}));
+    const raw = wrapper.data || wrapper;
+    const arr = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
+    if (!arr.length){ toast('Fant ikke ordre #'+orderNumber,'error'); return; }
+    visDetalj(JSON.stringify(mapProdsysOrdre(arr[0])));
+  } catch(err){ toast('Feil: '+err.message,'error'); }
 }
 
 // ── ORDRESØK ─────────────────────────────────────────────────────────────
@@ -653,17 +701,32 @@ async function hentOrdrer(side) {
   const sokeord=document.getElementById('sokeord').value.trim();
   const avdFilter=document.getElementById('avdeling-filter').value;
   const statusFilter=document.getElementById('status-filter').value;
-  const fra=side*PAGE_SIZE;
-  let q=sb.from('ps_ordrer').select('*',{count:'exact'})
-    .eq('category_id','Ordre').order('order_number',{ascending:false})
-    .range(fra,fra+PAGE_SIZE-1);
-  if(sokeord){ const tall=parseInt(sokeord); q=!isNaN(tall)?q.eq('order_number',tall):q.ilike('customer_name','%'+sokeord+'%'); }
-  if(avdFilter)q=q.eq('department_name',avdFilter);
-  if(statusFilter)q=q.eq('status_name',statusFilter);
-  const{data,error,count}=await q;
-  if(error){liste.innerHTML='<div class="loader">⚠ '+error.message+'</div>';return;}
-  gjeldendeSide=side;totaltAntall=count||0;
-  visOrdrer(data||[]);visPaginering();
+  try {
+    const extraFilters = byggDxFilter(sokeord, avdFilter, statusFilter);
+    const baseFilter = ["categoryId","=","Ordre"];
+    const filter = extraFilters ? [baseFilter, "and", extraFilters] : baseFilter;
+    const body = JSON.stringify({ dxLoadOptions: {
+      filter,
+      sort: [{ selector:"orderNumber", desc:true }],
+      skip: side * PAGE_SIZE,
+      take: PAGE_SIZE,
+      requireTotalCount: true,
+      searchOperation:"contains", searchValue:null, userData:{}, group:null
+    }});
+    const resp = await fetch(MAKE_ORDERS_WEBHOOK, {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'d='+encodeURIComponent(body)
+    });
+    const wrapper = await resp.json().catch(()=>({}));
+    const raw = wrapper.data || wrapper;
+    const arr = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
+    const total = raw?.totalCount ?? arr.length;
+    gjeldendeSide=side; totaltAntall=total;
+    visOrdrer(arr.map(mapProdsysOrdre)); visPaginering();
+  } catch(err){
+    liste.innerHTML='<div class="loader">⚠ '+err.message+'</div>';
+  }
 }
 function sokOrdrer(){hentOrdrer(0);}
 function nesteSide(){hentOrdrer(gjeldendeSide+1);}
@@ -704,15 +767,14 @@ function visOrdrer(ordrer){
     </div>`).join('');
 }
 async function hentFilterverdier(){
-  const[a,s]=await Promise.all([
-    sb.from('ps_ordrer').select('department_name').eq('category_id','Ordre').not('department_name','is',null),
-    sb.from('ps_ordrer').select('status_name').eq('category_id','Ordre').not('status_name','is',null)
-  ]);
-  const avd=[...new Set((a.data||[]).map(r=>r.department_name))].filter(Boolean).sort();
+  // Avdelinger: hardkodet liste (proxy returnerer camelCase departmentName)
+  const avdelinger = ['Agder','Bergen','Møre og Romsdal','Nord Norge','Oslo','Østlandet','Sandnes','Stab','Trondheim'];
   const selA=document.getElementById('avdeling-filter');
   selA.innerHTML='<option value="">Alle avdelinger</option>';
-  avd.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;selA.appendChild(o);});
-  const stat=[...new Set((s.data||[]).map(r=>r.status_name))].filter(Boolean).sort();
+  avdelinger.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;selA.appendChild(o);});
+  // Statuser: hentes fortsatt fra Supabase ps_ordrer (endres sjelden)
+  const {data:sData}=await sb.from('ps_ordrer').select('status_name').eq('category_id','Ordre').not('status_name','is',null);
+  const stat=[...new Set((sData||[]).map(r=>r.status_name))].filter(Boolean).sort();
   const selS=document.getElementById('status-filter');
   selS.innerHTML='<option value="">Alle statuser</option>';
   stat.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;selS.appendChild(o);});
