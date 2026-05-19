@@ -924,7 +924,7 @@ async function lastPlanlegger() {
       .eq('is_archived', false)
       .eq('department_code', avdKode)
       .order('last_name'),
-    hentPlanleggerOrdrer(fra, til, avdNavn),
+    hentPlanleggerOrdrer(fra, til, null), // ingen avdelingsfilter — kryssavdeling-tildeling skal være mulig
     sb.from('ordre_tildeling').select('order_number, employee_number')
   ]);
   allePlanleggerTeknikere = (teknikereRes.data || []).map(r => ({
