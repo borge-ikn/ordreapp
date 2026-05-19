@@ -605,7 +605,8 @@ function byggDxFilter(sokeord, avdFilter, statusFilter) {
   if (sokeord) {
     const tall = parseInt(sokeord);
     parts.push((!isNaN(tall) && String(tall) === sokeord)
-      ? ["orderNumber","=",tall] : ["customerName","contains",sokeord]);
+      ? ["orderNumber","=",tall]
+      : [["customerName","contains",sokeord], "or", ["note","contains",sokeord]]);
   }
   if (avdFilter)   parts.push(["departmentName","=",avdFilter]);
   if (statusFilter) parts.push(["statusName","=",statusFilter]);
