@@ -258,12 +258,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .planlegger-toolbar select, .planlegger-toolbar input[type=date] {
   background:var(--surface); color:var(--text); border:1px solid rgba(255,255,255,0.1);
   border-radius:6px; padding:6px 10px; font-size:0.85rem; }
-.planlegger-board { display:flex; gap:12px; overflow-x:auto; padding:0 16px 20px; min-height:300px; align-items:flex-start; }
+.planlegger-board { display:flex; gap:12px; overflow-x:auto; overflow-y:hidden;
+  padding:0 16px 12px; align-items:stretch;
+  height: calc(100vh - 130px); /* fyller skjermen under toolbar+tabs */ }
 .pl-kolonne { background:var(--surface); border-radius:10px; min-width:220px; max-width:220px;
-  display:flex; flex-direction:column; flex-shrink:0; }
+  display:flex; flex-direction:column; flex-shrink:0; min-height:0; }
 .pl-kolonne-tittel { font-weight:700; font-size:0.83rem; padding:10px 10px 8px;
-  border-bottom:2px solid var(--accent); }
-.pl-liste { display:flex; flex-direction:column; gap:6px; padding:8px; min-height:60px; }
+  border-bottom:2px solid var(--accent); flex-shrink:0; }
+.pl-liste { display:flex; flex-direction:column; gap:6px; padding:8px;
+  overflow-y:auto; flex:1; min-height:60px; }
 .pl-kort { background:var(--bg); border-radius:8px; padding:8px 10px; cursor:grab;
   border:1px solid rgba(255,255,255,0.06); user-select:none; transition:opacity 0.15s; }
 .pl-kort:active { cursor:grabbing; }
