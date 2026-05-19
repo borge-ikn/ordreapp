@@ -480,7 +480,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <option value="9">Nord Norge</option>
         <option value="12">Oslo</option>
       </select>
-      <input type="search" id="pl-sok" placeholder="Filtrer navn…" oninput="filterPlanlegger()" style="width:140px;">
+      <input type="search" id="pl-sok" placeholder="Filtrer navn…" oninput="filterPlanlegger()" style="width:130px;">
+      <div style="width:1px;background:rgba(255,255,255,0.12);align-self:stretch;margin:0 4px;"></div>
+      <select id="pl-ordre-avd" onchange="filterOgRenderPlanlegger()" style="min-width:130px;">
+        <option value="">Alle avd. (ordrer)</option>
+        <option>Agder</option><option>Bergen</option><option>Møre og Romsdal</option>
+        <option>Nord Norge</option><option>Oslo</option><option>Østlandet</option>
+        <option>Sandnes</option><option>Stab</option><option>Trondheim</option>
+      </select>
+      <input type="search" id="pl-ordre-sok" placeholder="Søk ordre/kunde…" oninput="filterOgRenderPlanlegger()" style="width:150px;">
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <label style="font-size:0.82rem;">Fra</label>
         <input type="date" id="pl-fra" onchange="lastPlanlegger()">
@@ -906,6 +914,8 @@ const PO_DEPT_NAMES = {
   '5':'Sandnes','6':'Trondheim','8':'Østlandet','9':'Nord Norge','12':'Oslo'
 };
 let allePlanleggerTeknikere = [];
+let allePlanleggerOrdrer = [];
+let allePlanleggerTildelinger = [];
 
 async function lastPlanlegger() {
   const avdKode = document.getElementById('pl-avdeling').value;
@@ -932,7 +942,9 @@ async function lastPlanlegger() {
     name: `${r.first_name} ${r.last_name}`,
     dept: avdNavn
   }));
-  renderPlanlegger(allePlanleggerTeknikere, ordrer, tildelingerRes.data || []);
+  allePlanleggerOrdrer = ordrer;
+  allePlanleggerTildelinger = tildelingerRes.data || [];
+  filterOgRenderPlanlegger();
 }
 
 function filterPlanlegger() {
@@ -942,6 +954,22 @@ function filterPlanlegger() {
     const navn = kol.dataset.emp.toLowerCase();
     kol.style.display = (!sok || navn.includes(sok)) ? '' : 'none';
   });
+}
+
+function filterOgRenderPlanlegger() {
+  const avd = document.getElementById('pl-ordre-avd')?.value || '';
+  const sok = (document.getElementById('pl-ordre-sok')?.value || '').toLowerCase();
+  const filtrerte = allePlanleggerOrdrer.filter(o => {
+    if (avd && o.department_name !== avd) return false;
+    if (sok) {
+      const tall = parseInt(sok);
+      const treffNr = !isNaN(tall) && String(o.order_number).includes(sok);
+      const treffKunde = (o.customer_name || '').toLowerCase().includes(sok);
+      if (!treffNr && !treffKunde) return false;
+    }
+    return true;
+  });
+  renderPlanlegger(allePlanleggerTeknikere, filtrerte, allePlanleggerTildelinger);
 }
 
 async function hentPlanleggerOrdrer(fra, til, avdNavn) {
