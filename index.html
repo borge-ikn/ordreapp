@@ -540,7 +540,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let gjeldendeSide = 0, totaltAntall = 0, linjeNr = 0;
 let aktivOrdre = null, redigeringsId = null, redigeringsArbId = null, redigeringsInternId = null;
 let brukerRolle = 'tekniker';
-let brukerProdsysId = null;
+let brukerProdsysId = null;   // Prodsys ID — brukes til ordre-tildeling
+let brukerPONummer   = null;   // PowerOffice ID — brukes til planlegger-kolonner
 let brukerAvdelingKode = null;
 
 const AKTIVITETER = [
@@ -600,8 +601,8 @@ async function lastBrukerRolle() {
   const uid = await getUid();
   if (!uid) return;
 
-  // Hent rolle og prodsys_id fra profiles (prodsys_id er fallback)
-  const { data: profil } = await sb.from('profiles').select('rolle, prodsys_id').eq('id', uid).single();
+  // Hent rolle, prodsys_id og po_number fra profiles
+  const { data: profil } = await sb.from('profiles').select('rolle, prodsys_id, po_number').eq('id', uid).single();
   brukerRolle = profil?.rolle || 'tekniker';
 
   // Slå opp employee_number i ps_ansatte via e-post (primær kilde)
@@ -616,10 +617,13 @@ async function lastBrukerRolle() {
     brukerProdsysId = profil?.prodsys_id || null;
   }
 
-  // Hent avdelingskode fra po_ansatte (brukes til å forhåndsvelge avdeling i planlegger)
-  if (brukerProdsysId) {
+  // Sett PowerOffice-nummer: eksplisitt po_number i profil, ellers prøv match mot prodsys_id
+  brukerPONummer = profil?.po_number ?? brukerProdsysId;
+
+  // Hent avdelingskode fra po_ansatte (forhåndsvelger avdeling i planlegger)
+  if (brukerPONummer) {
     const { data: poA } = await sb.from('po_ansatte')
-      .select('department_code').eq('number', brukerProdsysId).single();
+      .select('department_code').eq('number', brukerPONummer).single();
     brukerAvdelingKode = poA?.department_code ? String(poA.department_code) : null;
   }
 
@@ -1009,9 +1013,10 @@ async function lagreTildeling(orderNumber, employeeNumber) {
 async function lastMineTildelte() {
   const wrap = document.getElementById('mine-tildelte-wrap');
   if (!wrap) return;
-  if (!brukerProdsysId) { wrap.innerHTML = ''; return; }
+  const poNr = brukerPONummer ?? brukerProdsysId;
+  if (!poNr) { wrap.innerHTML = ''; return; }
   const { data: tildelinger } = await sb.from('ordre_tildeling')
-    .select('order_number').eq('employee_number', String(brukerProdsysId));
+    .select('order_number').eq('employee_number', String(poNr));
   if (!tildelinger?.length) {
     wrap.innerHTML = '<div style="padding:4px 2px 12px;opacity:0.5;font-size:0.85rem;">Ingen ordrer tildelt deg for øyeblikket.</div>';
     return;
