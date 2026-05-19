@@ -625,6 +625,24 @@ function beregnDagTotaler(perioder) {
   return { totalNetto, ordinaer, ot50, ot100, erHelg };
 }
 
+async function beregnTimeart(dato, ansattId, excludeId=null){
+  let q=sb.from('timeregistrering').select('timer').eq('dato',dato).eq('ansatt_id',ansattId);
+  if(excludeId) q=q.neq('id',excludeId);
+  const{data}=await q;
+  const startPos=(data||[]).reduce((s,t)=>s+Number(t.timer),0);
+  const{data:arbPer}=await sb.from('arbeidsdag_logg').select('er_helg_helligdag').eq('dato',dato).eq('ansatt_id',ansattId).limit(1);
+  if(arbPer&&arbPer.length&&arbPer[0].er_helg_helligdag) return 'Overtid 100%';
+  if(startPos>=ORDINAER_TIMER+OT50_MAX) return 'Overtid 100%';
+  if(startPos>=ORDINAER_TIMER) return 'Overtid 50%';
+  return 'Ordinær tid';
+}
+
+async function visDetaljFraOrdrNr(orderNumber){
+  const{data}=await sb.from('ps_ordrer').select('*').eq('order_number',orderNumber).single();
+  if(!data){toast('Fant ikke ordre #'+orderNumber,'error');return;}
+  visDetalj(JSON.stringify(data));
+}
+
 // ── ORDRESØK ─────────────────────────────────────────────────────────────
 
 async function hentOrdrer(side) {
@@ -765,25 +783,11 @@ async function oppdaterTimerSeksjon(){
   seksjon.innerHTML=html;
 }
 
-async function visTimerForm(prefill=null){
+function visTimerForm(prefill=null){
   redigeringsId=prefill?prefill.id:null;
   const idag=new Date().toISOString().split('T')[0];
   const dato=prefill?prefill.dato:idag;
   const aktOpt=AKTIVITETER.map(a=>`<option value="${a.kode}" ${prefill&&prefill.aktivitet_kode==a.kode?'selected':''}>${a.navn}</option>`).join('');
-
-  // Auto-foreslå timeart basert på arbeidsdag for valgt dato
-  let foreslattTimeart=prefill?prefill.timeart:'Ordinær tid';
-  if(!prefill){
-    const uid=await getUid();
-    const{data:arbPer}=await sb.from('arbeidsdag_logg').select('*').eq('dato',dato).eq('ansatt_id',uid);
-    if(arbPer&&arbPer.length){
-      const{totalNetto}=beregnDagTotaler(arbPer);
-      if(totalNetto>=ORDINAER_TIMER+OT50_MAX) foreslattTimeart='Overtid 100%';
-      else if(totalNetto>=ORDINAER_TIMER) foreslattTimeart='Overtid 50%';
-    }
-  }
-  const taOpt=['Ordinær tid','Overtid 50%','Overtid 100%'].map(v=>`<option value="${v}" ${v===foreslattTimeart?'selected':''}>${v}</option>`).join('');
-
   document.getElementById('timer-form-wrap').innerHTML=`
     <div class="timer-form">
       <h3>${redigeringsId?'Rediger timer':'Registrer timer'}</h3>
@@ -792,8 +796,6 @@ async function visTimerForm(prefill=null){
           <input type="date" id="tf-dato" value="${dato}" required></div>
         <div class="tform-group"><label>Antall timer *</label>
           <input type="number" id="tf-timer" value="${prefill?prefill.timer:''}" placeholder="f.eks. 2.5" min="0.25" max="24" step="0.25" required></div>
-        <div class="tform-group"><label>Timeart *</label>
-          <select id="tf-timeart">${taOpt}</select></div>
         <div class="tform-group full"><label>Aktivitet *</label>
           <select id="tf-aktivitet">${aktOpt}</select></div>
         <div class="tform-group full"><label>Kommentar *</label>
@@ -813,10 +815,10 @@ async function lagreTimer(){
   const timer=parseFloat(document.getElementById('tf-timer').value);
   const aktKode=parseInt(document.getElementById('tf-aktivitet').value);
   const komm=document.getElementById('tf-kommentar').value.trim();
-  const timeart=document.getElementById('tf-timeart').value;
   if(!dato||!timer||!komm){toast('Fyll ut alle påkrevde felt','error');return;}
   const aktObj=AKTIVITETER.find(a=>a.kode===aktKode);
   const user=await getUser();
+  const timeart=await beregnTimeart(dato,user.id,redigeringsId);
   const rad={order_number:aktivOrdre.order_number,dato,timer,timeart,
     kundenavn:aktivOrdre.customer_name||null,
     aktivitet_kode:aktKode,aktivitet_navn:aktObj.navn,
@@ -875,8 +877,10 @@ function visArbSummary(dato,perioder){
   const wrap=document.getElementById('dag-summary-wrap');
   if(!perioder.length){wrap.innerHTML='';return;}
   const{totalNetto,ordinaer,ot50,ot100,erHelg}=beregnDagTotaler(perioder);
+  const harInnarbeiding=perioder.some(p=>p.innarbeiding);
   wrap.innerHTML=`<div class="dag-summary ${erHelg?'helg':''}">
     ${erHelg?'<div style="grid-column:1/-1;margin-bottom:4px;"><span class="dag-sum-helg-badge">🔴 Helg / Helligdag – 100% overtid fra første time</span></div>':''}
+    ${harInnarbeiding?'<div style="grid-column:1/-1;margin-bottom:4px;"><span class="dag-sum-helg-badge" style="background:#ede9fe;color:#5b21b6;">⬆ Innarbeiding – OT-tillegg utbetales, timen til timebank</span></div>':''}
     <div class="dag-sum-felt"><div class="verdi">${fmtTimer(totalNetto)}</div><div class="etikett">Totalt</div></div>
     <div class="dag-sum-felt"><div class="verdi">${fmtTimer(ordinaer)}</div><div class="etikett">Ordinær</div></div>
     <div class="dag-sum-felt"><div class="verdi">${fmtTimer(ot50)}</div><div class="etikett">50% overtid</div></div>
@@ -901,9 +905,10 @@ function visArbListe(dato,perioder){
     else if(fraAkk>=ORDINAER_TIMER+OT50_MAX)otBadge='<span class="ot-badge ot100">100% OT</span>';
     else if(fraAkk>=ORDINAER_TIMER)otBadge='<span class="ot-badge ot50">50% OT</span>';
     else if(akkumulert>ORDINAER_TIMER)otBadge='<span class="ot-badge ot50">Delvis OT</span>';
+    const innarbBadge=p.innarbeiding?'<span class="ot-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">Innarbeiding</span>':'';
     return `<div class="arbeidsdag-rad">
       <div class="arbeidsdag-rad-info">
-        <div class="arb-tid">${p.fra_tid.slice(0,5)} → ${p.til_tid.slice(0,5)} ${otBadge}</div>
+        <div class="arb-tid">${p.fra_tid.slice(0,5)} → ${p.til_tid.slice(0,5)} ${otBadge}${innarbBadge}</div>
         <div class="arb-detalj">Pause: ${p.pause_minutter} min &nbsp;|&nbsp; Netto: ${fmtTimer(netto)}</div>
         ${p.kommentar?`<div class="arb-komm">${p.kommentar}</div>`:''}
       </div>
@@ -987,7 +992,7 @@ function visOrdretimerDag(dato, ordretimer){
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--bg);border-radius:8px;">
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span style="font-weight:700;color:var(--accent);font-size:.9rem;">#${t.order_number}</span>
+          <button onclick="visDetaljFraOrdrNr(${t.order_number})" style="font-weight:700;color:var(--accent);font-size:.9rem;background:none;border:none;padding:0;cursor:pointer;text-decoration:underline;">#${t.order_number}</button>
           ${t.kundenavn?`<span style="font-size:.85rem;color:var(--text);">${t.kundenavn}</span>`:''}
           ${timeart_badge(t.timeart)}
           ${t.er_fakturerbar?'':'<span style="font-size:.75rem;background:#f3f4f6;color:var(--muted);padding:2px 8px;border-radius:20px;">Ikke fakt.</span>'}
@@ -1015,7 +1020,6 @@ async function redigerOrdretimeDag(id){
   const{data:t}=await sb.from('timeregistrering').select('*').eq('id',id).single();
   if(!t)return;
   const aktOpt=AKTIVITETER.map(a=>`<option value="${a.kode}" ${a.kode==t.aktivitet_kode?'selected':''}>${a.navn}</option>`).join('');
-  const taOpt=['Ordinær tid','Overtid 50%','Overtid 100%'].map(v=>`<option value="${v}" ${v===t.timeart?'selected':''}>${v}</option>`).join('');
   const wrap=document.getElementById('dag-ordretimer-form-wrap');
   wrap.innerHTML=`
     <div class="timer-form" style="margin-top:14px;">
@@ -1023,8 +1027,6 @@ async function redigerOrdretimeDag(id){
       <div class="tform-grid">
         <div class="tform-group"><label>Antall timer *</label>
           <input type="number" id="dot-timer" value="${t.timer}" min="0.25" max="24" step="0.25" required></div>
-        <div class="tform-group"><label>Timeart *</label>
-          <select id="dot-timeart">${taOpt}</select></div>
         <div class="tform-group full"><label>Aktivitet *</label>
           <select id="dot-aktivitet">${aktOpt}</select></div>
         <div class="tform-group full"><label>Kommentar *</label>
@@ -1040,11 +1042,13 @@ async function redigerOrdretimeDag(id){
 
 async function lagreOrdretimeDag(id){
   const timer=parseFloat(document.getElementById('dot-timer').value);
-  const timeart=document.getElementById('dot-timeart').value;
   const aktKode=parseInt(document.getElementById('dot-aktivitet').value);
   const komm=document.getElementById('dot-kommentar').value.trim();
   if(!timer||!komm){toast('Fyll ut alle felt','error');return;}
   const aktObj=AKTIVITETER.find(a=>a.kode===aktKode);
+  const dato=document.getElementById('dag-dato').value;
+  const uid=await getUid();
+  const timeart=await beregnTimeart(dato,uid,id);
   const{error}=await sb.from('timeregistrering').update({
     timer,timeart,aktivitet_kode:aktKode,aktivitet_navn:aktObj.navn,
     er_fakturerbar:aktObj.fakturerbar,kommentar:komm,
@@ -1164,6 +1168,12 @@ function visArbForm(prefill=null){
           <div class="arb-netto-vis" id="arb-netto-vis"></div></div>
         <div class="arb-form-group full"><label>Kommentar</label>
           <textarea id="arb-kommentar" placeholder="Valgfritt...">${prefill&&prefill.kommentar?prefill.kommentar:''}</textarea></div>
+        <div class="arb-form-group full">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.9rem;font-weight:400;">
+            <input type="checkbox" id="arb-innarbeiding" ${prefill&&prefill.innarbeiding?'checked':''} style="width:16px;height:16px;cursor:pointer;accent-color:#7c3aed;">
+            Innarbeiding <span style="font-size:.8rem;color:var(--muted);">(OT-tillegg utbetales, timen til timebank)</span>
+          </label>
+        </div>
       </div>
       <div class="arb-form-actions">
         <button type="button" class="btn btn-secondary" onclick="skjulArbForm()">Avbryt</button>
@@ -1217,9 +1227,10 @@ async function lagreArbeidsdag(){
     }
   }
 
+  const innarbeiding=document.getElementById('arb-innarbeiding')?.checked||false;
   const user=await getUser();
   const rad={dato,fra_tid:fra,til_tid:til,pause_minutter:pause,
-    netto_timer:nettoTimer,er_helg_helligdag:erHelg,
+    netto_timer:nettoTimer,er_helg_helligdag:erHelg,innarbeiding,
     ansatt_id:user.id,ansatt_epost:user.email,
     kommentar:komm||null,oppdatert_at:new Date().toISOString()};
   let error;
@@ -1334,14 +1345,15 @@ function visGodkjennerAnsatt(a, dato){
   // Arbeidsdag
   let arbHtml = '';
   if(a.arb.length){
-    const{totalNetto,perioder} = beregnDagTotaler(a.arb);
-    const {ordinaer,ot50,ot100} = beregnOvertid(totalNetto, a.arb[0]?.er_helg_helligdag);
+    const{totalNetto,ordinaer,ot50,ot100}=beregnDagTotaler(a.arb);
+    const harInnarbeiding=a.arb.some(p=>p.innarbeiding);
     arbHtml = `<div style="margin-bottom:10px;">
-      ${a.arb.map(p=>`<div style="font-size:.85rem;color:var(--muted);">⏱ ${p.fra_tid}–${p.til_tid}${p.pause_minutter?` (${p.pause_minutter}m pause)`:''} = <strong>${fmtTimer((new Date('1970-01-01T'+p.til_tid)-new Date('1970-01-01T'+p.fra_tid))/3600000 - (p.pause_minutter||0)/60)}</strong></div>`).join('')}
+      ${a.arb.map(p=>`<div style="font-size:.85rem;color:var(--muted);">⏱ ${p.fra_tid}–${p.til_tid}${p.pause_minutter?` (${p.pause_minutter}m pause)`:''} = <strong>${fmtTimer((new Date('1970-01-01T'+p.til_tid)-new Date('1970-01-01T'+p.fra_tid))/3600000 - (p.pause_minutter||0)/60)}</strong>${p.innarbeiding?' <span style="font-size:.75rem;background:#ede9fe;color:#5b21b6;padding:1px 6px;border-radius:20px;">Innarbeiding</span>':''}</div>`).join('')}
       <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
         <span style="font-size:.8rem;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:20px;">Ordinær: ${fmtTimer(ordinaer)}</span>
         ${ot50>0?`<span style="font-size:.8rem;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;">OT 50%: ${fmtTimer(ot50)}</span>`:''}
         ${ot100>0?`<span style="font-size:.8rem;background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px;">OT 100%: ${fmtTimer(ot100)}</span>`:''}
+        ${harInnarbeiding?'<span style="font-size:.8rem;background:#ede9fe;color:#5b21b6;padding:2px 8px;border-radius:20px;">⬆ Innarbeiding</span>':''}
       </div>
     </div>`;
   } else {
