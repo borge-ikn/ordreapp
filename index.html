@@ -253,6 +253,32 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   .dag-summary { grid-template-columns:repeat(2,1fr); }
   .arb-form-grid { grid-template-columns:1fr 1fr; }
 }
+#side-dokumenter {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  padding: 0;
+}
+#side-dokumenter .dok-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 8px;
+  gap: 8px;
+}
+#side-dokumenter .dok-topbar a {
+  font-size: 0.82rem;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+#side-dokumenter .dok-topbar a:hover { text-decoration: underline; }
+#sharepoint-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+  min-height: calc(100vh - 130px);
+}
 </style>
 </head>
 <body>
@@ -296,6 +322,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="tab"        id="tab-ny"         onclick="byttFane('ny')">➕ Ny ordre</div>
     <div class="tab"        id="tab-mindag"     onclick="byttFane('mindag')">📅 Min dag</div>
     <div class="tab"        id="tab-godkjenner" onclick="byttFane('godkjenner')" style="display:none;">👥 Godkjenner</div>
+    <div class="tab"        id="tab-dokumenter" onclick="byttFane('dokumenter')">📄 Dokumenter</div>
   </div>
 
   <!-- ORDRESØK -->
@@ -412,6 +439,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div id="godkjenner-innhold"></div>
   </div>
+
+  <div id="side-dokumenter">
+    <div class="dok-topbar">
+      <span style="font-weight:600;color:var(--text);">📄 Styrende dokumenter</span>
+      <a href="https://industrikran.sharepoint.com/sites/QHSE/GoverningDocumentLibrary/Forms/AllItems.aspx?viewid=ae431a03-b1ff-4406-924e-7f2267f2f6bb" target="_blank" rel="noopener">↗ Åpne i SharePoint</a>
+    </div>
+    <iframe id="sharepoint-iframe" src="" allowfullscreen loading="lazy" title="Styrende dokumenter"></iframe>
+  </div>
 </div>
 
 <!-- ORDRE DETALJ MODAL -->
@@ -444,6 +479,7 @@ const SUPABASE_URL      = 'https://eeikodpeeybrzgxcsflh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlaWtvZHBlZXlicnpneGNzZmxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzY3MjcsImV4cCI6MjA5MzYxMjcyN30.nJFkmdOvpHrq2MGaDIyF0GShPBUOnOB9h-cf9-elsTY';
 const MAKE_WEBHOOK        = 'https://hook.eu1.make.com/4xa8o3um368rto24hc6oq9edgwo25bvt';
 const MAKE_ORDERS_WEBHOOK = 'https://hook.eu1.make.com/5l3wj9ejndmng98am5y6ip3jb5rlvpym';
+const SHAREPOINT_URL      = 'https://industrikran.sharepoint.com/sites/QHSE/GoverningDocumentLibrary/Forms/AllItems.aspx?viewid=ae431a03-b1ff-4406-924e-7f2267f2f6bb';
 const PAGE_SIZE         = 30;
 const ORDINAER_TIMER    = 7.5;
 const OT50_MAX          = 5;
@@ -563,9 +599,9 @@ function statusFarge(s) {
   return 'gray';
 }
 function byttFane(fane) {
-  ['sok','ny','mindag','godkjenner'].forEach(f => {
+  ['sok','ny','mindag','godkjenner','dokumenter'].forEach(f => {
     const el = document.getElementById('side-'+f);
-    if (el) el.style.display = f===fane ? '' : 'none';
+    if (el) el.style.display = f===fane ? (f==='dokumenter'?'flex':'') : 'none';
   });
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+fane).classList.add('active');
@@ -573,6 +609,10 @@ function byttFane(fane) {
   if (fane === 'godkjenner') lastGodkjenner();
   if (fane === 'ny' && brukerProdsysId) {
     document.getElementById('f-employeeResponsibleId').value = brukerProdsysId;
+  }
+  if (fane === 'dokumenter') {
+    const iframe = document.getElementById('sharepoint-iframe');
+    if (!iframe.src) iframe.src = SHAREPOINT_URL;
   }
 }
 async function getUid() {
