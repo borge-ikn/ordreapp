@@ -1511,12 +1511,14 @@ async function sendOrdre(e){
   const kundenavn = document.getElementById('f-kundesok').value;
   try{
     const resp=await fetch(MAKE_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'d='+encodeURIComponent(JSON.stringify(payload))});
-    const res=await resp.json().catch(()=>({}));
-    if(!resp.ok){
-      // Hent faktisk feilmelding fra Prodsys
+    const wrapper=await resp.json().catch(()=>({}));
+    // Make returnerer alltid 200 med {ok, statusCode, data}
+    const ok = wrapper.ok !== undefined ? wrapper.ok : resp.ok;
+    const res = wrapper.data || wrapper;
+    if(!ok){
       const errDetalj = res?.errors
         ? Object.values(res.errors).flat().join(' | ')
-        : (res?.title || res?.detail || res?.message || ('HTTP '+resp.status));
+        : (res?.title || res?.detail || res?.message || ('HTTP '+(wrapper.statusCode||resp.status)));
       throw new Error(errDetalj);
     }
     const ordreNr = res.orderNumber || res.id || payload.orderNumber || 0;
