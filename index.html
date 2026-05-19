@@ -271,6 +271,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .pl-kort .pk-nr { font-weight:700; font-size:0.8rem; color:var(--accent); }
 .pl-kort .pk-kunde { font-size:0.82rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
 .pl-kort .pk-dato { font-size:0.75rem; opacity:0.6; margin-top:3px; }
+.pl-avd-badge { font-size:0.68rem; font-weight:500; opacity:0.55; margin-top:1px; }
 .mine-tildelte-seksjon { margin-bottom:16px; }
 .mine-tildelte-seksjon .seksjon-tittel { font-weight:700; font-size:0.9rem; margin-bottom:8px; padding:0 2px; }
 #side-dokumenter {
@@ -464,17 +465,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
   <div id="side-planlegger" style="display:none;">
     <div class="planlegger-toolbar">
-      <select id="pl-avdeling" onchange="lastPlanlegger()">
-        <option value="">– Velg avdeling –</option>
-        <option>1 Stab</option>
-        <option>2 Agder</option>
-        <option>3 Bergen</option>
-        <option>4 Møre og Romsdal</option>
-        <option>5 Sandnes</option>
-        <option>6 Trondheim</option>
-        <option>8 Østlandet</option>
-        <option>9 Nord Norge</option>
-      </select>
+      <input type="search" id="pl-sok" placeholder="Filtrer ansatt…" oninput="filterPlanlegger()" style="width:160px;">
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <label style="font-size:0.82rem;">Fra</label>
         <input type="date" id="pl-fra" onchange="lastPlanlegger()">
@@ -883,22 +874,40 @@ async function hentFilterverdier(){
 
 // ── PLANLEGGER ───────────────────────────────────────────────────────────
 
+const PO_DEPT_NAMES = {
+  '1':'Stab','2':'Agder','3':'Bergen','4':'Møre og Romsdal',
+  '5':'Sandnes','6':'Trondheim','8':'Østlandet','9':'Nord Norge','12':'Oslo'
+};
+let allePlanleggerTeknikere = [];
+
 async function lastPlanlegger() {
-  const avdeling = document.getElementById('pl-avdeling').value;
   const fra = document.getElementById('pl-fra').value;
   const til = document.getElementById('pl-til').value;
   const board = document.getElementById('planlegger-board');
-  if (!avdeling) {
-    board.innerHTML = '<div style="padding:20px;opacity:0.5;">Velg en avdeling for å se planleggeren.</div>';
-    return;
-  }
   board.innerHTML = '<div class="loader"><div class="spinner"></div>Laster planlegger...</div>';
   const [teknikereRes, ordrer, tildelingerRes] = await Promise.all([
-    sb.from('ps_ansatte').select('employee_number, name').eq('department', avdeling).eq('is_active', true).order('name'),
+    sb.from('po_ansatte')
+      .select('number, first_name, last_name, department_code')
+      .eq('is_archived', false)
+      .order('department_code').order('last_name'),
     hentPlanleggerOrdrer(fra, til),
     sb.from('ordre_tildeling').select('order_number, employee_number')
   ]);
-  renderPlanlegger(teknikereRes.data || [], ordrer, tildelingerRes.data || []);
+  allePlanleggerTeknikere = (teknikereRes.data || []).map(r => ({
+    employee_number: String(r.number),
+    name: `${r.first_name} ${r.last_name}`,
+    dept: PO_DEPT_NAMES[r.department_code] || r.department_code || '–'
+  }));
+  renderPlanlegger(allePlanleggerTeknikere, ordrer, tildelingerRes.data || []);
+}
+
+function filterPlanlegger() {
+  const sok = document.getElementById('pl-sok').value.toLowerCase();
+  const board = document.getElementById('planlegger-board');
+  board.querySelectorAll('.pl-kolonne[data-emp]').forEach(kol => {
+    const navn = kol.dataset.emp.toLowerCase();
+    kol.style.display = (!sok || navn.includes(sok)) ? '' : 'none';
+  });
 }
 
 async function hentPlanleggerOrdrer(fra, til) {
@@ -924,16 +933,18 @@ function renderPlanlegger(teknikere, ordrer, tildelinger) {
   const board = document.getElementById('planlegger-board');
   const tildMap = {};
   tildelinger.forEach(t => { tildMap[t.order_number] = t.employee_number; });
-  const kolonner = [{ id: '', navn: 'Ikke tildelt', ordrer: [] }];
-  teknikere.forEach(t => kolonner.push({ id: t.employee_number, navn: t.name, ordrer: [] }));
+  const kolonner = [{ id: '', navn: 'Ikke tildelt', dept: '', ordrer: [] }];
+  teknikere.forEach(t => kolonner.push({ id: t.employee_number, navn: t.name, dept: t.dept, ordrer: [] }));
   ordrer.forEach(o => {
     const empNr = tildMap[o.order_number] || '';
     const kol = kolonner.find(k => k.id === empNr) || kolonner[0];
     kol.ordrer.push(o);
   });
   board.innerHTML = kolonner.map(kol => `
-    <div class="pl-kolonne">
-      <div class="pl-kolonne-tittel">${kol.navn} <span style="font-weight:400;opacity:0.55;">(${kol.ordrer.length})</span></div>
+    <div class="pl-kolonne" data-emp="${kol.navn}">
+      <div class="pl-kolonne-tittel">${kol.navn} <span style="font-weight:400;opacity:0.55;">(${kol.ordrer.length})</span>
+        ${kol.dept ? `<div class="pl-avd-badge">${kol.dept}</div>` : ''}
+      </div>
       <div class="pl-liste" data-employee-number="${kol.id}">
         ${kol.ordrer.map(o => `
           <div class="pl-kort" data-order-number="${o.order_number}">
