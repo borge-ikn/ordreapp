@@ -302,6 +302,53 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .pl-avd-badge { font-size:0.68rem; font-weight:500; opacity:0.55; margin-top:1px; }
 .mine-tildelte-seksjon { margin-bottom:16px; }
 .mine-tildelte-seksjon .seksjon-tittel { font-weight:700; font-size:0.9rem; margin-bottom:8px; padding:0 2px; }
+/* Dag/Måned view toggle */
+.dag-view-toggle { display:flex; gap:4px; }
+.dag-view-btn { background:var(--surface2); border:none; border-radius:6px; color:var(--text);
+  padding:6px 12px; font-size:0.82rem; cursor:pointer; transition:background .15s; }
+.dag-view-btn.active { background:var(--accent); color:#fff; }
+.dag-maned-nav { display:none; align-items:center; gap:10px; }
+.dag-maned-label { font-weight:600; font-size:.95rem; min-width:140px; text-align:center; }
+/* Min dag – månedsliste */
+.maned-oversikt { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow);
+  overflow:hidden; margin-bottom:16px; }
+.maned-totalt { display:flex; gap:24px; flex-wrap:wrap; padding:12px 20px;
+  border-bottom:1px solid var(--border); font-size:0.85rem; }
+.maned-dager { display:flex; flex-direction:column; }
+.maned-dag-rad { display:flex; align-items:center; gap:12px; padding:9px 20px;
+  cursor:pointer; border-bottom:1px solid var(--border); transition:background .1s; }
+.maned-dag-rad:last-child { border-bottom:none; }
+.maned-dag-rad:hover { background:rgba(0,0,0,.03); }
+.maned-dato-label { width:140px; font-size:0.85rem; flex-shrink:0; text-transform:capitalize; }
+.maned-timer { font-size:0.88rem; font-weight:700; min-width:60px; }
+.maned-reg-timer { font-size:0.75rem; opacity:0.55; flex:1; }
+.maned-status-dot { width:8px; height:8px; border-radius:50%; margin-left:auto; flex-shrink:0; }
+.maned-full  .maned-timer        { color:#065f46; }
+.maned-full  .maned-status-dot   { background:#10b981; }
+.maned-delvis .maned-timer       { color:#92400e; }
+.maned-delvis .maned-status-dot  { background:#f59e0b; }
+.maned-mangler .maned-timer      { color:#991b1b; opacity:.5; }
+.maned-mangler .maned-status-dot { background:#ef4444; }
+.maned-helg { opacity:0.38; cursor:default; }
+.maned-helg-tekst { font-size:0.78rem; font-style:italic; opacity:0.7; }
+/* Godkjenner – månedstabell */
+.gk-maned-wrap { overflow-x:auto; padding-bottom:8px; }
+.gk-maned-tabell { border-collapse:collapse; font-size:0.78rem; width:100%; }
+.gk-maned-tabell thead th { padding:5px 3px; text-align:center; border-bottom:2px solid var(--accent);
+  font-weight:600; white-space:nowrap; }
+.gk-maned-navn-header { text-align:left !important; min-width:130px; padding:5px 12px !important; }
+.gk-maned-tabell tbody td { padding:5px 3px; text-align:center;
+  border-bottom:1px solid var(--border); min-width:26px; }
+.gk-maned-tabell tbody tr:hover td { filter:brightness(.96); }
+.gk-maned-navn { text-align:left !important; padding-left:12px !important;
+  font-size:0.82rem; cursor:default !important; white-space:nowrap; }
+.gk-maned-total { font-weight:700; text-align:right !important; padding-right:10px !important;
+  min-width:52px; cursor:default !important; border-left:2px solid var(--border); }
+.gk-maned-helg-kol { background:rgba(0,0,0,.04) !important; color:var(--muted); cursor:default !important; font-size:0.65rem; }
+.gk-full   { background:#d1fae5; color:#065f46; font-weight:600; cursor:pointer; }
+.gk-delvis { background:#fef3c7; color:#92400e; cursor:pointer; }
+.gk-tom    { background:transparent; color:transparent; cursor:pointer; }
+.gk-tom:hover { background:#fee2e2 !important; }
 /* Pool-kolonne */
 .pl-pool { min-width:240px; max-width:240px; border-right:2px solid rgba(255,255,255,0.08); }
 /* Tildelt-badge på pool-kort */
@@ -505,11 +552,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <!-- MIN DAG -->
   <div class="main" id="side-mindag" style="display:none;">
     <div class="dag-nav">
-      <button class="dag-nav-btn" onclick="byttDag(-1)">←</button>
-      <input type="date" class="dag-dato-input" id="dag-dato" onchange="lastDag()">
-      <button class="dag-nav-btn" onclick="byttDag(1)">→</button>
-      <button class="btn btn-secondary" onclick="settDagTilDag(new Date())">I dag</button>
-      <div class="dag-nav-actions" style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
+      <div class="dag-view-toggle">
+        <button id="md-view-dag"   class="dag-view-btn active" onclick="byttMindagVisning('dag')">📅 Dag</button>
+        <button id="md-view-maned" class="dag-view-btn"        onclick="byttMindagVisning('maned')">📆 Måned</button>
+      </div>
+      <div id="md-dag-nav" style="display:flex;align-items:center;gap:10px;">
+        <button class="dag-nav-btn" onclick="byttDag(-1)">←</button>
+        <input type="date" class="dag-dato-input" id="dag-dato" onchange="lastDag()">
+        <button class="dag-nav-btn" onclick="byttDag(1)">→</button>
+        <button class="btn btn-secondary" onclick="settDagTilDag(new Date())">I dag</button>
+      </div>
+      <div id="md-maned-nav" class="dag-maned-nav">
+        <button class="dag-nav-btn" onclick="byttMineManed(-1)">←</button>
+        <span id="md-maned-label" class="dag-maned-label"></span>
+        <button class="dag-nav-btn" onclick="byttMineManed(1)">→</button>
+      </div>
+      <div class="dag-nav-actions" id="md-dag-actions" style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
         <button class="btn btn-secondary" id="forslag-btn" onclick="forslagsArbeidsdag()" title="Foreslå arbeidsdag basert på ordretimer">💡 Foreslå fra ordretimer</button>
         <button class="btn btn-primary" onclick="visArbForm()">+ Legg til arbeidsperiode</button>
       </div>
@@ -526,10 +584,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <!-- GODKJENNER -->
   <div class="main" id="side-godkjenner" style="display:none;">
     <div class="dag-nav">
-      <button class="dag-nav-btn" onclick="byttGodkjennerDag(-1)">←</button>
-      <input type="date" class="dag-dato-input" id="gk-dato" onchange="lastGodkjenner()">
-      <button class="dag-nav-btn" onclick="byttGodkjennerDag(1)">→</button>
-      <button class="btn btn-secondary" onclick="settGodkjennerDagTilDag(new Date())">I dag</button>
+      <div class="dag-view-toggle">
+        <button id="gk-view-dag"   class="dag-view-btn active" onclick="byttGodkjennerVisning('dag')">📅 Dag</button>
+        <button id="gk-view-maned" class="dag-view-btn"        onclick="byttGodkjennerVisning('maned')">📆 Måned</button>
+      </div>
+      <div id="gk-dag-nav" style="display:flex;align-items:center;gap:10px;">
+        <button class="dag-nav-btn" onclick="byttGodkjennerDag(-1)">←</button>
+        <input type="date" class="dag-dato-input" id="gk-dato" onchange="lastGodkjenner()">
+        <button class="dag-nav-btn" onclick="byttGodkjennerDag(1)">→</button>
+        <button class="btn btn-secondary" onclick="settGodkjennerDagTilDag(new Date())">I dag</button>
+      </div>
+      <div id="gk-maned-nav" class="dag-maned-nav">
+        <button class="dag-nav-btn" onclick="byttGodkjennerManed(-1)">←</button>
+        <span id="gk-maned-label" class="dag-maned-label"></span>
+        <button class="dag-nav-btn" onclick="byttGodkjennerManed(1)">→</button>
+      </div>
     </div>
     <div id="godkjenner-innhold"></div>
   </div>
@@ -783,7 +852,11 @@ function statusFarge(s) {
   return 'gray';
 }
 let planleggerInitiert = false;
-let oversiktInitiert = false;
+let oversiktInitiert   = false;
+let gjeldendeMindagVisning      = 'dag';
+let gjeldendeMindagManed        = new Date().toISOString().slice(0,7);
+let gjeldendeGodkjennerVisning  = 'dag';
+let gjeldendeGodkjennerManed    = new Date().toISOString().slice(0,7);
 function byttFane(fane) {
   ['sok','ny','mindag','godkjenner','dokumenter','planlegger','oversikt'].forEach(f => {
     const el = document.getElementById('side-'+f);
@@ -1433,6 +1506,92 @@ function byttDag(r){
   d.setDate(d.getDate()+r);settDagTilDag(d);
 }
 
+// ── MIN DAG — MÅNEDSVISNING ───────────────────────────────────────────────
+function maanedLabel(ym){
+  const[y,m]=ym.split('-').map(Number);
+  const s=new Date(y,m-1,1).toLocaleDateString('nb-NO',{month:'long',year:'numeric'});
+  return s.charAt(0).toUpperCase()+s.slice(1);
+}
+function byttMindagVisning(v){
+  gjeldendeMindagVisning=v;
+  document.getElementById('md-view-dag').classList.toggle('active',v==='dag');
+  document.getElementById('md-view-maned').classList.toggle('active',v==='maned');
+  document.getElementById('md-dag-nav').style.display=v==='dag'?'flex':'none';
+  document.getElementById('md-maned-nav').style.display=v==='maned'?'flex':'none';
+  document.getElementById('md-dag-actions').style.display=v==='dag'?'flex':'none';
+  if(v==='maned') lastManed();
+  else lastDag();
+}
+function byttMineManed(r){
+  const[y,m]=gjeldendeMindagManed.split('-').map(Number);
+  const d=new Date(y,m-1+r,1);
+  gjeldendeMindagManed=d.toISOString().slice(0,7);
+  lastManed();
+}
+async function lastManed(){
+  document.getElementById('md-maned-label').textContent=maanedLabel(gjeldendeMindagManed);
+  const[y,m]=gjeldendeMindagManed.split('-').map(Number);
+  const fra=`${gjeldendeMindagManed}-01`;
+  const siste=new Date(y,m,0).getDate();
+  const til=`${gjeldendeMindagManed}-${String(siste).padStart(2,'0')}`;
+  const uid=await getUid();
+  const[arbRes,timerRes]=await Promise.all([
+    sb.from('arbeidsdag_logg').select('dato,netto_timer').eq('ansatt_id',uid).gte('dato',fra).lte('dato',til),
+    sb.from('timeregistrering').select('dato,timer').eq('ansatt_id',uid).gte('dato',fra).lte('dato',til)
+  ]);
+  const arbMap={};
+  (arbRes.data||[]).forEach(r=>{const k=r.dato.slice(0,10);arbMap[k]=(arbMap[k]||0)+Number(r.netto_timer);});
+  const timerMap={};
+  (timerRes.data||[]).forEach(r=>{const k=r.dato.slice(0,10);timerMap[k]=(timerMap[k]||0)+Number(r.timer||0);});
+  visManed(y,m,arbMap,timerMap);
+}
+function visManed(year,month,arbMap,timerMap){
+  ['arb-form-wrap','dag-summary-wrap','arbeidsdag-liste-wrap',
+   'gap-vis-wrap','dag-ordretimer-wrap','intern-tid-wrap'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.innerHTML='';
+  });
+  const siste=new Date(year,month,0).getDate();
+  const rows=[];
+  for(let dag=1;dag<=siste;dag++){
+    const dato=`${year}-${String(month).padStart(2,'0')}-${String(dag).padStart(2,'0')}`;
+    const d=new Date(dato+'T12:00:00');
+    const wd=d.getDay();
+    const erHelg=wd===0||wd===6||erNorskHelligdag(d);
+    const datoLabel=d.toLocaleDateString('nb-NO',{weekday:'short',day:'numeric',month:'short'});
+    if(erHelg){
+      rows.push(`<div class="maned-dag-rad maned-helg">
+        <span class="maned-dato-label">${datoLabel}</span>
+        <span class="maned-helg-tekst">${wd!==0&&wd!==6?'Helligdag':'Helg'}</span>
+      </div>`);
+    } else {
+      const t=arbMap[dato]||0;
+      const farge=t>=ORDINAER_TIMER?'maned-full':t>0?'maned-delvis':'maned-mangler';
+      const regH=timerMap[dato]||0;
+      rows.push(`<div class="maned-dag-rad ${farge}" onclick="gaaTilDag('${dato}')">
+        <span class="maned-dato-label">${datoLabel}</span>
+        <span class="maned-timer">${t>0?fmtTimer(t):'–'}</span>
+        <span class="maned-reg-timer">${regH>0?fmtTimer(regH)+' reg.':''}</span>
+        <span class="maned-status-dot"></span>
+      </div>`);
+    }
+  }
+  const totArb=Object.values(arbMap).reduce((s,v)=>s+v,0);
+  const totReg=Object.values(timerMap).reduce((s,v)=>s+v,0);
+  document.getElementById('dag-summary-wrap').innerHTML=`
+    <div class="maned-oversikt">
+      <div class="maned-totalt">
+        <span>Arbeidstid: <strong>${fmtTimer(totArb)}</strong></span>
+        <span>Registrerte timer: <strong>${fmtTimer(totReg)}</strong></span>
+      </div>
+      <div class="maned-dager">${rows.join('')}</div>
+    </div>`;
+}
+function gaaTilDag(dato){
+  byttMindagVisning('dag');
+  document.getElementById('dag-dato').value=dato;
+  lastDag();
+}
+
 async function lastDag(){
   const dato=document.getElementById('dag-dato').value;
   if(!dato)return;
@@ -2012,6 +2171,90 @@ function settGodkjennerDagTilDag(d){
 function byttGodkjennerDag(r){
   const d = new Date(document.getElementById('gk-dato').value + 'T12:00:00');
   d.setDate(d.getDate() + r); settGodkjennerDagTilDag(d);
+}
+
+// ── GODKJENNER — MÅNEDSVISNING ────────────────────────────────────────────
+function byttGodkjennerVisning(v){
+  gjeldendeGodkjennerVisning=v;
+  document.getElementById('gk-view-dag').classList.toggle('active',v==='dag');
+  document.getElementById('gk-view-maned').classList.toggle('active',v==='maned');
+  document.getElementById('gk-dag-nav').style.display=v==='dag'?'flex':'none';
+  document.getElementById('gk-maned-nav').style.display=v==='maned'?'flex':'none';
+  if(v==='maned') lastManedGodkjenner();
+  else lastGodkjenner();
+}
+function byttGodkjennerManed(r){
+  const[y,m]=gjeldendeGodkjennerManed.split('-').map(Number);
+  const d=new Date(y,m-1+r,1);
+  gjeldendeGodkjennerManed=d.toISOString().slice(0,7);
+  lastManedGodkjenner();
+}
+async function lastManedGodkjenner(){
+  document.getElementById('gk-maned-label').textContent=maanedLabel(gjeldendeGodkjennerManed);
+  const[y,m]=gjeldendeGodkjennerManed.split('-').map(Number);
+  const fra=`${gjeldendeGodkjennerManed}-01`;
+  const siste=new Date(y,m,0).getDate();
+  const til=`${gjeldendeGodkjennerManed}-${String(siste).padStart(2,'0')}`;
+  const wrap=document.getElementById('godkjenner-innhold');
+  wrap.innerHTML='<div class="loader"><div class="spinner"></div>Laster måned...</div>';
+  const{data:arbData}=await sb.from('arbeidsdag_logg')
+    .select('dato,ansatt_id,ansatt_epost,netto_timer')
+    .gte('dato',fra).lte('dato',til).order('dato');
+  visManedGodkjenner(y,m,arbData||[]);
+}
+function visManedGodkjenner(year,month,arbData){
+  const wrap=document.getElementById('godkjenner-innhold');
+  const siste=new Date(year,month,0).getDate();
+  const dager=Array.from({length:siste},(_,i)=>{
+    return `${year}-${String(month).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`;
+  });
+  const ansatteMap={};
+  arbData.forEach(r=>{
+    const dato=r.dato.slice(0,10);
+    if(!ansatteMap[r.ansatt_id]) ansatteMap[r.ansatt_id]={epost:r.ansatt_epost,dager:{}};
+    ansatteMap[r.ansatt_id].dager[dato]=(ansatteMap[r.ansatt_id].dager[dato]||0)+Number(r.netto_timer);
+  });
+  const ansatte=Object.values(ansatteMap).sort((a,b)=>a.epost.localeCompare(b.epost));
+  if(!ansatte.length){
+    wrap.innerHTML=`<div style="text-align:center;padding:40px;color:var(--muted);">Ingen registreringer for ${maanedLabel(gjeldendeGodkjennerManed)}.</div>`;
+    return;
+  }
+  const headers=dager.map(dato=>{
+    const d=new Date(dato+'T12:00:00');
+    const erH=d.getDay()===0||d.getDay()===6||erNorskHelligdag(d);
+    const dag=d.toLocaleDateString('nb-NO',{weekday:'short'}).slice(0,1).toUpperCase();
+    return `<th class="${erH?'gk-maned-helg-kol':''}">${d.getDate()}<br><span style="font-size:.6rem;opacity:.55;">${dag}</span></th>`;
+  }).join('');
+  const rows=ansatte.map(a=>{
+    const total=Object.values(a.dager).reduce((s,v)=>s+v,0);
+    const kortNavn=a.epost.split('@')[0].replace(/[._]/g,' ')
+      .split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+    const cells=dager.map(dato=>{
+      const d=new Date(dato+'T12:00:00');
+      const erH=d.getDay()===0||d.getDay()===6||erNorskHelligdag(d);
+      if(erH) return `<td class="gk-maned-helg-kol"></td>`;
+      const t=a.dager[dato]||0;
+      const farge=t>=ORDINAER_TIMER?'gk-full':t>0?'gk-delvis':'gk-tom';
+      const txt=t>=0.5?(t===Math.floor(t)?String(t):t.toFixed(1)):'';
+      return `<td class="${farge}" onclick="gaaTilGodkjennerDag('${dato}')" title="${kortNavn} – ${dato}: ${t}t">${txt}</td>`;
+    }).join('');
+    return `<tr><td class="gk-maned-navn">${kortNavn}</td>${cells}<td class="gk-maned-total">${fmtTimer(total)}</td></tr>`;
+  }).join('');
+  wrap.innerHTML=`<div class="gk-maned-wrap">
+    <table class="gk-maned-tabell">
+      <thead><tr>
+        <th class="gk-maned-navn-header">Ansatt</th>
+        ${headers}
+        <th class="gk-maned-total">Total</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+function gaaTilGodkjennerDag(dato){
+  byttGodkjennerVisning('dag');
+  document.getElementById('gk-dato').value=dato;
+  lastGodkjenner();
 }
 
 async function lastGodkjenner(){
