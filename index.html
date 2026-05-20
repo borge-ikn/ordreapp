@@ -310,45 +310,46 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .dag-maned-nav { display:none; align-items:center; gap:10px; }
 .dag-maned-label { font-weight:600; font-size:.95rem; min-width:140px; text-align:center; }
 /* Min dag – månedsliste */
-.maned-oversikt { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow);
-  overflow:hidden; margin-bottom:16px; }
-.maned-totalt { display:flex; gap:24px; flex-wrap:wrap; padding:12px 20px;
-  border-bottom:1px solid var(--border); font-size:0.85rem; }
-.maned-dager { display:flex; flex-direction:column; }
-.maned-dag-rad { display:flex; align-items:center; gap:12px; padding:9px 20px;
-  cursor:pointer; border-bottom:1px solid var(--border); transition:background .1s; }
-.maned-dag-rad:last-child { border-bottom:none; }
-.maned-dag-rad:hover { background:rgba(0,0,0,.03); }
-.maned-dato-label { width:140px; font-size:0.85rem; flex-shrink:0; text-transform:capitalize; }
-.maned-timer { font-size:0.88rem; font-weight:700; min-width:60px; }
-.maned-reg-timer { font-size:0.75rem; opacity:0.55; flex:1; }
-.maned-status-dot { width:8px; height:8px; border-radius:50%; margin-left:auto; flex-shrink:0; }
-.maned-full  .maned-timer        { color:#065f46; }
-.maned-full  .maned-status-dot   { background:#10b981; }
-.maned-delvis .maned-timer       { color:#92400e; }
-.maned-delvis .maned-status-dot  { background:#f59e0b; }
-.maned-mangler .maned-timer      { color:#991b1b; opacity:.5; }
-.maned-mangler .maned-status-dot { background:#ef4444; }
-.maned-helg { opacity:0.38; cursor:default; }
-.maned-helg-tekst { font-size:0.78rem; font-style:italic; opacity:0.7; }
-/* Godkjenner – månedstabell */
-.gk-maned-wrap { overflow-x:auto; padding-bottom:8px; }
-.gk-maned-tabell { border-collapse:collapse; font-size:0.78rem; width:100%; }
-.gk-maned-tabell thead th { padding:5px 3px; text-align:center; border-bottom:2px solid var(--accent);
-  font-weight:600; white-space:nowrap; }
-.gk-maned-navn-header { text-align:left !important; min-width:130px; padding:5px 12px !important; }
-.gk-maned-tabell tbody td { padding:5px 3px; text-align:center;
-  border-bottom:1px solid var(--border); min-width:26px; }
-.gk-maned-tabell tbody tr:hover td { filter:brightness(.96); }
-.gk-maned-navn { text-align:left !important; padding-left:12px !important;
-  font-size:0.82rem; cursor:default !important; white-space:nowrap; }
-.gk-maned-total { font-weight:700; text-align:right !important; padding-right:10px !important;
-  min-width:52px; cursor:default !important; border-left:2px solid var(--border); }
-.gk-maned-helg-kol { background:rgba(0,0,0,.04) !important; color:var(--muted); cursor:default !important; font-size:0.65rem; }
-.gk-full   { background:#d1fae5; color:#065f46; font-weight:600; cursor:pointer; }
-.gk-delvis { background:#fef3c7; color:#92400e; cursor:pointer; }
-.gk-tom    { background:transparent; color:transparent; cursor:pointer; }
-.gk-tom:hover { background:#fee2e2 !important; }
+/* Felles kalender-layout */
+.maned-totalt { display:flex; gap:24px; flex-wrap:wrap; padding:10px 4px 14px;
+  font-size:0.85rem; }
+.maned-kal-header-rad { display:grid; grid-template-columns:repeat(7,1fr); gap:4px;
+  margin-bottom:4px; }
+.maned-kal-header { text-align:center; font-size:0.72rem; font-weight:700;
+  opacity:0.55; padding:4px 0; text-transform:uppercase; letter-spacing:.4px; }
+.maned-kalender { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+/* Min dag – kalenderceller */
+.maned-kal-celle { background:var(--surface); border-radius:8px; padding:8px 10px;
+  min-height:72px; cursor:pointer; transition:box-shadow .12s, transform .1s;
+  display:flex; flex-direction:column; }
+.maned-kal-celle:hover:not(.tom):not(.helg) { box-shadow:0 3px 10px rgba(0,0,0,.12); transform:translateY(-1px); }
+.maned-kal-celle.tom { background:transparent; pointer-events:none; }
+.maned-kal-celle.helg { opacity:0.35; cursor:default; }
+.maned-kal-dag-nr { font-size:0.75rem; font-weight:700; color:var(--muted); }
+.maned-kal-timer { font-size:1rem; font-weight:700; margin-top:auto; padding-top:4px; }
+.maned-kal-celle.maned-full    { border-left:3px solid #10b981; }
+.maned-kal-celle.maned-full    .maned-kal-timer { color:#065f46; }
+.maned-kal-celle.maned-delvis  { border-left:3px solid #f59e0b; }
+.maned-kal-celle.maned-delvis  .maned-kal-timer { color:#92400e; }
+.maned-kal-celle.maned-mangler { border-left:3px solid #ef4444; opacity:.65; }
+/* Godkjenner – kalenderceller med ansatt-prikker */
+.gk-kal-celle { background:var(--surface); border-radius:8px; padding:7px 8px;
+  min-height:80px; cursor:pointer; transition:box-shadow .12s;
+  display:flex; flex-direction:column; gap:4px; }
+.gk-kal-celle:hover:not(.tom):not(.helg) { box-shadow:0 3px 10px rgba(0,0,0,.12); }
+.gk-kal-celle.tom  { background:transparent; pointer-events:none; }
+.gk-kal-celle.helg { opacity:0.3; cursor:default; }
+.gk-kal-dots { display:flex; flex-wrap:wrap; gap:3px; margin-top:3px; }
+.gk-dot { width:22px; height:22px; border-radius:50%; font-size:0.6rem; font-weight:700;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.gk-dot.gk-full   { background:#d1fae5; color:#065f46; }
+.gk-dot.gk-delvis { background:#fef3c7; color:#92400e; }
+.gk-kal-mer { font-size:0.65rem; opacity:.55; align-self:center; }
+@media (max-width:600px) {
+  .maned-kal-celle, .gk-kal-celle { min-height:54px; padding:5px 6px; }
+  .maned-kal-timer { font-size:.82rem; }
+  .gk-dot { width:18px; height:18px; font-size:0.52rem; }
+}
 /* Pool-kolonne */
 .pl-pool { min-width:240px; max-width:240px; border-right:2px solid rgba(255,255,255,0.08); }
 /* Tildelt-badge på pool-kort */
@@ -1551,40 +1552,40 @@ function visManed(year,month,arbMap,timerMap){
     const el=document.getElementById(id);if(el)el.innerHTML='';
   });
   const siste=new Date(year,month,0).getDate();
-  const rows=[];
+  // Finn ukedags-offset (Man=0)
+  const startDow=(new Date(year,month-1,1).getDay()+6)%7;
+  const ukedager=['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
+
+  const celler=[];
+  for(let i=0;i<startDow;i++) celler.push('<div class="maned-kal-celle tom"></div>');
   for(let dag=1;dag<=siste;dag++){
     const dato=`${year}-${String(month).padStart(2,'0')}-${String(dag).padStart(2,'0')}`;
     const d=new Date(dato+'T12:00:00');
-    const wd=d.getDay();
-    const erHelg=wd===0||wd===6||erNorskHelligdag(d);
-    const datoLabel=d.toLocaleDateString('nb-NO',{weekday:'short',day:'numeric',month:'short'});
+    const erHelg=d.getDay()===0||d.getDay()===6||erNorskHelligdag(d);
     if(erHelg){
-      rows.push(`<div class="maned-dag-rad maned-helg">
-        <span class="maned-dato-label">${datoLabel}</span>
-        <span class="maned-helg-tekst">${wd!==0&&wd!==6?'Helligdag':'Helg'}</span>
-      </div>`);
+      celler.push(`<div class="maned-kal-celle helg"><div class="maned-kal-dag-nr">${dag}</div></div>`);
     } else {
       const t=arbMap[dato]||0;
       const farge=t>=ORDINAER_TIMER?'maned-full':t>0?'maned-delvis':'maned-mangler';
-      const regH=timerMap[dato]||0;
-      rows.push(`<div class="maned-dag-rad ${farge}" onclick="gaaTilDag('${dato}')">
-        <span class="maned-dato-label">${datoLabel}</span>
-        <span class="maned-timer">${t>0?fmtTimer(t):'–'}</span>
-        <span class="maned-reg-timer">${regH>0?fmtTimer(regH)+' reg.':''}</span>
-        <span class="maned-status-dot"></span>
+      const timerTekst=t>0?fmtTimer(t):'';
+      celler.push(`<div class="maned-kal-celle ${farge}" onclick="gaaTilDag('${dato}')">
+        <div class="maned-kal-dag-nr">${dag}</div>
+        <div class="maned-kal-timer">${timerTekst}</div>
       </div>`);
     }
   }
+  const rest=(7-(celler.length%7))%7;
+  for(let i=0;i<rest;i++) celler.push('<div class="maned-kal-celle tom"></div>');
+
   const totArb=Object.values(arbMap).reduce((s,v)=>s+v,0);
   const totReg=Object.values(timerMap).reduce((s,v)=>s+v,0);
   document.getElementById('dag-summary-wrap').innerHTML=`
-    <div class="maned-oversikt">
-      <div class="maned-totalt">
-        <span>Arbeidstid: <strong>${fmtTimer(totArb)}</strong></span>
-        <span>Registrerte timer: <strong>${fmtTimer(totReg)}</strong></span>
-      </div>
-      <div class="maned-dager">${rows.join('')}</div>
-    </div>`;
+    <div class="maned-totalt">
+      <span>Arbeidstid: <strong>${fmtTimer(totArb)}</strong></span>
+      <span>Registrerte timer: <strong>${fmtTimer(totReg)}</strong></span>
+    </div>
+    <div class="maned-kal-header-rad">${ukedager.map(u=>`<div class="maned-kal-header">${u}</div>`).join('')}</div>
+    <div class="maned-kalender">${celler.join('')}</div>`;
 }
 function gaaTilDag(dato){
   byttMindagVisning('dag');
@@ -2205,51 +2206,56 @@ async function lastManedGodkjenner(){
 function visManedGodkjenner(year,month,arbData){
   const wrap=document.getElementById('godkjenner-innhold');
   const siste=new Date(year,month,0).getDate();
-  const dager=Array.from({length:siste},(_,i)=>{
-    return `${year}-${String(month).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`;
-  });
+  // Bygg ansatte-kart: dato → [{ initialer, farge }]
+  const dagMap={}; // dato → [{initialer, farge, navn}]
   const ansatteMap={};
   arbData.forEach(r=>{
     const dato=r.dato.slice(0,10);
     if(!ansatteMap[r.ansatt_id]) ansatteMap[r.ansatt_id]={epost:r.ansatt_epost,dager:{}};
     ansatteMap[r.ansatt_id].dager[dato]=(ansatteMap[r.ansatt_id].dager[dato]||0)+Number(r.netto_timer);
+    if(!dagMap[dato]) dagMap[dato]=[];
+    const t=ansatteMap[r.ansatt_id].dager[dato];
+    const init=r.ansatt_epost.split('@')[0].split(/[._]/).map(s=>s[0]?.toUpperCase()||'').join('').slice(0,2);
+    // Oppdater eksisterende oppføring eller legg til ny
+    const eks=dagMap[dato].find(x=>x.id===r.ansatt_id);
+    if(eks){ eks.t=t; eks.farge=t>=ORDINAER_TIMER?'gk-full':'gk-delvis'; }
+    else dagMap[dato].push({id:r.ansatt_id,init,t,farge:t>=ORDINAER_TIMER?'gk-full':'gk-delvis',navn:r.ansatt_epost.split('@')[0]});
   });
-  const ansatte=Object.values(ansatteMap).sort((a,b)=>a.epost.localeCompare(b.epost));
-  if(!ansatte.length){
+
+  if(!Object.keys(dagMap).length){
     wrap.innerHTML=`<div style="text-align:center;padding:40px;color:var(--muted);">Ingen registreringer for ${maanedLabel(gjeldendeGodkjennerManed)}.</div>`;
     return;
   }
-  const headers=dager.map(dato=>{
+
+  const startDow=(new Date(year,month-1,1).getDay()+6)%7;
+  const ukedager=['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
+
+  const celler=[];
+  for(let i=0;i<startDow;i++) celler.push('<div class="gk-kal-celle tom"></div>');
+  for(let dag=1;dag<=siste;dag++){
+    const dato=`${year}-${String(month).padStart(2,'0')}-${String(dag).padStart(2,'0')}`;
     const d=new Date(dato+'T12:00:00');
-    const erH=d.getDay()===0||d.getDay()===6||erNorskHelligdag(d);
-    const dag=d.toLocaleDateString('nb-NO',{weekday:'short'}).slice(0,1).toUpperCase();
-    return `<th class="${erH?'gk-maned-helg-kol':''}">${d.getDate()}<br><span style="font-size:.6rem;opacity:.55;">${dag}</span></th>`;
-  }).join('');
-  const rows=ansatte.map(a=>{
-    const total=Object.values(a.dager).reduce((s,v)=>s+v,0);
-    const kortNavn=a.epost.split('@')[0].replace(/[._]/g,' ')
-      .split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
-    const cells=dager.map(dato=>{
-      const d=new Date(dato+'T12:00:00');
-      const erH=d.getDay()===0||d.getDay()===6||erNorskHelligdag(d);
-      if(erH) return `<td class="gk-maned-helg-kol"></td>`;
-      const t=a.dager[dato]||0;
-      const farge=t>=ORDINAER_TIMER?'gk-full':t>0?'gk-delvis':'gk-tom';
-      const txt=t>=0.5?(t===Math.floor(t)?String(t):t.toFixed(1)):'';
-      return `<td class="${farge}" onclick="gaaTilGodkjennerDag('${dato}')" title="${kortNavn} – ${dato}: ${t}t">${txt}</td>`;
-    }).join('');
-    return `<tr><td class="gk-maned-navn">${kortNavn}</td>${cells}<td class="gk-maned-total">${fmtTimer(total)}</td></tr>`;
-  }).join('');
-  wrap.innerHTML=`<div class="gk-maned-wrap">
-    <table class="gk-maned-tabell">
-      <thead><tr>
-        <th class="gk-maned-navn-header">Ansatt</th>
-        ${headers}
-        <th class="gk-maned-total">Total</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>`;
+    const erHelg=d.getDay()===0||d.getDay()===6||erNorskHelligdag(d);
+    if(erHelg){
+      celler.push(`<div class="gk-kal-celle helg"><div class="maned-kal-dag-nr">${dag}</div></div>`);
+    } else {
+      const reg=dagMap[dato]||[];
+      const dots=reg.slice(0,8).map(r=>
+        `<span class="gk-dot ${r.farge}" title="${r.navn}: ${r.t}t">${r.init}</span>`
+      ).join('');
+      const mer=reg.length>8?`<span class="gk-kal-mer">+${reg.length-8}</span>`:'';
+      celler.push(`<div class="gk-kal-celle ${reg.length?'':'gk-ingen'}" onclick="gaaTilGodkjennerDag('${dato}')">
+        <div class="maned-kal-dag-nr">${dag}</div>
+        <div class="gk-kal-dots">${dots}${mer}</div>
+      </div>`);
+    }
+  }
+  const rest=(7-(celler.length%7))%7;
+  for(let i=0;i<rest;i++) celler.push('<div class="gk-kal-celle tom"></div>');
+
+  wrap.innerHTML=`
+    <div class="maned-kal-header-rad">${ukedager.map(u=>`<div class="maned-kal-header">${u}</div>`).join('')}</div>
+    <div class="maned-kalender">${celler.join('')}</div>`;
 }
 function gaaTilGodkjennerDag(dato){
   byttGodkjennerVisning('dag');
