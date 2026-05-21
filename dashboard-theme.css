@@ -1,0 +1,186 @@
+/* ============================================================
+   Industrikran – Delt Dashboard-tema
+   Referanse: fakturering-deploy/index.html
+   ============================================================ */
+
+/* --- Design tokens --- */
+:root {
+  /* Farger */
+  --bg:           #f0f2f5;
+  --surface:      #ffffff;
+  --surface2:     #e8eaed;
+  --border:       #d1d5db;
+  --accent:       #1c3461;
+  --accent-light: #1c3461;
+  --gold:         #e8a01c;
+  --green:        #059669;
+  --yellow:       #d97706;
+  --red:          #dc2626;
+  --text:         #111827;
+  --muted:        #6b7280;
+  --radius:       12px;
+  --shadow:       0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+
+  /* Typografi */
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* --- Reset --- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* --- Base --- */
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* --- Header (navy-banner) --- */
+.ik-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background: var(--accent);
+  border-radius: var(--radius);
+  padding: 0.75rem 1.25rem;
+  box-shadow: 0 2px 8px rgba(28,52,97,.18);
+  margin-bottom: 1.5rem;
+}
+
+/* --- Logo --- */
+.ik-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.ik-logo-mark {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.ik-logo-tekst {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.ik-logo-navn {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.ik-logo-sub {
+  font-size: 0.68rem;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+}
+
+/* --- Kort / Card --- */
+.ik-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* --- Tabell --- */
+.ik-tabell {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.ik-tabell th {
+  background: var(--bg);
+  text-align: left;
+  padding: 0.75rem 1.2rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.ik-tabell td {
+  padding: 0.7rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.92rem;
+  vertical-align: middle;
+}
+
+.ik-tabell tr:last-child td { border-bottom: none; }
+.ik-tabell tbody tr:hover td { background: var(--surface2); }
+
+/* --- Badge --- */
+.ik-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.ik-badge-green  { background: #d1fae5; color: #065f46; }
+.ik-badge-red    { background: #fee2e2; color: #991b1b; }
+.ik-badge-amber  { background: #fef3c7; color: #92400e; }
+.ik-badge-blue   { background: #dbeafe; color: #1e40af; }
+.ik-badge-slate  { background: #f1f5f9; color: #475569; }
+
+/* --- Knapper --- */
+.ik-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: opacity 0.15s;
+}
+.ik-btn:hover { opacity: 0.88; }
+
+.ik-btn-gold {
+  background: var(--gold);
+}
+
+.ik-btn-outline {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: border-color 0.15s, color 0.15s;
+}
+.ik-btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+/* --- Progress-bar --- */
+.ik-bar-bg   { background: var(--surface2); border-radius: 4px; height: 10px; overflow: hidden; }
+.ik-bar-fill { height: 100%; border-radius: 4px; background: var(--accent-light); transition: width 0.5s ease; }
+.ik-bar-fill.groen { background: var(--green); }
+
+/* --- Spinner / laster --- */
+.ik-spinner { color: var(--muted); font-size: 0.9rem; padding: 1.5rem 0; }
