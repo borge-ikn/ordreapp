@@ -1981,7 +1981,6 @@ function visOrdretimerDag(dato, ordretimer){
           ${t.kundenavn?`<span style="font-size:.85rem;color:var(--text);">${t.kundenavn}</span>`:''}
           ${timeart_badge(t.timeart)}
           ${t.er_fakturerbar?'':'<span style="font-size:.75rem;background:#f3f4f6;color:var(--muted);padding:2px 8px;border-radius:20px;">Ikke fakt.</span>'}
-          ${erFoerste?`<button class="btn btn-secondary btn-sm" style="font-size:.72rem;" onclick="fjernMinTildelingMedSjekk(${t.order_number})">Fjern tildeling</button>`:''}
         </div>
         <div style="font-size:.85rem;color:var(--muted);margin-top:3px;">${t.aktivitet_navn}${t.kommentar?` — ${t.kommentar}`:''}</div>
       </div>
