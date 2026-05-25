@@ -2841,6 +2841,6 @@ async function sendOrdre(e){
   finally{btn.disabled=false;btn.textContent='Opprett ordre';}
 }
 </script>
-<div id="pl-dato-slicer" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
+<div id="pl-dato-slicer" onclick="event.stopPropagation()" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
 </body>
 </html>
