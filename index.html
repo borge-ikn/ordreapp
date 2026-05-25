@@ -348,8 +348,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .gk-kal-dots { display:flex; flex-wrap:wrap; gap:3px; margin-top:3px; }
 .gk-dot { width:22px; height:22px; border-radius:50%; font-size:0.6rem; font-weight:700;
   display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.gk-dot.gk-full   { background:#d1fae5; color:#065f46; }
-.gk-dot.gk-delvis { background:#fef3c7; color:#92400e; }
+.gk-dot.gk-full     { background:#d1fae5; color:#065f46; }
+.gk-dot.gk-delvis   { background:#fef3c7; color:#92400e; }
+.gk-dot.gk-godkjent { background:var(--green); color:#fff; }
+.gk-dot.gk-avvist   { background:var(--red);   color:#fff; }
 .gk-kal-mer { font-size:0.65rem; opacity:.55; align-self:center; }
 @media (max-width:600px) {
   .maned-kal-celle, .gk-kal-celle { min-height:54px; padding:5px 6px; }
@@ -592,6 +594,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div id="mine-tildelte-wrap"></div>
     <div id="arb-form-wrap"></div>
     <div id="dag-summary-wrap"></div>
+    <div id="gk-status-wrap"></div>
     <div id="arbeidsdag-liste-wrap"></div>
     <div id="gap-vis-wrap"></div>
     <div id="dag-ordretimer-wrap"></div>
@@ -710,6 +713,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div id="modal-innhold"></div>
     <hr class="section-divider">
     <div id="timer-seksjon"></div>
+  </div>
+</div>
+
+<!-- AVVIS MED KOMMENTAR -->
+<div class="confirm-overlay" id="avvis-overlay" style="display:none;">
+  <div class="confirm-box" style="max-width:440px;text-align:left;">
+    <div class="confirm-ikon" style="text-align:center;">✗</div>
+    <div class="confirm-tittel" style="text-align:center;">Avvis dag</div>
+    <div id="avvis-navn-tekst" style="font-size:.85rem;color:var(--muted);margin-bottom:12px;text-align:center;"></div>
+    <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:6px;">Kommentar til teknikeren (påkrevd)</label>
+    <textarea id="avvis-kommentar" placeholder="Beskriv hva som mangler eller er feil…"
+      style="width:100%;border:1px solid var(--border);border-radius:8px;padding:10px;font-size:.9rem;min-height:90px;resize:vertical;outline:none;font-family:inherit;"></textarea>
+    <div id="avvis-feil" style="font-size:.82rem;color:var(--red);min-height:18px;margin-top:4px;"></div>
+    <div class="confirm-actions" style="margin-top:16px;">
+      <button class="btn btn-secondary" onclick="lukkAvvisModal()">Avbryt</button>
+      <button class="btn btn-danger" onclick="utforAvvis()">Avvis dag</button>
+    </div>
   </div>
 </div>
 
@@ -1668,18 +1688,21 @@ async function lastDag(){
   if(!dato)return;
   lastMineTildelte();
   const uid=await getUid();
-  const[arbRes,ordreRes,internRes]=await Promise.all([
+  const[arbRes,ordreRes,internRes,gkRes]=await Promise.all([
     sb.from('arbeidsdag_logg').select('*').eq('dato',dato).order('fra_tid',{ascending:true}),
     sb.from('timeregistrering').select('id,order_number,kundenavn,aktivitet_navn,timer,timeart,er_fakturerbar,kommentar')
       .eq('dato',dato).eq('ansatt_id',uid).not('order_number','is',null).order('opprettet_at',{ascending:true}),
     sb.from('timeregistrering').select('*')
       .eq('dato',dato).eq('ansatt_id',uid).is('order_number',null)
-      .order('opprettet_at',{ascending:true})
+      .order('opprettet_at',{ascending:true}),
+    sb.from('dag_godkjenning').select('status,kommentar,godkjent_av_epost,godkjent_tidspunkt')
+      .eq('dato',dato).eq('ansatt_id',uid).maybeSingle()
   ]);
   const arb=arbRes.data||[];
   const ordre=ordreRes.data||[];
   const intern=internRes.data||[];
   visArbSummary(dato,arb);
+  visGodkjenningsBadge(gkRes.data||null);
   visArbListe(dato,arb);
   visGapVisualisering(dato,arb,ordre,intern);
   visOrdretimerDag(dato,ordre);
@@ -2108,6 +2131,101 @@ function bekreftSlett(type,id){
   visBekreftDialog('🗑️',titler[type]||'Er du sikker?','Er du sikker? Dette kan ikke angres.','Ja, slett',()=>utforSlett(type,id));
 }
 function lukkBekreft(){document.getElementById('confirm-overlay').style.display='none';}
+
+// ── GODKJENNING ───────────────────────────────────────────────────────────
+
+function fmtDatoTid(ts){
+  if(!ts) return '–';
+  return new Date(ts).toLocaleString('nb-NO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+// Henter godkjenningsstatus for en liste ansatt-IDer på én dato
+// Returnerer map: { [ansatt_id]: { status, kommentar, godkjent_av_epost, godkjent_tidspunkt } }
+async function lastGodkjenningStatus(dato, ansattIder){
+  if(!ansattIder.length) return {};
+  const{data}=await sb.from('dag_godkjenning')
+    .select('ansatt_id,status,kommentar,godkjent_av_epost,godkjent_tidspunkt')
+    .eq('dato',dato).in('ansatt_id',ansattIder);
+  const map={};
+  (data||[]).forEach(r=>{map[r.ansatt_id]=r;});
+  return map;
+}
+
+// Godkjenner-visning: status-banner for Min dag (tekniker)
+function visGodkjenningsBadge(gkStatus){
+  const wrap=document.getElementById('gk-status-wrap');
+  if(!wrap) return;
+  if(!gkStatus||gkStatus.status==='ikke_behandlet'){wrap.innerHTML='';return;}
+  if(gkStatus.status==='godkjent'){
+    wrap.innerHTML=`<div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <span style="font-size:1.4rem;">✓</span>
+      <div>
+        <div style="font-weight:700;color:#065f46;font-size:.9rem;">Dag godkjent</div>
+        <div style="font-size:.8rem;color:#047857;">Godkjent av ${gkStatus.godkjent_av_epost} — ${fmtDatoTid(gkStatus.godkjent_tidspunkt)}</div>
+      </div>
+    </div>`;
+  } else if(gkStatus.status==='avvist'){
+    wrap.innerHTML=`<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:12px 16px;display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
+      <span style="font-size:1.4rem;">✗</span>
+      <div>
+        <div style="font-weight:700;color:#991b1b;font-size:.9rem;">Dag avvist — krev korrigering</div>
+        <div style="font-size:.8rem;color:#b91c1c;margin-top:2px;">Avvist av ${gkStatus.godkjent_av_epost} — ${fmtDatoTid(gkStatus.godkjent_tidspunkt)}</div>
+        ${gkStatus.kommentar?`<div style="font-size:.85rem;margin-top:6px;font-style:italic;background:#fff5f5;border-radius:6px;padding:6px 10px;color:#7f1d1d;">"${gkStatus.kommentar}"</div>`:''}
+      </div>
+    </div>`;
+  }
+}
+
+// Avvis-modal
+let _avvisAnsattId=null, _avvisAnsattEpost=null, _avvisDato=null;
+function visAvvisModal(ansattId, ansattEpost, dato){
+  _avvisAnsattId=ansattId; _avvisAnsattEpost=ansattEpost; _avvisDato=dato;
+  document.getElementById('avvis-navn-tekst').textContent=`${ansattEpost} — ${fmtDatoLang(dato)}`;
+  document.getElementById('avvis-kommentar').value='';
+  document.getElementById('avvis-feil').textContent='';
+  document.getElementById('avvis-overlay').style.display='flex';
+  setTimeout(()=>document.getElementById('avvis-kommentar').focus(),50);
+}
+function lukkAvvisModal(){
+  document.getElementById('avvis-overlay').style.display='none';
+  _avvisAnsattId=_avvisAnsattEpost=_avvisDato=null;
+}
+async function utforAvvis(){
+  const kommentar=document.getElementById('avvis-kommentar').value.trim();
+  if(!kommentar){document.getElementById('avvis-feil').textContent='Kommentar er påkrevd ved avvisning.';return;}
+  await avvisDag(_avvisAnsattId, _avvisAnsattEpost, _avvisDato, kommentar);
+  lukkAvvisModal();
+}
+
+// Godkjenn hel dag for en ansatt
+async function godkjennDag(ansattId, ansattEpost, dato){
+  const user=await getUser();
+  const{error}=await sb.from('dag_godkjenning').upsert({
+    dato, ansatt_id:ansattId, ansatt_epost:ansattEpost,
+    status:'godkjent', kommentar:null,
+    godkjent_av:user.id, godkjent_av_epost:user.email,
+    godkjent_tidspunkt:new Date().toISOString(),
+    oppdatert_at:new Date().toISOString()
+  },{onConflict:'dato,ansatt_id'});
+  if(error){toast('Feil: '+error.message,'error');return;}
+  toast('Dag godkjent ✓','success');
+  await lastGodkjenner();
+}
+
+// Avvis hel dag for en ansatt (med kommentar)
+async function avvisDag(ansattId, ansattEpost, dato, kommentar){
+  const user=await getUser();
+  const{error}=await sb.from('dag_godkjenning').upsert({
+    dato, ansatt_id:ansattId, ansatt_epost:ansattEpost,
+    status:'avvist', kommentar,
+    godkjent_av:user.id, godkjent_av_epost:user.email,
+    godkjent_tidspunkt:new Date().toISOString(),
+    oppdatert_at:new Date().toISOString()
+  },{onConflict:'dato,ansatt_id'});
+  if(error){toast('Feil: '+error.message,'error');return;}
+  toast('Dag avvist','warning');
+  await lastGodkjenner();
+}
 async function utforSlett(type,id){
   lukkBekreft();
   let error,melding;
@@ -2283,12 +2401,15 @@ async function lastManedGodkjenner(){
   const til=`${gjeldendeGodkjennerManed}-${String(siste).padStart(2,'0')}`;
   const wrap=document.getElementById('godkjenner-innhold');
   wrap.innerHTML='<div class="loader"><div class="spinner"></div>Laster måned...</div>';
-  const{data:arbData}=await sb.from('arbeidsdag_logg')
-    .select('dato,ansatt_id,ansatt_epost,netto_timer')
-    .gte('dato',fra).lte('dato',til).order('dato');
-  visManedGodkjenner(y,m,arbData||[]);
+  const[{data:arbData},{data:gkData}]=await Promise.all([
+    sb.from('arbeidsdag_logg').select('dato,ansatt_id,ansatt_epost,netto_timer').gte('dato',fra).lte('dato',til).order('dato'),
+    sb.from('dag_godkjenning').select('dato,ansatt_id,status').gte('dato',fra).lte('dato',til)
+  ]);
+  const gkMap={};
+  (gkData||[]).forEach(r=>{gkMap[`${r.dato.slice(0,10)}|${r.ansatt_id}`]=r.status;});
+  visManedGodkjenner(y,m,arbData||[],gkMap);
 }
-function visManedGodkjenner(year,month,arbData){
+function visManedGodkjenner(year,month,arbData,gkMap={}){
   const wrap=document.getElementById('godkjenner-innhold');
   const siste=new Date(year,month,0).getDate();
   // Bygg ansatte-kart: dato → [{ initialer, farge }]
@@ -2302,9 +2423,12 @@ function visManedGodkjenner(year,month,arbData){
     const t=ansatteMap[r.ansatt_id].dager[dato];
     const init=r.ansatt_epost.split('@')[0].split(/[._]/).map(s=>s[0]?.toUpperCase()||'').join('').slice(0,2);
     // Oppdater eksisterende oppføring eller legg til ny
+    const gkStatus=gkMap[`${dato}|${r.ansatt_id}`]||'ikke_behandlet';
+    const farge=gkStatus==='godkjent'?'gk-godkjent':gkStatus==='avvist'?'gk-avvist':t>=ORDINAER_TIMER?'gk-full':'gk-delvis';
+    const statusSuffix=gkStatus==='godkjent'?' ✓':gkStatus==='avvist'?' ✗':'';
     const eks=dagMap[dato].find(x=>x.id===r.ansatt_id);
-    if(eks){ eks.t=t; eks.farge=t>=ORDINAER_TIMER?'gk-full':'gk-delvis'; }
-    else dagMap[dato].push({id:r.ansatt_id,init,t,farge:t>=ORDINAER_TIMER?'gk-full':'gk-delvis',navn:r.ansatt_epost.split('@')[0]});
+    if(eks){ eks.t=t; eks.farge=farge; eks.statusSuffix=statusSuffix; }
+    else dagMap[dato].push({id:r.ansatt_id,init,t,farge,statusSuffix,navn:r.ansatt_epost.split('@')[0]});
   });
 
   if(!Object.keys(dagMap).length){
@@ -2326,7 +2450,7 @@ function visManedGodkjenner(year,month,arbData){
     } else {
       const reg=dagMap[dato]||[];
       const dots=reg.slice(0,8).map(r=>
-        `<span class="gk-dot ${r.farge}" title="${r.navn}: ${r.t}t">${r.init}</span>`
+        `<span class="gk-dot ${r.farge}" title="${r.navn}: ${r.t}t${r.statusSuffix||''}">${r.init}</span>`
       ).join('');
       const mer=reg.length>8?`<span class="gk-kal-mer">+${reg.length-8}</span>`:'';
       celler.push(`<div class="gk-kal-celle ${reg.length?'':'gk-ingen'}" onclick="gaaTilGodkjennerDag('${dato}')">
@@ -2375,11 +2499,13 @@ async function lastGodkjenner(){
     return;
   }
 
+  const godkjenningMap = await lastGodkjenningStatus(dato, ansatte.map(a=>a.id));
+
   wrap.innerHTML = `<div style="font-size:.9rem;color:var(--muted);margin-bottom:16px;">${fmtDatoLang(dato)} — ${ansatte.length} ansatt${ansatte.length>1?'e':''} med registreringer</div>` +
-    ansatte.map(a => visGodkjennerAnsatt(a, dato)).join('');
+    ansatte.map(a => visGodkjennerAnsatt(a, dato, godkjenningMap[a.id]||null)).join('');
 }
 
-function visGodkjennerAnsatt(a, dato){
+function visGodkjennerAnsatt(a, dato, gkStatus){
   const ordretimer = a.timer.filter(t => t.order_number !== null);
   const internTid  = a.timer.filter(t => t.order_number === null);
   const sumOrdre   = ordretimer.reduce((s,t)=>s+Number(t.timer),0);
@@ -2429,6 +2555,28 @@ function visGodkjennerAnsatt(a, dato){
   const uforklart = Math.max(0, totalArb - forklart);
   const gapFarge = uforklart > 0.25 ? 'var(--red)' : 'var(--green)';
 
+  // Statusbanner
+  let statusBanner='';
+  if(gkStatus&&gkStatus.status==='godkjent'){
+    statusBanner=`<div style="background:#d1fae5;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;margin:12px 0;font-size:.85rem;">
+      <span style="color:var(--green);font-size:1.1rem;">✓</span>
+      <span>Godkjent av <strong>${gkStatus.godkjent_av_epost}</strong> — ${fmtDatoTid(gkStatus.godkjent_tidspunkt)}</span>
+    </div>`;
+  } else if(gkStatus&&gkStatus.status==='avvist'){
+    statusBanner=`<div style="background:#fee2e2;border-radius:8px;padding:10px 14px;display:flex;align-items:flex-start;gap:8px;margin:12px 0;font-size:.85rem;">
+      <span style="color:var(--red);font-size:1.1rem;">✗</span>
+      <div><div>Avvist av <strong>${gkStatus.godkjent_av_epost}</strong> — ${fmtDatoTid(gkStatus.godkjent_tidspunkt)}</div>
+      ${gkStatus.kommentar?`<div style="margin-top:3px;font-style:italic;">"${gkStatus.kommentar}"</div>`:''}</div>
+    </div>`;
+  }
+
+  // Handlingsknapper (alltid synlige — godkjenner kan omgjøre)
+  const aId=JSON.stringify(a.id), aEpost=JSON.stringify(a.epost), aDato=JSON.stringify(dato);
+  const knapper=`<div style="display:flex;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap;">
+    <button class="btn btn-primary btn-sm" onclick="godkjennDag(${aId},${aEpost},${aDato})">✓ Godkjenn dag</button>
+    <button class="btn btn-danger btn-sm" onclick="visAvvisModal(${aId},${aEpost},${aDato})">✗ Avvis med kommentar</button>
+  </div>`;
+
   return `<div style="background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin-bottom:14px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <div style="font-weight:700;color:var(--accent);">👤 ${a.epost}</div>
@@ -2436,7 +2584,7 @@ function visGodkjennerAnsatt(a, dato){
         ${uforklart>0.25?`⚠ ${fmtTimer(uforklart)} uforklart`:'✓ Komplett'}
       </div>
     </div>
-    ${arbHtml}${ordreHtml}${internHtml}
+    ${arbHtml}${ordreHtml}${internHtml}${statusBanner}${knapper}
   </div>`;
 }
 
