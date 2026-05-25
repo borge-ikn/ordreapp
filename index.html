@@ -660,7 +660,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <input type="search" id="pl-sok" placeholder="Filtrer navn…" oninput="filterPlanlegger()" style="width:130px;">
       <input type="search" id="pl-ordre-sok" placeholder="Søk ordre/kunde…" oninput="filterOgRenderPlanlegger()" style="width:150px;">
       <div id="pl-slicer-wrap">
-        <button id="pl-slicer-btn" onclick="plSlicerToggle(event)"
+        <button id="pl-slicer-btn" onclick="slicerToggle('pl',event)"
           style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;flex-shrink:0;">
           <span id="pl-slicer-label">Periode</span>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -701,8 +701,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <option value="">Alle grupper</option>
       </select>
       <input type="search" id="ov-sok" placeholder="Søk ordre/kunde…" oninput="filterOgRenderOversikt()" style="width:150px;">
-      <input type="date" id="ov-fra" onchange="lastOversikt()">
-      <input type="date" id="ov-til" onchange="lastOversikt()">
+      <div id="ov-slicer-wrap">
+        <button id="ov-slicer-btn" onclick="slicerToggle('ov',event)"
+          style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+          <span id="ov-slicer-label">Periode</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
     </div>
     <div id="oversikt-board" style="padding:0 16px;">
       <div style="padding:20px;opacity:0.5;">Velg en avdeling for å se oversikten.</div>
@@ -956,10 +961,7 @@ function byttFane(fane) {
   if (fane === 'planlegger') lastPlanlegger();
   if (fane === 'oversikt' && !oversiktInitiert) {
     oversiktInitiert = true;
-    const idag = new Date();
-    const om30 = new Date(); om30.setDate(om30.getDate() + 30);
-    document.getElementById('ov-fra').value = idag.toISOString().slice(0,10);
-    document.getElementById('ov-til').value = om30.toISOString().slice(0,10);
+    slicerInit('ov');
   }
   if (fane === 'oversikt') lastOversikt();
 }
@@ -1193,12 +1195,14 @@ const PO_DEPT_NAMES = {
 // Omvendt: navn → kode
 const PO_DEPT_MAP = Object.fromEntries(Object.entries(PO_DEPT_NAMES).map(([k,v])=>[v,k]));
 
-// ── Hierarkisk periode-slicer ─────────────────────────────────────────────
-const PL_SLICER_AAR  = [2023,2024,2025,2026,2027,2028];
-const PL_SLICER_MND  = ['Jan','Feb','Mar','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Des'];
-let plSlicerUtvidetAar   = null;   // number | null
-let plSlicerUtvidetManed = null;   // "YYYY-MM" | null
-let plSlicerValg         = { aar: null, maned: null, dag: null };
+// ── Generisk hierarkisk periode-slicer (delt av Planlegger og Oversikt) ───
+const SLICER_AAR = [2023,2024,2025,2026,2027,2028];
+const SLICER_MND = ['Jan','Feb','Mar','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Des'];
+const SLICER_CALLBACKS = { pl: ()=>lastPlanlegger(), ov: ()=>lastOversikt() };
+const slicerSt = {
+  pl: { utvidetAar: null, utvidetManed: null, valg: { aar: null, maned: null, dag: null } },
+  ov: { utvidetAar: null, utvidetManed: null, valg: { aar: null, maned: null, dag: null } },
+};
 
 function plToggleX(xId, input) {
   const btn = document.getElementById(xId);
@@ -1210,18 +1214,18 @@ function plKlearInput(inputId, xId, fn) {
   if (btn) btn.style.display = 'none';
   fn();
 }
-function plSlicerLabelTekst() {
-  const { aar, maned, dag } = plSlicerValg;
+function slicerLabelTekst(pfx) {
+  const { aar, maned, dag } = slicerSt[pfx].valg;
   if (!aar) return 'Periode';
   if (!maned) return `${aar}`;
-  const mn = PL_SLICER_MND[maned - 1];
+  const mn = SLICER_MND[maned - 1];
   if (!dag) return `${mn} ${aar}`;
   return `${dag}. ${mn} ${aar}`;
 }
-function plSlicerToggle(e) {
+function slicerToggle(pfx, e) {
   e.stopPropagation();
-  const panel = document.getElementById('pl-dato-slicer');
-  const btn   = document.getElementById('pl-slicer-btn');
+  const panel = document.getElementById(`${pfx}-dato-slicer`);
+  const btn   = document.getElementById(`${pfx}-slicer-btn`);
   if (!panel || !btn) return;
   if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
   const r = btn.getBoundingClientRect();
@@ -1230,40 +1234,43 @@ function plSlicerToggle(e) {
   panel.style.display = 'block';
 }
 document.addEventListener('click', function(e) {
-  const wrap  = document.getElementById('pl-slicer-wrap');
-  const panel = document.getElementById('pl-dato-slicer');
-  if (!panel || panel.style.display === 'none') return;
-  if (wrap && wrap.contains(e.target)) return;
-  if (panel.contains(e.target)) return;
-  panel.style.display = 'none';
+  ['pl','ov'].forEach(pfx => {
+    const wrap  = document.getElementById(`${pfx}-slicer-wrap`);
+    const panel = document.getElementById(`${pfx}-dato-slicer`);
+    if (!panel || panel.style.display === 'none') return;
+    if (wrap && wrap.contains(e.target)) return;
+    if (panel.contains(e.target)) return;
+    panel.style.display = 'none';
+  });
 });
-function renderPlSlicer() {
-  const c = document.getElementById('pl-dato-slicer');
+function renderSlicer(pfx) {
+  const c = document.getElementById(`${pfx}-dato-slicer`);
   if (!c) return;
-  const lbl = document.getElementById('pl-slicer-label');
-  if (lbl) lbl.textContent = plSlicerLabelTekst();
+  const lbl = document.getElementById(`${pfx}-slicer-label`);
+  if (lbl) lbl.textContent = slicerLabelTekst(pfx);
+  const st = slicerSt[pfx];
   let h = '';
-  for (const aar of PL_SLICER_AAR) {
-    const utv  = plSlicerUtvidetAar === aar;
-    const valgt = plSlicerValg.aar === aar && !plSlicerValg.maned;
-    h += `<div style="display:flex;align-items:center;padding:4px 8px;cursor:pointer;border-radius:6px;margin:1px 4px;${valgt ? 'background:#dbeafe;color:#1e40af;font-weight:700;' : ''}">
-      <span onclick="plSlicerToggleAar(${aar})" style="width:16px;font-size:0.65rem;color:#9ca3af;flex-shrink:0;user-select:none;">${utv ? '▼' : '▶'}</span>
-      <span onclick="plSlicerVelg(${aar},null,null)" style="flex:1;">${aar}</span>
+  for (const aar of SLICER_AAR) {
+    const utv   = st.utvidetAar === aar;
+    const valgt = st.valg.aar === aar && !st.valg.maned;
+    h += `<div style="display:flex;align-items:center;padding:4px 8px;cursor:pointer;border-radius:6px;margin:1px 4px;${valgt?'background:#dbeafe;color:#1e40af;font-weight:700;':''}">
+      <span onclick="slicerToggleAar('${pfx}',${aar})" style="width:16px;font-size:0.65rem;color:#9ca3af;flex-shrink:0;user-select:none;">${utv?'▼':'▶'}</span>
+      <span onclick="slicerVelg('${pfx}',${aar},null,null)" style="flex:1;">${aar}</span>
     </div>`;
     if (utv) {
       for (let m = 1; m <= 12; m++) {
-        const key    = `${aar}-${String(m).padStart(2,'0')}`;
-        const mUtv   = plSlicerUtvidetManed === key;
-        const mValgt = plSlicerValg.aar === aar && plSlicerValg.maned === m && !plSlicerValg.dag;
-        h += `<div style="display:flex;align-items:center;padding:3px 8px 3px 24px;cursor:pointer;border-radius:6px;margin:1px 4px;${mValgt ? 'background:#dbeafe;color:#1e40af;font-weight:700;' : ''}">
-          <span onclick="plSlicerToggleManed(${aar},${m})" style="width:14px;font-size:0.6rem;color:#9ca3af;flex-shrink:0;user-select:none;">${mUtv ? '▼' : '▶'}</span>
-          <span onclick="plSlicerVelg(${aar},${m},null)" style="flex:1;">${PL_SLICER_MND[m-1]}</span>
+        const key   = `${aar}-${String(m).padStart(2,'0')}`;
+        const mUtv  = st.utvidetManed === key;
+        const mValgt= st.valg.aar===aar && st.valg.maned===m && !st.valg.dag;
+        h += `<div style="display:flex;align-items:center;padding:3px 8px 3px 24px;cursor:pointer;border-radius:6px;margin:1px 4px;${mValgt?'background:#dbeafe;color:#1e40af;font-weight:700;':''}">
+          <span onclick="slicerToggleManed('${pfx}',${aar},${m})" style="width:14px;font-size:0.6rem;color:#9ca3af;flex-shrink:0;user-select:none;">${mUtv?'▼':'▶'}</span>
+          <span onclick="slicerVelg('${pfx}',${aar},${m},null)" style="flex:1;">${SLICER_MND[m-1]}</span>
         </div>`;
         if (mUtv) {
           const antDager = new Date(aar, m, 0).getDate();
           for (let d = 1; d <= antDager; d++) {
-            const dValgt = plSlicerValg.aar === aar && plSlicerValg.maned === m && plSlicerValg.dag === d;
-            h += `<div onclick="plSlicerVelg(${aar},${m},${d})" style="padding:2px 8px 2px 42px;cursor:pointer;border-radius:6px;margin:1px 4px;${dValgt ? 'background:#dbeafe;color:#1e40af;font-weight:700;' : ''}">${d}.</div>`;
+            const dValgt = st.valg.aar===aar && st.valg.maned===m && st.valg.dag===d;
+            h += `<div onclick="slicerVelg('${pfx}',${aar},${m},${d})" style="padding:2px 8px 2px 42px;cursor:pointer;border-radius:6px;margin:1px 4px;${dValgt?'background:#dbeafe;color:#1e40af;font-weight:700;':''}">${d}.</div>`;
           }
         }
       }
@@ -1271,25 +1278,25 @@ function renderPlSlicer() {
   }
   c.innerHTML = h;
 }
-function plSlicerToggleAar(aar) {
-  plSlicerUtvidetAar   = (plSlicerUtvidetAar === aar) ? null : aar;
-  plSlicerUtvidetManed = null;
-  renderPlSlicer();
+function slicerToggleAar(pfx, aar) {
+  slicerSt[pfx].utvidetAar   = (slicerSt[pfx].utvidetAar === aar) ? null : aar;
+  slicerSt[pfx].utvidetManed = null;
+  renderSlicer(pfx);
 }
-function plSlicerToggleManed(aar, maned) {
+function slicerToggleManed(pfx, aar, maned) {
   const key = `${aar}-${String(maned).padStart(2,'0')}`;
-  plSlicerUtvidetManed = (plSlicerUtvidetManed === key) ? null : key;
-  renderPlSlicer();
+  slicerSt[pfx].utvidetManed = (slicerSt[pfx].utvidetManed === key) ? null : key;
+  renderSlicer(pfx);
 }
-function plSlicerVelg(aar, maned, dag) {
-  plSlicerValg = { aar, maned, dag };
-  const panel = document.getElementById('pl-dato-slicer');
+function slicerVelg(pfx, aar, maned, dag) {
+  slicerSt[pfx].valg = { aar, maned, dag };
+  const panel = document.getElementById(`${pfx}-dato-slicer`);
   if (panel) panel.style.display = 'none';
-  renderPlSlicer();
-  lastPlanlegger();
+  renderSlicer(pfx);
+  SLICER_CALLBACKS[pfx]();
 }
-function plSlicerFraTil() {
-  const { aar, maned, dag } = plSlicerValg;
+function slicerFraTil(pfx) {
+  const { aar, maned, dag } = slicerSt[pfx].valg;
   if (!aar) return { fra: '', til: '' };
   if (!maned) return { fra: `${aar}-01-01`, til: `${aar}-12-31` };
   const ms = String(maned).padStart(2,'0');
@@ -1300,13 +1307,15 @@ function plSlicerFraTil() {
   const ds = String(dag).padStart(2,'0');
   return { fra: `${aar}-${ms}-${ds}`, til: `${aar}-${ms}-${ds}` };
 }
-function plSlicerInit() {
+function slicerInit(pfx) {
   const n = new Date();
-  plSlicerUtvidetAar   = n.getFullYear();
-  plSlicerUtvidetManed = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
-  plSlicerValg         = { aar: n.getFullYear(), maned: n.getMonth()+1, dag: null };
-  renderPlSlicer();
+  slicerSt[pfx].utvidetAar   = n.getFullYear();
+  slicerSt[pfx].utvidetManed = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
+  slicerSt[pfx].valg         = { aar: n.getFullYear(), maned: n.getMonth()+1, dag: null };
+  renderSlicer(pfx);
 }
+// Bakoverkompatible alias for Planlegger (brukes i byttFane)
+function plSlicerInit() { slicerInit('pl'); }
 
 let allePlanleggerTeknikere = [];
 let allePlanleggerOrdrer = [];
@@ -1315,7 +1324,7 @@ let allePlanleggerTildelinger = [];
 async function lastPlanlegger() {
   const avdNavn = document.getElementById('pl-avdeling').value.trim();
   const avdKode = PO_DEPT_MAP[avdNavn] || '';
-  const { fra, til } = plSlicerFraTil();
+  const { fra, til } = slicerFraTil('pl');
   const board = document.getElementById('planlegger-board');
   if (!avdKode) {
     board.innerHTML = '<div style="padding:20px;opacity:0.5;">Velg en avdeling for å se planleggeren.</div>';
@@ -2374,8 +2383,7 @@ let alleOversiktOrdrer    = [];
 let alleOversiktTildelinger = [];
 
 async function lastOversikt() {
-  const fra   = document.getElementById('ov-fra').value;
-  const til   = document.getElementById('ov-til').value;
+  const { fra, til } = slicerFraTil('ov');
   const board = document.getElementById('oversikt-board');
   board.innerHTML = '<div class="loader"><div class="spinner"></div>Laster oversikt...</div>';
   const [tekRes, ordrer, tildRes] = await Promise.all([
@@ -2859,6 +2867,7 @@ async function sendOrdre(e){
   finally{btn.disabled=false;btn.textContent='Opprett ordre';}
 }
 </script>
+<div id="ov-dato-slicer" onclick="event.stopPropagation()" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
 <div id="pl-dato-slicer" onclick="event.stopPropagation()" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
 </body>
 </html>
