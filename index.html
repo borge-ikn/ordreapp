@@ -1419,6 +1419,9 @@ function renderPlanlegger(teknikere, ordrer, tildelinger) {
     tildMap[t.order_number].add(String(t.employee_number));
   });
 
+  // Infoboks hvis ingen avdeling (ansatt) er valgt
+  const ingenTeknikere = teknikere.length === 0;
+
   // Bygg tekniker-kolonner med sine tildelte ordrer
   const tekKolonner = teknikere.map(t => ({
     id: t.employee_number, navn: t.name, dept: t.dept,
@@ -1462,7 +1465,12 @@ function renderPlanlegger(teknikere, ordrer, tildelinger) {
       </div>
     </div>`).join('');
 
-  board.innerHTML = poolHTML + tekHTML;
+  const ingenTekHTML = ingenTeknikere
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:14px 16px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;color:#92400e;font-size:0.85rem;align-self:flex-start;">
+        <span style="font-size:1rem;">ℹ️</span> Velg <strong>Avdeling (ansatt)</strong> for å se tekniker-kolonner
+       </div>`
+    : '';
+  board.innerHTML = poolHTML + ingenTekHTML + tekHTML;
 
   // SortableJS: pool → klone (originalen forblir i pool)
   Sortable.create(board.querySelector('.pl-pool-liste'), {
