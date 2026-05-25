@@ -712,7 +712,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <!-- BEKREFT -->
 <div class="confirm-overlay" id="confirm-overlay" style="display:none;">
   <div class="confirm-box">
-    <div class="confirm-ikon">🗑️</div>
+    <div class="confirm-ikon" id="confirm-ikon">🗑️</div>
     <div class="confirm-tittel" id="confirm-tittel">Er du sikker?</div>
     <div class="confirm-tekst"  id="confirm-tekst">Dette kan ikke angres.</div>
     <div class="confirm-actions">
@@ -1408,10 +1408,35 @@ async function lastMineTildelte() {
           <div class="order-card-right">
             <div class="order-beloep">${fmtBeloep(o.net_amount)}</div>
             <span class="status-badge ${statusFarge(o.status_name)}">${o.status_name||'Ukjent'}</span>
+            <div style="margin-top:8px;">
+              <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();fjernMinTildelingMedSjekk(${o.order_number})">Fjern tildeling</button>
+            </div>
           </div>
         </div>`).join('')}
     </div>`;
   } catch(e) { wrap.innerHTML = ''; }
+}
+
+async function fjernMinTildelingMedSjekk(orderNumber){
+  const empNr=brukerPONummer??brukerProdsysId;
+  if(!empNr)return;
+  const uid=await getUid();
+  const{data}=await sb.from('timeregistrering').select('id').eq('order_number',orderNumber).eq('ansatt_id',uid).limit(1);
+  const harTimer=data&&data.length>0;
+  const doFjern=async()=>{
+    await fjernTildelingDB(orderNumber,empNr);
+    await lastMineTildelte();
+    const dagEl=document.getElementById('dag-dato');
+    if(dagEl&&dagEl.value)await lastDag();
+    toast('Tildeling fjernet','success');
+  };
+  if(harTimer){
+    visBekreftDialog('⚠️','Fjern tildeling',
+      `Du har ført timer på ordre #${orderNumber}. Er du sikker på at du vil fjerne tildelingen?`,
+      'Ja, fjern tildeling', doFjern);
+  } else {
+    await doFjern();
+  }
 }
 
 // ── ORDRE DETALJ + ORDRETIMER ─────────────────────────────────────────────
@@ -1525,6 +1550,8 @@ async function lagreTimer(){
   if(redigeringsId){({error}=await sb.from('timeregistrering').update(rad).eq('id',redigeringsId));}
   else{({error}=await sb.from('timeregistrering').insert(rad));}
   if(error){toast('Feil: '+error.message,'error');return;}
+  // Auto-tildel ordren til brukeren ved ny registrering
+  if(!redigeringsId){const empNr=brukerPONummer??brukerProdsysId;if(empNr)lagreTildelingDB(aktivOrdre.order_number,empNr);}
   toast(redigeringsId?'Timer oppdatert':'Timer lagret ✓','success');
   await oppdaterTimerSeksjon();
 }
@@ -1774,7 +1801,11 @@ function visOrdretimerDag(dato, ordretimer){
   const wrap = document.getElementById('dag-ordretimer-wrap');
   if(!ordretimer||!ordretimer.length){ wrap.innerHTML=''; return; }
   const sumTimer = ordretimer.reduce((s,t)=>s+Number(t.timer),0);
-  const rader = ordretimer.map(t=>`
+  const visiteOrdrer = new Set();
+  const rader = ordretimer.map(t=>{
+    const erFoerste = !visiteOrdrer.has(t.order_number);
+    visiteOrdrer.add(t.order_number);
+    return `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--bg);border-radius:8px;">
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1782,6 +1813,7 @@ function visOrdretimerDag(dato, ordretimer){
           ${t.kundenavn?`<span style="font-size:.85rem;color:var(--text);">${t.kundenavn}</span>`:''}
           ${timeart_badge(t.timeart)}
           ${t.er_fakturerbar?'':'<span style="font-size:.75rem;background:#f3f4f6;color:var(--muted);padding:2px 8px;border-radius:20px;">Ikke fakt.</span>'}
+          ${erFoerste?`<button class="btn btn-secondary btn-sm" style="font-size:.72rem;" onclick="fjernMinTildelingMedSjekk(${t.order_number})">Fjern tildeling</button>`:''}
         </div>
         <div style="font-size:.85rem;color:var(--muted);margin-top:3px;">${t.aktivitet_navn}${t.kommentar?` — ${t.kommentar}`:''}</div>
       </div>
@@ -1790,7 +1822,8 @@ function visOrdretimerDag(dato, ordretimer){
         <button class="btn btn-secondary btn-sm" onclick="redigerOrdretimeDag(${t.id})">Rediger</button>
         <button class="btn btn-danger btn-sm" onclick="bekreftSlett('timer',${t.id})">Slett</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   wrap.innerHTML=`
     <div class="intern-seksjon">
       <div class="intern-header">
@@ -2057,12 +2090,18 @@ async function forslagsArbeidsdag(){
 
 // ── SLETT (felles) ────────────────────────────────────────────────────────
 
+// Generisk bekreftelsesdialog
+function visBekreftDialog(ikon, tittel, tekst, okTekst, onOk){
+  document.getElementById('confirm-ikon').textContent=ikon;
+  document.getElementById('confirm-tittel').textContent=tittel;
+  document.getElementById('confirm-tekst').textContent=tekst;
+  document.getElementById('bekreft-ok-btn').textContent=okTekst;
+  document.getElementById('confirm-overlay').style.display='flex';
+  document.getElementById('bekreft-ok-btn').onclick=()=>{lukkBekreft();onOk();};
+}
 function bekreftSlett(type,id){
   const titler={timer:'Slett timeregistrering',arbeidsdag:'Slett arbeidsperiode',intern:'Slett intern tid'};
-  document.getElementById('confirm-tittel').textContent=titler[type]||'Er du sikker?';
-  document.getElementById('confirm-tekst').textContent='Er du sikker? Dette kan ikke angres.';
-  document.getElementById('confirm-overlay').style.display='flex';
-  document.getElementById('bekreft-ok-btn').onclick=()=>utforSlett(type,id);
+  visBekreftDialog('🗑️',titler[type]||'Er du sikker?','Er du sikker? Dette kan ikke angres.','Ja, slett',()=>utforSlett(type,id));
 }
 function lukkBekreft(){document.getElementById('confirm-overlay').style.display='none';}
 async function utforSlett(type,id){
