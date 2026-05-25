@@ -285,7 +285,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   .btn-filter { display:none; }
 }
 .planlegger-toolbar { display:flex; gap:12px; align-items:center; flex-wrap:nowrap; overflow-x:auto; padding:12px 16px 8px; flex-shrink:0; }
-.planlegger-toolbar select, .planlegger-toolbar input[type=date] {
+.planlegger-toolbar select, .planlegger-toolbar input[type=date],
+.planlegger-toolbar input[type=text] {
   background:var(--surface); color:var(--text); border:1px solid rgba(255,255,255,0.1);
   border-radius:6px; padding:6px 10px; font-size:0.85rem; flex-shrink:0; }
 #side-planlegger { display:flex; flex-direction:column; height:calc(100vh - 110px); overflow:hidden; }
@@ -625,26 +626,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
   <div id="side-planlegger" style="display:none;">
     <div class="planlegger-toolbar">
-      <select id="pl-avdeling" onchange="lastPlanlegger()">
-        <option value="">Avdeling (ansatt)</option>
-        <option value="1">Stab</option>
-        <option value="2">Agder</option>
-        <option value="3">Bergen</option>
-        <option value="4">Møre og Romsdal</option>
-        <option value="5">Sandnes</option>
-        <option value="6">Trondheim</option>
-        <option value="8">Østlandet</option>
-        <option value="9">Nord Norge</option>
-        <option value="12">Oslo</option>
-      </select>
+      <input type="text" id="pl-avdeling" list="pl-avdeling-list"
+        placeholder="Avdeling (ansatt)" autocomplete="off"
+        oninput="lastPlanlegger()" style="min-width:160px;">
+      <datalist id="pl-avdeling-list">
+        <option>Stab</option><option>Agder</option><option>Bergen</option>
+        <option>Møre og Romsdal</option><option>Sandnes</option><option>Trondheim</option>
+        <option>Østlandet</option><option>Nord Norge</option><option>Oslo</option>
+      </datalist>
       <input type="search" id="pl-sok" placeholder="Filtrer navn…" oninput="filterPlanlegger()" style="width:130px;">
       <div style="width:1px;background:rgba(255,255,255,0.12);align-self:stretch;margin:0 4px;"></div>
-      <select id="pl-ordre-avd" onchange="filterOgRenderPlanlegger()" style="min-width:130px;">
-        <option value="">Avdeling (ordre)</option>
+      <input type="text" id="pl-ordre-avd" list="pl-ordre-avd-list"
+        placeholder="Avdeling (ordre)" autocomplete="off"
+        oninput="filterOgRenderPlanlegger()" style="min-width:150px;">
+      <datalist id="pl-ordre-avd-list">
         <option>Agder</option><option>Bergen</option><option>Møre og Romsdal</option>
         <option>Nord Norge</option><option>Oslo</option><option>Østlandet</option>
         <option>Sandnes</option><option>Stab</option><option>Trondheim</option>
-      </select>
+      </datalist>
       <input type="search" id="pl-ordre-sok" placeholder="Søk ordre/kunde…" oninput="filterOgRenderPlanlegger()" style="width:150px;">
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <label style="font-size:0.82rem;">Fra</label>
@@ -947,7 +946,7 @@ function byttFane(fane) {
     const om30 = new Date(); om30.setDate(om30.getDate() + 30);
     document.getElementById('pl-fra').value = idag.toISOString().slice(0,10);
     document.getElementById('pl-til').value = om30.toISOString().slice(0,10);
-    if (brukerAvdelingKode) document.getElementById('pl-avdeling').value = brukerAvdelingKode;
+    if (brukerAvdelingKode) document.getElementById('pl-avdeling').value = PO_DEPT_NAMES[brukerAvdelingKode] || '';
   }
   if (fane === 'planlegger') lastPlanlegger();
   if (fane === 'oversikt' && !oversiktInitiert) {
@@ -1186,12 +1185,15 @@ const PO_DEPT_NAMES = {
   '1':'Stab','2':'Agder','3':'Bergen','4':'Møre og Romsdal',
   '5':'Sandnes','6':'Trondheim','8':'Østlandet','9':'Nord Norge','12':'Oslo'
 };
+// Omvendt: navn → kode
+const PO_DEPT_MAP = Object.fromEntries(Object.entries(PO_DEPT_NAMES).map(([k,v])=>[v,k]));
 let allePlanleggerTeknikere = [];
 let allePlanleggerOrdrer = [];
 let allePlanleggerTildelinger = [];
 
 async function lastPlanlegger() {
-  const avdKode = document.getElementById('pl-avdeling').value;
+  const avdNavn = document.getElementById('pl-avdeling').value.trim();
+  const avdKode = PO_DEPT_MAP[avdNavn] || '';
   const fra = document.getElementById('pl-fra').value;
   const til = document.getElementById('pl-til').value;
   const board = document.getElementById('planlegger-board');
