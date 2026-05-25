@@ -661,7 +661,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
   <div id="side-oversikt" style="display:none;">
     <div class="planlegger-toolbar">
-      <select id="ov-avdeling" onchange="lastOversikt()">
+      <select id="ov-tildelt" onchange="filterOgRenderOversikt()" style="min-width:150px;">
+        <option value="">Alle ordrer</option>
+        <option value="tildelt">Tildelt</option>
+        <option value="ikke_tildelt">Ikke tildelt</option>
+      </select>
+      <select id="ov-avdeling" style="display:none;">
         <option value="">Avdeling (ansatt)</option>
         <option value="1">Stab</option>
         <option value="2">Agder</option>
@@ -951,7 +956,6 @@ function byttFane(fane) {
     const om30 = new Date(); om30.setDate(om30.getDate() + 30);
     document.getElementById('ov-fra').value = idag.toISOString().slice(0,10);
     document.getElementById('ov-til').value = om30.toISOString().slice(0,10);
-    if (brukerAvdelingKode) document.getElementById('ov-avdeling').value = brukerAvdelingKode;
   }
   if (fane === 'oversikt') lastOversikt();
 }
@@ -2249,18 +2253,13 @@ let alleOversiktOrdrer    = [];
 let alleOversiktTildelinger = [];
 
 async function lastOversikt() {
-  const avdKode = document.getElementById('ov-avdeling').value;
-  const fra     = document.getElementById('ov-fra').value;
-  const til     = document.getElementById('ov-til').value;
-  const board   = document.getElementById('oversikt-board');
-  if (!avdKode) {
-    board.innerHTML = '<div style="padding:20px;opacity:0.5;">Velg en avdeling for å se oversikten.</div>';
-    return;
-  }
+  const fra   = document.getElementById('ov-fra').value;
+  const til   = document.getElementById('ov-til').value;
+  const board = document.getElementById('oversikt-board');
   board.innerHTML = '<div class="loader"><div class="spinner"></div>Laster oversikt...</div>';
   const [tekRes, ordrer, tildRes] = await Promise.all([
     sb.from('po_ansatte').select('number,first_name,last_name')
-      .eq('is_archived', false).eq('department_code', avdKode).order('last_name'),
+      .eq('is_archived', false).order('last_name'),
     hentPlanleggerOrdrer(fra, til, null),
     sb.from('ordre_tildeling').select('order_number,employee_number')
   ]);
@@ -2273,11 +2272,17 @@ async function lastOversikt() {
 }
 
 function filterOgRenderOversikt() {
+  const tildeltFilter = document.getElementById('ov-tildelt')?.value || '';
   const avd    = document.getElementById('ov-ordre-avd')?.value || '';
   const gruppe = document.getElementById('ov-gruppe')?.value    || '';
   const sok    = (document.getElementById('ov-sok')?.value || '').toLowerCase();
 
+  const tildeltSet = new Set(alleOversiktTildelinger.map(t => t.order_number));
+
   const filtrerte = alleOversiktOrdrer.filter(o => {
+    const erTildelt = tildeltSet.has(o.order_number);
+    if (tildeltFilter === 'tildelt'      && !erTildelt) return false;
+    if (tildeltFilter === 'ikke_tildelt' &&  erTildelt) return false;
     if (avd    && o.department_name !== avd)    return false;
     if (gruppe && o.order_group     !== gruppe) return false;
     if (sok) {
