@@ -758,6 +758,13 @@ const AKTIVITETER = [
   { kode:111, navn:'Årskontroll løfteutstyr', fakturerbar:true  },
 ];
 
+// Lønnsart-koder (PowerOffice): 120=Ordinær tid, 170=Overtid 50%, 175=Overtid 100%
+const LONNSART_MAP = {
+  'Ordinær tid':  120,
+  'Overtid 50%':  170,
+  'Overtid 100%': 175,
+};
+
 // ── AUTH ──────────────────────────────────────────────────────────────────
 
 async function loggInnMicrosoft() {
@@ -1490,7 +1497,8 @@ async function lagreTimer(){
   const aktObj=AKTIVITETER.find(a=>a.kode===aktKode);
   const user=await getUser();
   const timeart=await beregnTimeart(dato,user.id,redigeringsId);
-  const rad={order_number:aktivOrdre.order_number,dato,timer,timeart,
+  const lonnsart=LONNSART_MAP[timeart]??120;
+  const rad={order_number:aktivOrdre.order_number,dato,timer,timeart,lonnsart,
     kundenavn:aktivOrdre.customer_name||null,
     aktivitet_kode:aktKode,aktivitet_navn:aktObj.navn,
     er_fakturerbar:aktObj.fakturerbar,kommentar:komm,
@@ -1736,9 +1744,11 @@ function visGapVisualisering(dato,arbPerioder,ordretimer,internTid){
 // ── MIN DAG: ORDRETIMER LISTE ─────────────────────────────────────────────
 
 function timeart_badge(ta){
-  if(!ta||ta==='Ordinær tid') return `<span style="font-size:.75rem;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:20px;font-weight:600;">Ordinær</span>`;
-  if(ta==='Overtid 50%')      return `<span style="font-size:.75rem;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-weight:600;">OT 50%</span>`;
-  if(ta==='Overtid 100%')     return `<span style="font-size:.75rem;background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px;font-weight:600;">OT 100%</span>`;
+  const la=LONNSART_MAP[ta]??120;
+  const tip=`title="Lønnsart ${la}"`;
+  if(!ta||ta==='Ordinær tid') return `<span ${tip} style="font-size:.75rem;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:20px;font-weight:600;">Ordinær <span style="opacity:.65">${la}</span></span>`;
+  if(ta==='Overtid 50%')      return `<span ${tip} style="font-size:.75rem;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-weight:600;">OT 50% <span style="opacity:.65">${la}</span></span>`;
+  if(ta==='Overtid 100%')     return `<span ${tip} style="font-size:.75rem;background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px;font-weight:600;">OT 100% <span style="opacity:.65">${la}</span></span>`;
   return `<span style="font-size:.75rem;background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:20px;">${ta}</span>`;
 }
 
@@ -1807,8 +1817,9 @@ async function lagreOrdretimeDag(id){
   const dato=document.getElementById('dag-dato').value;
   const uid=await getUid();
   const timeart=await beregnTimeart(dato,uid,id);
+  const lonnsart=LONNSART_MAP[timeart]??120;
   const{error}=await sb.from('timeregistrering').update({
-    timer,timeart,aktivitet_kode:aktKode,aktivitet_navn:aktObj.navn,
+    timer,timeart,lonnsart,aktivitet_kode:aktKode,aktivitet_navn:aktObj.navn,
     er_fakturerbar:aktObj.fakturerbar,kommentar:komm,
     oppdatert_at:new Date().toISOString()
   }).eq('id',id);
@@ -1891,7 +1902,9 @@ async function lagreInternTid(){
   if(!timer||!komm){toast('Fyll ut alle påkrevde felt','error');return;}
   const aktObj=AKTIVITETER.find(a=>a.kode===aktKode);
   const user=await getUser();
-  const rad={order_number:null,dato,timer,
+  const timeart=await beregnTimeart(dato,user.id,redigeringsInternId);
+  const lonnsart=LONNSART_MAP[timeart]??120;
+  const rad={order_number:null,dato,timer,timeart,lonnsart,
     aktivitet_kode:aktKode,aktivitet_navn:aktObj.navn,
     er_fakturerbar:false,kommentar:komm,
     ansatt_id:user.id,ansatt_epost:user.email,
