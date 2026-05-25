@@ -635,28 +635,32 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div id="side-planlegger" style="display:none;">
     <div class="planlegger-toolbar">
       <div style="position:relative;display:inline-flex;align-items:center;flex-shrink:0;">
-        <input type="text" id="pl-avdeling" list="pl-avdeling-list"
-          placeholder="Avdeling (ansatt)" autocomplete="off"
-          oninput="plToggleX('pl-avd-x',this);lastPlanlegger()" style="width:160px;padding-right:24px;">
-        <button id="pl-avd-x" onclick="plKlearInput('pl-avdeling','pl-avd-x',lastPlanlegger)"
-          style="display:none;position:absolute;right:5px;background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;line-height:1;padding:0;" title="Nullstill">×</button>
-      </div>
-      <datalist id="pl-avdeling-list">
-        <option>Stab</option><option>Agder</option><option>Bergen</option>
-        <option>Møre og Romsdal</option><option>Sandnes</option><option>Trondheim</option>
-        <option>Østlandet</option><option>Nord Norge</option><option>Oslo</option>
-      </datalist>
-      <div style="position:relative;display:inline-flex;align-items:center;flex-shrink:0;">
         <input type="text" id="pl-ordre-avd" list="pl-ordre-avd-list"
-          placeholder="Avdeling (ordre)" autocomplete="off"
-          oninput="plToggleX('pl-ordre-avd-x',this);filterOgRenderPlanlegger()" style="width:150px;padding-right:24px;">
-        <button id="pl-ordre-avd-x" onclick="plKlearInput('pl-ordre-avd','pl-ordre-avd-x',filterOgRenderPlanlegger)"
+          placeholder="Avdeling" autocomplete="off"
+          oninput="plToggleX('pl-ordre-avd-x',this);lastPlanlegger()" style="width:150px;padding-right:24px;">
+        <button id="pl-ordre-avd-x" onclick="plKlearInput('pl-ordre-avd','pl-ordre-avd-x',lastPlanlegger)"
           style="display:none;position:absolute;right:5px;background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;line-height:1;padding:0;" title="Nullstill">×</button>
       </div>
       <datalist id="pl-ordre-avd-list">
         <option>Agder</option><option>Bergen</option><option>Møre og Romsdal</option>
         <option>Nord Norge</option><option>Oslo</option><option>Østlandet</option>
         <option>Sandnes</option><option>Stab</option><option>Trondheim</option>
+      </datalist>
+      <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;white-space:nowrap;color:#fff;opacity:0.85;">
+        <input type="checkbox" id="pl-innlant" onchange="plToggleInnlant()">
+        Innlånte teknikere
+      </label>
+      <div id="pl-innlant-avd-wrap" style="display:none;position:relative;align-items:center;">
+        <input type="text" id="pl-innlant-avd" list="pl-innlant-avd-list"
+          placeholder="Fra avdeling" autocomplete="off"
+          oninput="plToggleX('pl-innlant-avd-x',this);lastPlanlegger()" style="width:140px;padding-right:24px;">
+        <button id="pl-innlant-avd-x" onclick="plKlearInput('pl-innlant-avd','pl-innlant-avd-x',lastPlanlegger)"
+          style="display:none;position:absolute;right:5px;background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;line-height:1;padding:0;" title="Nullstill">×</button>
+      </div>
+      <datalist id="pl-innlant-avd-list">
+        <option>Stab</option><option>Agder</option><option>Bergen</option>
+        <option>Møre og Romsdal</option><option>Sandnes</option><option>Trondheim</option>
+        <option>Østlandet</option><option>Nord Norge</option><option>Oslo</option>
       </datalist>
       <input type="search" id="pl-sok" placeholder="Filtrer navn…" oninput="filterPlanlegger()" style="width:130px;">
       <input type="search" id="pl-ordre-sok" placeholder="Søk ordre/kunde…" oninput="filterOgRenderPlanlegger()" style="width:150px;">
@@ -1335,31 +1339,43 @@ let allePlanleggerTeknikere = [];
 let allePlanleggerOrdrer = [];
 let allePlanleggerTildelinger = [];
 
+function plToggleInnlant() {
+  const cb   = document.getElementById('pl-innlant');
+  const wrap = document.getElementById('pl-innlant-avd-wrap');
+  if (!wrap) return;
+  wrap.style.display = cb.checked ? 'inline-flex' : 'none';
+  if (!cb.checked) {
+    document.getElementById('pl-innlant-avd').value = '';
+    document.getElementById('pl-innlant-avd-x').style.display = 'none';
+    lastPlanlegger();
+  }
+}
+
 async function lastPlanlegger() {
-  const avdNavn = document.getElementById('pl-avdeling').value.trim();
-  const avdKode = PO_DEPT_MAP[avdNavn] || '';
+  const avdNavn    = document.getElementById('pl-ordre-avd').value.trim();
+  const avdKode    = PO_DEPT_MAP[avdNavn] || '';
+  const innlantCb  = document.getElementById('pl-innlant');
+  const innlantAvd = innlantCb?.checked ? (document.getElementById('pl-innlant-avd')?.value.trim() || '') : '';
+  const innlantKode = (innlantAvd && innlantAvd !== avdNavn) ? (PO_DEPT_MAP[innlantAvd] || '') : '';
   const { fra, til } = slicerFraTil('pl');
   const board = document.getElementById('planlegger-board');
   board.innerHTML = '<div class="loader"><div class="spinner"></div>Laster planlegger...</div>';
 
-  const teknikereQuery = avdKode
-    ? sb.from('po_ansatte')
-        .select('number, first_name, last_name, department_code')
-        .eq('is_archived', false)
-        .eq('department_code', avdKode)
-        .order('last_name')
+  const poQuery = (kode) => kode
+    ? sb.from('po_ansatte').select('number, first_name, last_name, department_code')
+        .eq('is_archived', false).eq('department_code', kode).order('last_name')
     : Promise.resolve({ data: [] });
 
-  const [teknikereRes, ordrer, tildelingerRes] = await Promise.all([
-    teknikereQuery,
+  const [primærRes, innlantRes, ordrer, tildelingerRes] = await Promise.all([
+    poQuery(avdKode),
+    poQuery(innlantKode),
     hentPlanleggerOrdrer(fra, til, null),
     sb.from('ordre_tildeling').select('order_number, employee_number')
   ]);
-  allePlanleggerTeknikere = (teknikereRes.data || []).map(r => ({
-    employee_number: String(r.number),
-    name: `${r.first_name} ${r.last_name}`,
-    dept: avdNavn
-  }));
+  allePlanleggerTeknikere = [
+    ...(primærRes.data  || []).map(r => ({ employee_number: String(r.number), name: `${r.first_name} ${r.last_name}`, dept: avdNavn })),
+    ...(innlantRes.data || []).map(r => ({ employee_number: String(r.number), name: `${r.first_name} ${r.last_name}`, dept: `${innlantAvd} (innlånt)` })),
+  ];
   allePlanleggerOrdrer = ordrer;
   allePlanleggerTildelinger = tildelingerRes.data || [];
   filterOgRenderPlanlegger();
@@ -1419,9 +1435,6 @@ function renderPlanlegger(teknikere, ordrer, tildelinger) {
     tildMap[t.order_number].add(String(t.employee_number));
   });
 
-  // Infoboks hvis ingen avdeling (ansatt) er valgt
-  const ingenTeknikere = teknikere.length === 0;
-
   // Bygg tekniker-kolonner med sine tildelte ordrer
   const tekKolonner = teknikere.map(t => ({
     id: t.employee_number, navn: t.name, dept: t.dept,
@@ -1465,12 +1478,7 @@ function renderPlanlegger(teknikere, ordrer, tildelinger) {
       </div>
     </div>`).join('');
 
-  const ingenTekHTML = ingenTeknikere
-    ? `<div style="display:flex;align-items:center;gap:8px;padding:14px 16px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;color:#92400e;font-size:0.85rem;align-self:flex-start;">
-        <span style="font-size:1rem;">ℹ️</span> Velg <strong>Avdeling (ansatt)</strong> for å se tekniker-kolonner
-       </div>`
-    : '';
-  board.innerHTML = poolHTML + ingenTekHTML + tekHTML;
+  board.innerHTML = poolHTML + tekHTML;
 
   // SortableJS: pool → klone (originalen forblir i pool)
   Sortable.create(board.querySelector('.pl-pool-liste'), {
