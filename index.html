@@ -645,19 +645,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <option>Sandnes</option><option>Stab</option><option>Trondheim</option>
       </datalist>
       <input type="search" id="pl-ordre-sok" placeholder="Søk ordre/kunde…" oninput="filterOgRenderPlanlegger()" style="width:150px;">
-    </div>
-    <div style="display:flex;align-items:flex-start;gap:12px;margin-top:4px;">
-      <div id="pl-dato-slicer" style="
-        min-width:148px;max-width:148px;flex-shrink:0;
-        background:#fff;border:1px solid #d1d5db;border-radius:10px;
-        max-height:400px;overflow-y:auto;
-        font-size:0.88rem;color:#111827;
-        box-shadow:0 1px 3px rgba(0,0,0,.07);
-        padding-bottom:6px;
-      "></div>
-      <div id="planlegger-board" class="planlegger-board" style="flex:1;min-width:0;">
-        <div style="padding:20px;opacity:0.5;">Velg en avdeling for å se planleggeren.</div>
+      <div id="pl-slicer-wrap" style="position:relative;">
+        <button id="pl-slicer-btn" onclick="plSlicerToggle(event)"
+          style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:#fff;border:1px solid rgba(255,255,255,0.25);border-radius:8px;color:#fff;font-size:0.88rem;cursor:pointer;white-space:nowrap;font-family:inherit;">
+          <span id="pl-slicer-label">Periode</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div id="pl-dato-slicer" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.13);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
       </div>
+    </div>
+    <div id="planlegger-board" class="planlegger-board">
+      <div style="padding:20px;opacity:0.5;">Velg en avdeling for å se planleggeren.</div>
     </div>
   </div>
 
@@ -1195,10 +1193,33 @@ let plSlicerUtvidetAar   = null;   // number | null
 let plSlicerUtvidetManed = null;   // "YYYY-MM" | null
 let plSlicerValg         = { aar: null, maned: null, dag: null };
 
+function plSlicerLabelTekst() {
+  const { aar, maned, dag } = plSlicerValg;
+  if (!aar) return 'Periode';
+  if (!maned) return `${aar}`;
+  const mn = PL_SLICER_MND[maned - 1];
+  if (!dag) return `${mn} ${aar}`;
+  return `${dag}. ${mn} ${aar}`;
+}
+function plSlicerToggle(e) {
+  e.stopPropagation();
+  const panel = document.getElementById('pl-dato-slicer');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('pl-slicer-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const panel = document.getElementById('pl-dato-slicer');
+    if (panel) panel.style.display = 'none';
+  }
+});
 function renderPlSlicer() {
   const c = document.getElementById('pl-dato-slicer');
   if (!c) return;
-  let h = '<div style="padding:6px 10px 4px;font-size:0.68rem;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;margin-bottom:4px;">Periode</div>';
+  const lbl = document.getElementById('pl-slicer-label');
+  if (lbl) lbl.textContent = plSlicerLabelTekst();
+  let h = '';
   for (const aar of PL_SLICER_AAR) {
     const utv  = plSlicerUtvidetAar === aar;
     const valgt = plSlicerValg.aar === aar && !plSlicerValg.maned;
@@ -1239,6 +1260,8 @@ function plSlicerToggleManed(aar, maned) {
 }
 function plSlicerVelg(aar, maned, dag) {
   plSlicerValg = { aar, maned, dag };
+  const panel = document.getElementById('pl-dato-slicer');
+  if (panel) panel.style.display = 'none';
   renderPlSlicer();
   lastPlanlegger();
 }
