@@ -744,18 +744,30 @@ let brukerProdsysId = null;   // Prodsys ID — brukes til ordre-tildeling
 let brukerPONummer   = null;   // PowerOffice ID — brukes til planlegger-kolonner
 let brukerAvdelingKode = null;
 
+// Aktiviteter fra PowerOffice (Aktiviteter.csv)
+// type: 'Fakturerbart' | 'Ikke fakturerbar' | 'Intern'
+// po_timeart: timeart-felt i PowerOffice ('Ordinær tid' | 'Standard fra ansatt')
 const AKTIVITETER = [
-  { kode:119, navn:'Administrativt arbeid',    fakturerbar:true  },
-  { kode:112, navn:'Driftsstans',              fakturerbar:true  },
-  { kode:108, navn:'Ekstraarbeider',           fakturerbar:true  },
-  { kode:113, navn:'Feilsøking',              fakturerbar:true  },
-  { kode:106, navn:'Montasje',                 fakturerbar:true  },
-  { kode:115, navn:'Opplæring',               fakturerbar:false },
-  { kode:107, navn:'Utbedringer',              fakturerbar:true  },
-  { kode:109, navn:'Venting',                  fakturerbar:true  },
-  { kode:114, navn:'Årskontroll annet',        fakturerbar:true  },
-  { kode:110, navn:'Årskontroll kraner',       fakturerbar:true  },
-  { kode:111, navn:'Årskontroll løfteutstyr', fakturerbar:true  },
+  // ── Fakturerbare ────────────────────────────────────────────────────────
+  { kode:119, navn:'Administrativt arbeid',           type:'Fakturerbart',     fakturerbar:true,  po_timeart:'Ordinær tid'          },
+  { kode:112, navn:'Driftsstans',                     type:'Fakturerbart',     fakturerbar:true,  po_timeart:'Ordinær tid'          },
+  { kode:108, navn:'Ekstraarbeider',                  type:'Fakturerbart',     fakturerbar:true,  po_timeart:'Ordinær tid'          },
+  { kode:113, navn:'Feilsøking',                      type:'Fakturerbart',     fakturerbar:true,  po_timeart:'Ordinær tid'          },
+  { kode:106, navn:'Montasje',                        type:'Fakturerbart',     fakturerbar:true,  po_timeart:'Ordinær tid'          },
+  { kode:107, navn:'Utbedringer',                     type:'Fakturerbart',     fakturerbar:true,  po_timeart:'Ordinær tid'          },
+  { kode:109, navn:'Venting',                         type:'Fakturerbart',     fakturerbar:true,  po_timeart:'Ordinær tid'          },
+  { kode:114, navn:'Årskontroll annet',               type:'Fakturerbart',     fakturerbar:true,  po_timeart:'Ordinær tid'          },
+  { kode:110, navn:'Årskontroll kraner',              type:'Fakturerbart',     fakturerbar:true,  po_timeart:'Ordinær tid'          },
+  { kode:111, navn:'Årskontroll løfteutstyr',         type:'Fakturerbart',     fakturerbar:true,  po_timeart:'Ordinær tid'          },
+  // ── Ikke fakturerbar ────────────────────────────────────────────────────
+  { kode:115, navn:'Opplæring',                       type:'Ikke fakturerbar', fakturerbar:false, po_timeart:'Ordinær tid'          },
+  // ── Intern ──────────────────────────────────────────────────────────────
+  { kode:104, navn:'AMU og Vernetjenesten',           type:'Intern',           fakturerbar:false, po_timeart:'Standard fra ansatt'  },
+  { kode:116, navn:'Hjemmekontor',                    type:'Intern',           fakturerbar:false, po_timeart:'Ordinær tid'          },
+  { kode:118, navn:'Salgsarbeid',                     type:'Intern',           fakturerbar:false, po_timeart:'Standard fra ansatt'  },
+  { kode:120, navn:'Stab',                            type:'Intern',           fakturerbar:false, po_timeart:'Standard fra ansatt'  },
+  { kode:802, navn:'Ufakturerbare timer',             type:'Intern',           fakturerbar:false, po_timeart:'Standard fra ansatt'  },
+  { kode:804, navn:'Renhold (kun renholdspersonell)', type:'Intern',           fakturerbar:false, po_timeart:'Ordinær tid'          },
 ];
 
 // Lønnsart-koder (PowerOffice): 120=Ordinær tid, 170=Overtid 50%, 175=Overtid 100%
@@ -764,6 +776,14 @@ const LONNSART_MAP = {
   'Overtid 50%':  170,
   'Overtid 100%': 175,
 };
+
+// Hjelpefunksjon: generer <option>-liste filtrert på aktivitetstype
+function aktivitetOptions(typer, prefillKode=null){
+  return AKTIVITETER
+    .filter(a=>typer.includes(a.type))
+    .map(a=>`<option value="${a.kode}" ${prefillKode!=null&&a.kode==prefillKode?'selected':''}>${a.navn}</option>`)
+    .join('');
+}
 
 // ── AUTH ──────────────────────────────────────────────────────────────────
 
@@ -1465,7 +1485,7 @@ function visTimerForm(prefill=null){
   redigeringsId=prefill?prefill.id:null;
   const idag=new Date().toISOString().split('T')[0];
   const dato=prefill?prefill.dato:idag;
-  const aktOpt=AKTIVITETER.map(a=>`<option value="${a.kode}" ${prefill&&prefill.aktivitet_kode==a.kode?'selected':''}>${a.navn}</option>`).join('');
+  const aktOpt=aktivitetOptions(['Fakturerbart','Ikke fakturerbar'], prefill?.aktivitet_kode);
   document.getElementById('timer-form-wrap').innerHTML=`
     <div class="timer-form">
       <h3>${redigeringsId?'Rediger timer':'Registrer timer'}</h3>
@@ -1787,7 +1807,7 @@ function visOrdretimerDag(dato, ordretimer){
 async function redigerOrdretimeDag(id){
   const{data:t}=await sb.from('timeregistrering').select('*').eq('id',id).single();
   if(!t)return;
-  const aktOpt=AKTIVITETER.map(a=>`<option value="${a.kode}" ${a.kode==t.aktivitet_kode?'selected':''}>${a.navn}</option>`).join('');
+  const aktOpt=aktivitetOptions(['Fakturerbart','Ikke fakturerbar'], t.aktivitet_kode);
   const wrap=document.getElementById('dag-ordretimer-form-wrap');
   wrap.innerHTML=`
     <div class="timer-form" style="margin-top:14px;">
@@ -1832,7 +1852,7 @@ async function lagreOrdretimeDag(id){
 
 function visInternTidListe(dato,intern){
   const wrap=document.getElementById('intern-tid-wrap');
-  const aktOpt=AKTIVITETER.map(a=>`<option value="${a.kode}">${a.navn}</option>`).join('');
+  const aktOpt=aktivitetOptions(['Intern']);
   let html=`<div class="intern-seksjon">
     <div class="intern-header">
       <div class="intern-tittel">🕐 Intern tid</div>
@@ -1867,9 +1887,7 @@ function visInternTidListe(dato,intern){
 
 function visInternTidForm(prefill=null){
   redigeringsInternId=prefill?prefill.id:null;
-  const aktOpt=AKTIVITETER.map(a=>
-    `<option value="${a.kode}" ${prefill&&prefill.aktivitet_kode==a.kode?'selected':''}>${a.navn}</option>`
-  ).join('');
+  const aktOpt=aktivitetOptions(['Intern'], prefill?.aktivitet_kode);
   document.getElementById('intern-form-wrap').innerHTML=`
     <div class="timer-form" style="margin-bottom:14px;">
       <h3>${redigeringsInternId?'Rediger intern tid':'Legg til intern tid'}</h3>
