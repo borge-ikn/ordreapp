@@ -339,7 +339,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   display:flex; flex-direction:column; }
 .maned-kal-celle:hover:not(.tom):not(.helg) { box-shadow:0 3px 10px rgba(0,0,0,.12); transform:translateY(-1px); }
 .maned-kal-celle.tom { background:transparent; pointer-events:none; }
-.maned-kal-celle.helg { opacity:0.35; cursor:default; }
+.maned-kal-celle.helg { opacity:0.35; cursor:pointer; }
 .maned-kal-dag-nr { font-size:0.75rem; font-weight:700; color:var(--muted); }
 .maned-kal-timer { font-size:1rem; font-weight:700; margin-top:auto; padding-top:4px; }
 .maned-kal-celle.maned-full    { border-left:3px solid #10b981; }
@@ -353,7 +353,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   display:flex; flex-direction:column; gap:4px; }
 .gk-kal-celle:hover:not(.tom):not(.helg) { box-shadow:0 3px 10px rgba(0,0,0,.12); }
 .gk-kal-celle.tom  { background:transparent; pointer-events:none; }
-.gk-kal-celle.helg { opacity:0.3; cursor:default; }
+.gk-kal-celle.helg { opacity:0.3; cursor:pointer; }
 .gk-kal-dots { display:flex; flex-wrap:wrap; gap:3px; margin-top:3px; }
 .gk-dot { width:22px; height:22px; border-radius:50%; font-size:0.6rem; font-weight:700;
   display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -2018,7 +2018,7 @@ function visManed(year,month,arbMap,timerMap){
     const d=new Date(dato+'T12:00:00');
     const erHelg=d.getDay()===0||d.getDay()===6||erNorskHelligdag(d);
     if(erHelg){
-      celler.push(`<div class="maned-kal-celle helg"><div class="maned-kal-dag-nr">${dag}</div></div>`);
+      celler.push(`<div class="maned-kal-celle helg" onclick="gaaTilDag('${dato}')"><div class="maned-kal-dag-nr">${dag}</div></div>`);
     } else {
       const t=arbMap[dato]||0;
       const farge=t>=ORDINAER_TIMER?'maned-full':t>0?'maned-delvis':'maned-mangler';
@@ -2852,7 +2852,7 @@ function visManedGodkjenner(year,month,arbData,gkMap={}){
     const d=new Date(dato+'T12:00:00');
     const erHelg=d.getDay()===0||d.getDay()===6||erNorskHelligdag(d);
     if(erHelg){
-      celler.push(`<div class="gk-kal-celle helg"><div class="maned-kal-dag-nr">${dag}</div></div>`);
+      celler.push(`<div class="gk-kal-celle helg" onclick="gaaTilGodkjennerDag('${dato}')"><div class="maned-kal-dag-nr">${dag}</div></div>`);
     } else {
       const reg=dagMap[dato]||[];
       const dots=reg.slice(0,8).map(r=>
