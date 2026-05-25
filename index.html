@@ -1981,7 +1981,7 @@ function byttMindagVisning(v){
 function byttMineManed(r){
   const[y,m]=gjeldendeMindagManed.split('-').map(Number);
   const d=new Date(y,m-1+r,1);
-  gjeldendeMindagManed=d.toISOString().slice(0,7);
+  gjeldendeMindagManed=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   lastManed();
 }
 async function lastManed(){
@@ -2796,7 +2796,7 @@ function byttGodkjennerVisning(v){
 function byttGodkjennerManed(r){
   const[y,m]=gjeldendeGodkjennerManed.split('-').map(Number);
   const d=new Date(y,m-1+r,1);
-  gjeldendeGodkjennerManed=d.toISOString().slice(0,7);
+  gjeldendeGodkjennerManed=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   lastManedGodkjenner();
 }
 async function lastManedGodkjenner(){
