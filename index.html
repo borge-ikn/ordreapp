@@ -2754,7 +2754,7 @@ function visGodkjennerAnsatt(a, dato, gkStatus){
   }
 
   // Handlingsknapper (alltid synlige — godkjenner kan omgjøre)
-  const aId=JSON.stringify(a.id), aEpost=JSON.stringify(a.epost), aDato=JSON.stringify(dato);
+  const aId=`'${a.id}'`, aEpost=`'${a.epost}'`, aDato=`'${dato}'`;
   const knapper=`<div style="display:flex;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap;">
     <button class="btn btn-primary btn-sm" onclick="godkjennDag(${aId},${aEpost},${aDato})">✓ Godkjenn dag</button>
     <button class="btn btn-danger btn-sm" onclick="visAvvisModal(${aId},${aEpost},${aDato})">✗ Avvis med kommentar</button>
