@@ -645,13 +645,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <option>Sandnes</option><option>Stab</option><option>Trondheim</option>
       </datalist>
       <input type="search" id="pl-ordre-sok" placeholder="Søk ordre/kunde…" oninput="filterOgRenderPlanlegger()" style="width:150px;">
-      <div id="pl-slicer-wrap" style="position:relative;">
+      <div id="pl-slicer-wrap">
         <button id="pl-slicer-btn" onclick="plSlicerToggle(event)"
-          style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:#fff;border:1px solid rgba(255,255,255,0.25);border-radius:8px;color:#fff;font-size:0.88rem;cursor:pointer;white-space:nowrap;font-family:inherit;">
+          style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.85rem;cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0;">
           <span id="pl-slicer-label">Periode</span>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <div id="pl-dato-slicer" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.13);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
       </div>
     </div>
     <div id="planlegger-board" class="planlegger-board">
@@ -1204,15 +1203,21 @@ function plSlicerLabelTekst() {
 function plSlicerToggle(e) {
   e.stopPropagation();
   const panel = document.getElementById('pl-dato-slicer');
-  if (!panel) return;
-  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  const btn   = document.getElementById('pl-slicer-btn');
+  if (!panel || !btn) return;
+  if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+  const r = btn.getBoundingClientRect();
+  panel.style.top  = (r.bottom + 4) + 'px';
+  panel.style.left = r.left + 'px';
+  panel.style.display = 'block';
 }
 document.addEventListener('click', function(e) {
-  const wrap = document.getElementById('pl-slicer-wrap');
-  if (wrap && !wrap.contains(e.target)) {
-    const panel = document.getElementById('pl-dato-slicer');
-    if (panel) panel.style.display = 'none';
-  }
+  const wrap  = document.getElementById('pl-slicer-wrap');
+  const panel = document.getElementById('pl-dato-slicer');
+  if (!panel || panel.style.display === 'none') return;
+  if (wrap && wrap.contains(e.target)) return;
+  if (panel.contains(e.target)) return;
+  panel.style.display = 'none';
 });
 function renderPlSlicer() {
   const c = document.getElementById('pl-dato-slicer');
@@ -2836,5 +2841,6 @@ async function sendOrdre(e){
   finally{btn.disabled=false;btn.textContent='Opprett ordre';}
 }
 </script>
+<div id="pl-dato-slicer" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
 </body>
 </html>
