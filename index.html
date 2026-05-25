@@ -554,11 +554,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <div class="form-group full"><label>Notat</label><textarea id="f-note"></textarea></div>
         </div>
       </div>
-      <div class="form-section">
-        <h2>Ordrelinjer</h2>
-        <div id="ordrelinjer"></div>
-        <button type="button" class="add-line-btn" onclick="leggTilOrdrelinje()">＋ Legg til ordrelinje</button>
-      </div>
+
       <div style="display:flex;gap:12px;justify-content:flex-end;padding-bottom:40px;">
         <button type="button" class="btn btn-secondary" onclick="nullstillSkjema()">Nullstill</button>
         <button type="submit" class="btn btn-gold" id="send-btn">Opprett ordre</button>
@@ -817,7 +813,6 @@ sb.auth.onAuthStateChange(async (event, session) => {
     document.getElementById('bruker-epost').textContent = session.user.email;
     hentFilterverdier();
     hentOrdrer(0);
-    leggTilOrdrelinje();
     settDagTilDag(new Date());
     lastBrukerRolle(); // fire-and-forget, viser godkjenner-fane når klar
   } else {
@@ -2468,9 +2463,7 @@ function nullstillSkjema(){
   document.getElementById('ny-ordre-form').reset();
   document.getElementById('f-customerId').value='';
   document.getElementById('f-kundenavn-vis').textContent='';
-  document.getElementById('ordrelinjer').innerHTML='';
   if(brukerProdsysId) document.getElementById('f-employeeResponsibleId').value=brukerProdsysId;
-  linjeNr=0;leggTilOrdrelinje();
 }
 function samlLinjer(){
   return[...document.querySelectorAll('.orderline')].map(el=>{
@@ -2510,7 +2503,7 @@ async function sendOrdre(e){
     customerReferenceNumber:document.getElementById('f-customerReferenceNumber').value||null,
     employeeResponsibleId:empId,
     note:document.getElementById('f-note').value||null,
-    orderLines:samlLinjer()
+    orderLines:[]
   };
   // Ta vare på visningsnavn før skjema nullstilles
   const kundenavn = document.getElementById('f-kundesok').value;
