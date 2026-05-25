@@ -2018,7 +2018,10 @@ function visManed(year,month,arbMap,timerMap){
     const d=new Date(dato+'T12:00:00');
     const erHelg=d.getDay()===0||d.getDay()===6||erNorskHelligdag(d);
     if(erHelg){
-      celler.push(`<div class="maned-kal-celle helg" onclick="gaaTilDag('${dato}')"><div class="maned-kal-dag-nr">${dag}</div></div>`);
+      const th=timerMap[dato]||0;
+      const helgEkstra=th>0?' maned-full':'';
+      const helgTimer=th>0?`<div class="maned-kal-timer">${fmtTimer(th)}</div>`:'';
+      celler.push(`<div class="maned-kal-celle helg${helgEkstra}" onclick="gaaTilDag('${dato}')"><div class="maned-kal-dag-nr">${dag}</div>${helgTimer}</div>`);
     } else {
       const t=arbMap[dato]||0;
       const farge=t>=ORDINAER_TIMER?'maned-full':t>0?'maned-delvis':'maned-mangler';
