@@ -1202,7 +1202,6 @@ async function lastPlanlegger() {
     return;
   }
   board.innerHTML = '<div class="loader"><div class="spinner"></div>Laster planlegger...</div>';
-  const avdNavn = PO_DEPT_NAMES[avdKode] || '';
   const [teknikereRes, ordrer, tildelingerRes] = await Promise.all([
     sb.from('po_ansatte')
       .select('number, first_name, last_name, department_code')
