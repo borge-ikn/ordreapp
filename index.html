@@ -1359,22 +1359,18 @@ async function lastPlanlegger() {
   const innlantKode = (innlantAvd && innlantAvd !== avdNavn) ? (PO_DEPT_MAP[innlantAvd] || '') : '';
   const { fra, til } = slicerFraTil('pl');
   const board = document.getElementById('planlegger-board');
-  board.innerHTML = '<div class="loader"><div class="spinner"></div>Laster planlegger...</div>';
+  const harData = allePlanleggerOrdrer.length > 0;
+  if (!harData) board.innerHTML = '<div class="loader"><div class="spinner"></div>Laster planlegger...</div>';
 
-  const poQuery = (kode) => kode
-    ? sb.from('po_ansatte').select('number, first_name, last_name, department_code')
-        .eq('is_archived', false).eq('department_code', kode).order('last_name')
-    : Promise.resolve({ data: [] });
-
-  const [primærRes, innlantRes, ordrer, tildelingerRes] = await Promise.all([
-    poQuery(avdKode),
-    poQuery(innlantKode),
+  const [primær, innlant, ordrer, tildelingerRes] = await Promise.all([
+    avdKode    ? hentPoAnsatte({ department_code: avdKode })    : Promise.resolve([]),
+    innlantKode? hentPoAnsatte({ department_code: innlantKode }) : Promise.resolve([]),
     hentPlanleggerOrdrer(fra, til, null),
     sb.from('ordre_tildeling').select('order_number, employee_number')
   ]);
   allePlanleggerTeknikere = [
-    ...(primærRes.data  || []).map(r => ({ employee_number: String(r.number), name: `${r.first_name} ${r.last_name}`, dept: avdNavn })),
-    ...(innlantRes.data || []).map(r => ({ employee_number: String(r.number), name: `${r.first_name} ${r.last_name}`, dept: `${innlantAvd} (innleid)` })),
+    ...primær.map(r => ({ employee_number: String(r.number), name: `${r.first_name} ${r.last_name}`, dept: avdNavn })),
+    ...innlant.map(r => ({ employee_number: String(r.number), name: `${r.first_name} ${r.last_name}`, dept: `${innlantAvd} (innleid)` })),
   ];
   allePlanleggerOrdrer = ordrer;
   allePlanleggerTildelinger = tildelingerRes.data || [];
@@ -1406,7 +1402,28 @@ function filterOgRenderPlanlegger() {
   renderPlanlegger(allePlanleggerTeknikere, filtrerte, allePlanleggerTildelinger);
 }
 
+const _ordreCache   = {};
+const _ansattCache  = {};
+const ORDRE_CACHE_TTL  = 5 * 60 * 1000;   // 5 minutter
+const ANSATT_CACHE_TTL = 15 * 60 * 1000;  // 15 minutter
+
+async function hentPoAnsatte(filter = {}) {
+  const key = JSON.stringify(filter);
+  const c = _ansattCache[key];
+  if (c && Date.now() - c.ts < ANSATT_CACHE_TTL) return c.data;
+  let q = sb.from('po_ansatte').select('number,first_name,last_name,department_code').eq('is_archived', false).order('last_name');
+  if (filter.department_code) q = q.eq('department_code', filter.department_code);
+  const { data } = await q;
+  const result = data || [];
+  _ansattCache[key] = { ts: Date.now(), data: result };
+  return result;
+}
+
 async function hentPlanleggerOrdrer(fra, til, avdNavn) {
+  const cacheKey = `${fra}|${til}|${avdNavn||''}`;
+  const cached = _ordreCache[cacheKey];
+  if (cached && Date.now() - cached.ts < ORDRE_CACHE_TTL) return cached.data;
+
   const parts = [["categoryId","=","Ordre"]];
   if (avdNavn) parts.push("and", ["departmentName","=",avdNavn]);
   if (fra) parts.push("and", ["deliveryDate",">=",fra]);
@@ -1422,7 +1439,9 @@ async function hentPlanleggerOrdrer(fra, til, avdNavn) {
     const wrapper = await resp.json().catch(()=>({}));
     const raw = wrapper.data || wrapper;
     const arr = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
-    return arr.map(mapProdsysOrdre);
+    const data = arr.map(mapProdsysOrdre);
+    _ordreCache[cacheKey] = { ts: Date.now(), data };
+    return data;
   } catch(e) { return []; }
 }
 
@@ -2415,14 +2434,14 @@ let alleOversiktTildelinger = [];
 async function lastOversikt() {
   const { fra, til } = slicerFraTil('ov');
   const board = document.getElementById('oversikt-board');
-  board.innerHTML = '<div class="loader"><div class="spinner"></div>Laster oversikt...</div>';
-  const [tekRes, ordrer, tildRes] = await Promise.all([
-    sb.from('po_ansatte').select('number,first_name,last_name')
-      .eq('is_archived', false).order('last_name'),
+  const harOvData = alleOversiktOrdrer.length > 0;
+  if (!harOvData) board.innerHTML = '<div class="loader"><div class="spinner"></div>Laster oversikt...</div>';
+  const [teknikere, ordrer, tildRes] = await Promise.all([
+    hentPoAnsatte({}),
     hentPlanleggerOrdrer(fra, til, null),
     sb.from('ordre_tildeling').select('order_number,employee_number')
   ]);
-  alleOversiktTeknikere   = (tekRes.data||[]).map(r => ({
+  alleOversiktTeknikere   = teknikere.map(r => ({
     employee_number: String(r.number), name: `${r.first_name} ${r.last_name}`
   }));
   alleOversiktOrdrer      = ordrer;
