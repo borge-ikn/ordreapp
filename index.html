@@ -2495,9 +2495,9 @@ async function forslagsArbeidsdag(){
     .eq('dato',dato).eq('ansatt_id',uid).not('order_number','is',null);
   const sumOrdre=(data||[]).reduce((s,t)=>s+Number(t.timer),0);
   if(sumOrdre===0){toast('Ingen ordretimer registrert for denne dagen','warning');return;}
-  const netto=Math.max(ORDINAER_TIMER,sumOrdre);
-  const pause=30;
-  const fraMin=7*60+30;
+  const netto=sumOrdre>=ORDINAER_TIMER?sumOrdre:ORDINAER_TIMER;
+  const pause=netto>=ORDINAER_TIMER?30:0;
+  const fraMin=7*60;
   const tilMin=fraMin+netto*60+pause;
   const tilH=Math.floor(tilMin/60),tilM=Math.round(tilMin%60);
   const til=String(tilH).padStart(2,'0')+':'+String(tilM).padStart(2,'0');
