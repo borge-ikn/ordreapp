@@ -674,7 +674,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
   <div id="side-oversikt" style="display:none;">
     <div class="planlegger-toolbar">
-      <select id="ov-tildelt" onchange="filterOgRenderOversikt()" style="min-width:150px;">
+      <select id="ov-tildelt" onchange="filterOgRenderOversikt()" style="width:150px;">
         <option value="">Alle ordrer</option>
         <option value="tildelt">Tildelt</option>
         <option value="ikke_tildelt">Ikke tildelt</option>
@@ -691,24 +691,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <option value="9">Nord Norge</option>
         <option value="12">Oslo</option>
       </select>
-      <div style="width:1px;background:rgba(255,255,255,0.12);align-self:stretch;margin:0 4px;"></div>
-      <select id="ov-ordre-avd" onchange="filterOgRenderOversikt()" style="min-width:130px;">
+      <select id="ov-ordre-avd" onchange="filterOgRenderOversikt()" style="width:150px;">
         <option value="">Avdeling (ordre)</option>
         <option>Agder</option><option>Bergen</option><option>Møre og Romsdal</option>
         <option>Nord Norge</option><option>Oslo</option><option>Østlandet</option>
         <option>Sandnes</option><option>Stab</option><option>Trondheim</option>
       </select>
-      <select id="ov-gruppe" onchange="filterOgRenderOversikt()" style="min-width:150px;">
+      <select id="ov-gruppe" onchange="filterOgRenderOversikt()" style="width:150px;">
         <option value="">Alle grupper</option>
       </select>
       <input type="search" id="ov-sok" placeholder="Søk ordre/kunde…" oninput="filterOgRenderOversikt()" style="width:150px;">
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-        <label style="font-size:0.82rem;">Fra</label>
-        <input type="date" id="ov-fra" onchange="lastOversikt()">
-        <label style="font-size:0.82rem;">Til</label>
-        <input type="date" id="ov-til" onchange="lastOversikt()">
-        <button class="btn btn-secondary" onclick="lastOversikt()">Oppdater</button>
-      </div>
+      <input type="date" id="ov-fra" onchange="lastOversikt()">
+      <input type="date" id="ov-til" onchange="lastOversikt()">
     </div>
     <div id="oversikt-board" style="padding:0 16px;">
       <div style="padding:20px;opacity:0.5;">Velg en avdeling for å se oversikten.</div>
