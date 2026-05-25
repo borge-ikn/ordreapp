@@ -963,7 +963,14 @@ function byttFane(fane) {
   if (fane === 'planlegger' && !planleggerInitiert) {
     planleggerInitiert = true;
     plSlicerInit();
-    if (brukerAvdelingKode) document.getElementById('pl-avdeling').value = PO_DEPT_NAMES[brukerAvdelingKode] || '';
+    if (brukerAvdelingKode) {
+      const avdNavn = PO_DEPT_NAMES[brukerAvdelingKode] || '';
+      const el = document.getElementById('pl-ordre-avd');
+      if (el && avdNavn) {
+        el.value = avdNavn;
+        plToggleX('pl-ordre-avd-x', el);
+      }
+    }
   }
   if (fane === 'planlegger') lastPlanlegger();
   if (fane === 'oversikt' && !oversiktInitiert) {
