@@ -361,6 +361,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .gk-dot.gk-delvis   { background:#fef3c7; color:#92400e; }
 .gk-dot.gk-godkjent { background:var(--green); color:#fff; }
 .gk-dot.gk-avvist   { background:var(--red);   color:#fff; }
+.gk-dot.gk-ventende { background:#f59e0b;       color:#fff; }
 .gk-kal-mer { font-size:0.65rem; opacity:.55; align-self:center; }
 @media (max-width:600px) {
   .maned-kal-celle, .gk-kal-celle { min-height:54px; padding:5px 6px; }
@@ -617,11 +618,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <button id="gk-view-dag"   class="dag-view-btn active" onclick="byttGodkjennerVisning('dag')">📅 Dag</button>
         <button id="gk-view-maned" class="dag-view-btn"        onclick="byttGodkjennerVisning('maned')">📆 Måned</button>
       </div>
-      <div id="gk-dag-nav" style="display:flex;align-items:center;gap:10px;">
+      <div id="gk-dag-nav" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <button class="dag-nav-btn" onclick="byttGodkjennerDag(-1)">←</button>
         <input type="date" class="dag-dato-input" id="gk-dato" onchange="lastGodkjenner()">
         <button class="dag-nav-btn" onclick="byttGodkjennerDag(1)">→</button>
         <button class="btn btn-secondary" onclick="settGodkjennerDagTilDag(new Date())">I dag</button>
+        <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;white-space:nowrap;color:var(--text);">
+          <input type="checkbox" id="gk-filter-ventende" onchange="lastGodkjenner()">
+          Vis kun ubehandlede
+        </label>
       </div>
       <div id="gk-maned-nav" class="dag-maned-nav">
         <button class="dag-nav-btn" onclick="byttGodkjennerManed(-1)">←</button>
@@ -751,6 +756,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="confirm-actions" style="margin-top:16px;">
       <button class="btn btn-secondary" onclick="lukkAvvisModal()">Avbryt</button>
       <button class="btn btn-danger" onclick="utforAvvis()">Avvis dag</button>
+    </div>
+  </div>
+</div>
+
+<!-- OVERTIDSSPLITT -->
+<div class="confirm-overlay" id="split-overlay" style="display:none;">
+  <div class="confirm-box" style="max-width:480px;text-align:left;">
+    <div class="confirm-ikon" style="text-align:center;">⚖️</div>
+    <div class="confirm-tittel" style="text-align:center;">Fordel timer mellom lønnssatser</div>
+    <p id="split-info-tekst" style="font-size:.85rem;color:var(--muted);margin-bottom:16px;text-align:center;"></p>
+    <div id="split-segmenter-wrap" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <div id="split-sum-vis" style="font-size:.85rem;text-align:right;margin-top:8px;color:var(--muted);"></div>
+    <div id="split-feil" style="font-size:.82rem;color:var(--red);min-height:18px;margin-top:4px;"></div>
+    <div class="confirm-actions" style="margin-top:16px;">
+      <button class="btn btn-secondary" onclick="lukkSplitModal()">Avbryt</button>
+      <button class="btn btn-gold" onclick="utforSplit()">Lagre poster</button>
     </div>
   </div>
 </div>
@@ -948,6 +969,11 @@ let gjeldendeMindagVisning      = 'dag';
 let gjeldendeMindagManed        = new Date().toISOString().slice(0,7);
 let gjeldendeGodkjennerVisning  = 'dag';
 let gjeldendeGodkjennerManed    = new Date().toISOString().slice(0,7);
+let gjeldendeGodkjenningStatus  = null; // 'godkjent'|'avvist'|'ikke_behandlet'|null
+let _splitBaseRad  = null;  // Fellesfelt (ordre, aktivitet, kommentar, ansatt…)
+let _splitTotal    = 0;     // Originalt antall timer
+let _splitKontekst = null;  // 'timer' | 'ordretimeDag'
+let _splitEditId   = null;  // ID for rad som skal erstattes ved redigering
 function byttFane(fane) {
   ['sok','ny','mindag','godkjenner','dokumenter','planlegger','oversikt'].forEach(f => {
     const el = document.getElementById('side-'+f);
@@ -1078,6 +1104,147 @@ async function beregnTimeart(dato, ansattId, excludeId=null){
   if(startPos>=ORDINAER_TIMER+OT50_MAX) return 'Overtid 100%';
   if(startPos>=ORDINAER_TIMER) return 'Overtid 50%';
   return 'Ordinær tid';
+}
+
+// ── OVERTIDSSPLITTING ─────────────────────────────────────────────────────
+
+// Beregner hvordan newTimer-timer skal fordeles mellom timeart-grenser.
+// Returnerer array [{timer, timeart}, ...] — alltid minst ett element.
+async function beregnSplit(dato, ansattId, newTimer, excludeId=null){
+  let q=sb.from('timeregistrering').select('timer').eq('dato',dato).eq('ansatt_id',ansattId);
+  if(excludeId) q=q.neq('id',excludeId);
+  const{data}=await q;
+  const startPos=(data||[]).reduce((s,t)=>s+Number(t.timer),0);
+  // Helg/helligdag → alltid OT100
+  const{data:arbPer}=await sb.from('arbeidsdag_logg')
+    .select('er_helg_helligdag').eq('dato',dato).eq('ansatt_id',ansattId).limit(1);
+  if(arbPer?.length&&arbPer[0].er_helg_helligdag)
+    return [{timer:newTimer,timeart:'Overtid 100%'}];
+  const segmenter=[];
+  let rem=newTimer,pos=startPos;
+  if(pos<ORDINAER_TIMER&&rem>0){
+    const amt=Math.min(rem,ORDINAER_TIMER-pos);
+    segmenter.push({timer:Math.round(amt*100)/100,timeart:'Ordinær tid'});
+    rem=Math.round((rem-amt)*100)/100; pos+=amt;
+  }
+  if(pos<ORDINAER_TIMER+OT50_MAX&&rem>0){
+    const amt=Math.min(rem,ORDINAER_TIMER+OT50_MAX-pos);
+    segmenter.push({timer:Math.round(amt*100)/100,timeart:'Overtid 50%'});
+    rem=Math.round((rem-amt)*100)/100; pos+=amt;
+  }
+  if(rem>0.001) segmenter.push({timer:Math.round(rem*100)/100,timeart:'Overtid 100%'});
+  return segmenter;
+}
+
+function visSplitModal(segmenter, baseRad, kontekst, editId=null){
+  _splitBaseRad=baseRad; _splitTotal=baseRad.timer;
+  _splitKontekst=kontekst; _splitEditId=editId;
+  document.getElementById('split-info-tekst').textContent=
+    `${fmtTimer(_splitTotal)} på ordre #${baseRad.order_number} spenner over en lønnsgrense. Juster fordelingen nedenfor.`;
+  document.getElementById('split-feil').textContent='';
+  renderSplitSegmenter(segmenter);
+  document.getElementById('split-overlay').style.display='flex';
+}
+
+function renderSplitSegmenter(segmenter){
+  const wrap=document.getElementById('split-segmenter-wrap');
+  const timeartOpts=['Ordinær tid','Overtid 50%','Overtid 100%'];
+  wrap.innerHTML=segmenter.map((s,i)=>`
+    <div style="display:grid;grid-template-columns:90px 1fr auto;align-items:center;gap:10px;background:var(--bg);border-radius:8px;padding:10px 12px;">
+      <input type="number" class="split-timer-input" data-idx="${i}"
+        value="${s.timer}" min="0.25" max="24" step="0.25"
+        oninput="oppdaterSplitSum()"
+        style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.9rem;font-family:inherit;">
+      <select class="split-timeart-select" data-idx="${i}"
+        onchange="oppdaterSplitSum()"
+        style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.85rem;font-family:inherit;background:var(--surface);">
+        ${timeartOpts.map(ta=>`<option value="${ta}" ${ta===s.timeart?'selected':''}>${ta}</option>`).join('')}
+      </select>
+      <span class="split-lonnsart-badge" data-idx="${i}"
+        style="font-size:.75rem;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:20px;white-space:nowrap;">
+        Lønnsart ${LONNSART_MAP[s.timeart]??120}
+      </span>
+    </div>`).join('');
+  oppdaterSplitSum();
+}
+
+function oppdaterSplitSum(){
+  const timerInputs=[...document.querySelectorAll('.split-timer-input')];
+  const timeartSelects=[...document.querySelectorAll('.split-timeart-select')];
+  const lonnsBadges=[...document.querySelectorAll('.split-lonnsart-badge')];
+  // Oppdater lønnsart-badges
+  timeartSelects.forEach((sel,i)=>{
+    const la=LONNSART_MAP[sel.value]??120;
+    if(lonnsBadges[i]) lonnsBadges[i].textContent=`Lønnsart ${la}`;
+  });
+  // Sjekk sum
+  const sum=timerInputs.reduce((s,inp)=>s+parseFloat(inp.value||0),0);
+  const roundSum=Math.round(sum*100)/100;
+  const vis=document.getElementById('split-sum-vis');
+  const diff=Math.abs(roundSum-_splitTotal);
+  if(vis){
+    vis.textContent=`Totalt: ${fmtTimer(roundSum)} (av ${fmtTimer(_splitTotal)})`;
+    vis.style.color=diff>0.01?'var(--red)':'var(--green)';
+  }
+}
+
+function lukkSplitModal(){
+  document.getElementById('split-overlay').style.display='none';
+  _splitBaseRad=null; _splitEditId=null; _splitKontekst=null; _splitTotal=0;
+}
+
+async function utforSplit(){
+  const timerInputs=[...document.querySelectorAll('.split-timer-input')];
+  const timeartSelects=[...document.querySelectorAll('.split-timeart-select')];
+  const segmenter=timerInputs.map((inp,i)=>({
+    timer:Math.round(parseFloat(inp.value||0)*100)/100,
+    timeart:timeartSelects[i]?.value||'Ordinær tid'
+  }));
+  // Validering
+  const sum=Math.round(segmenter.reduce((s,sg)=>s+sg.timer,0)*100)/100;
+  const feilEl=document.getElementById('split-feil');
+  if(Math.abs(sum-_splitTotal)>0.01){
+    feilEl.textContent=`Summen (${fmtTimer(sum)}) må være lik originalt antall timer (${fmtTimer(_splitTotal)}).`;
+    return;
+  }
+  if(segmenter.some(sg=>sg.timer<0.25)){
+    feilEl.textContent='Alle poster må ha minst 0,25 timer.';
+    return;
+  }
+  feilEl.textContent='';
+  // Slett gammel rad hvis redigering
+  if(_splitEditId){
+    const{error:delErr}=await sb.from('timeregistrering').delete().eq('id',_splitEditId);
+    if(delErr){toast('Feil ved sletting: '+delErr.message,'error');return;}
+  }
+  // Bygg og sett inn nye rader
+  const rader=segmenter.map(sg=>({
+    ..._splitBaseRad,
+    timer:sg.timer,timeart:sg.timeart,
+    lonnsart:LONNSART_MAP[sg.timeart]??120,
+    oppdatert_at:new Date().toISOString()
+  }));
+  // Fjern intern 'timer'-felt (er allerede satt per segment) og editId
+  rader.forEach(r=>{delete r.editId;});
+  const{error}=await sb.from('timeregistrering').insert(rader);
+  if(error){toast('Feil: '+error.message,'error');return;}
+  toast(`Timer lagret (${rader.length} poster) ✓`,'success');
+  // Ta vare på kontekst-info FØR lukkSplitModal nullstiller dem
+  const kontekst=_splitKontekst;
+  const editId=_splitEditId;
+  const orderNr=_splitBaseRad?.order_number;
+  lukkSplitModal();
+  if(kontekst==='ordretimeDag'){
+    const dagDato=document.getElementById('dag-dato')?.value;
+    if(dagDato) await nullstillGodkjenningHvisAvvist(dagDato);
+    await lastDag();
+  } else {
+    if(!editId){
+      const empNr=brukerPONummer??brukerProdsysId;
+      if(empNr&&orderNr) lagreTildelingDB(orderNr,empNr);
+    }
+    await oppdaterTimerSeksjon();
+  }
 }
 
 async function visDetaljFraOrdrNr(orderNumber){
@@ -1747,7 +1914,21 @@ async function lagreTimer(){
   if(!dato||!timer||!komm){toast('Fyll ut alle påkrevde felt','error');return;}
   const aktObj=AKTIVITETER.find(a=>a.kode===aktKode);
   const user=await getUser();
-  const timeart=await beregnTimeart(dato,user.id,redigeringsId);
+  // Beregn om timene krysser en OT-grense → split-modal
+  const segmenter=await beregnSplit(dato,user.id,timer,redigeringsId);
+  if(segmenter.length>1){
+    const baseRad={
+      order_number:aktivOrdre.order_number,dato,timer,
+      aktivitet_kode:aktKode,aktivitet_navn:aktObj.navn,
+      er_fakturerbar:aktObj.fakturerbar,kommentar:komm,
+      kundenavn:aktivOrdre.customer_name||null,
+      ansatt_id:user.id,ansatt_epost:user.email
+    };
+    visSplitModal(segmenter,baseRad,'timer',redigeringsId||null);
+    return; // Venter på brukerbekreftelse
+  }
+  // Ingen split — lagre som én rad
+  const timeart=segmenter[0].timeart;
   const lonnsart=LONNSART_MAP[timeart]??120;
   const rad={order_number:aktivOrdre.order_number,dato,timer,timeart,lonnsart,
     kundenavn:aktivOrdre.customer_name||null,
@@ -1885,6 +2066,9 @@ async function lastDag(){
   const arb=arbRes.data||[];
   const ordre=ordreRes.data||[];
   const intern=internRes.data||[];
+  gjeldendeGodkjenningStatus = gkRes.data?.status ?? null;
+  const erGodkjent = gjeldendeGodkjenningStatus === 'godkjent';
+  document.getElementById('md-dag-actions').style.display = erGodkjent ? 'none' : 'flex';
   visArbSummary(dato,arb);
   visGodkjenningsBadge(gkRes.data||null);
   visArbListe(dato,arb);
@@ -1934,10 +2118,12 @@ function visArbListe(dato,perioder){
         <div class="arb-detalj">Pause: ${p.pause_minutter} min &nbsp;|&nbsp; Netto: ${fmtTimer(netto)}</div>
         ${p.kommentar?`<div class="arb-komm">${p.kommentar}</div>`:''}
       </div>
-      <div class="arb-actions">
-        <button class="btn btn-secondary btn-sm" onclick="redigerArbeidsdag(${p.id})">Rediger</button>
-        <button class="btn btn-danger btn-sm" onclick="bekreftSlett('arbeidsdag',${p.id})">Slett</button>
-      </div>
+      ${gjeldendeGodkjenningStatus==='godkjent'
+        ?'<div class="arb-actions"><span style="font-size:.8rem;color:var(--muted);">🔒 Låst</span></div>'
+        :`<div class="arb-actions">
+          <button class="btn btn-secondary btn-sm" onclick="redigerArbeidsdag(${p.id})">Rediger</button>
+          <button class="btn btn-danger btn-sm" onclick="bekreftSlett('arbeidsdag',${p.id})">Slett</button>
+        </div>`}
     </div>`;
   }).join('');
   wrap.innerHTML='<div class="arbeidsdag-liste">'+html+'</div>';
@@ -1992,7 +2178,7 @@ function visGapVisualisering(dato,arbPerioder,ordretimer,internTid){
     </div>
     <div class="gap-status ${statusClass}">
       <span>${statusTekst}</span>
-      ${gap>0.25?`<button class="btn btn-sm btn-secondary" onclick="visInternTidForm()">+ Legg til intern tid</button>`:''}
+      ${gap>0.25&&gjeldendeGodkjenningStatus!=='godkjent'?`<button class="btn btn-sm btn-secondary" onclick="visInternTidForm()">+ Legg til intern tid</button>`:''}
     </div>
   </div>`;
 }
@@ -2029,8 +2215,10 @@ function visOrdretimerDag(dato, ordretimer){
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
         <span style="font-weight:700;font-size:.95rem;">${fmtTimer(t.timer)}</span>
-        <button class="btn btn-secondary btn-sm" onclick="redigerOrdretimeDag(${t.id})">Rediger</button>
-        <button class="btn btn-danger btn-sm" onclick="bekreftSlett('timer',${t.id})">Slett</button>
+        ${gjeldendeGodkjenningStatus==='godkjent'
+          ?'<span style="font-size:.8rem;color:var(--muted);">🔒 Låst</span>'
+          :`<button class="btn btn-secondary btn-sm" onclick="redigerOrdretimeDag(${t.id})">Rediger</button>
+           <button class="btn btn-danger btn-sm" onclick="bekreftSlett('timer',${t.id})">Slett</button>`}
       </div>
     </div>`;
   }).join('');
@@ -2077,7 +2265,23 @@ async function lagreOrdretimeDag(id){
   const aktObj=AKTIVITETER.find(a=>a.kode===aktKode);
   const dato=document.getElementById('dag-dato').value;
   const uid=await getUid();
-  const timeart=await beregnTimeart(dato,uid,id);
+  // Hent eksisterende rad for order_number/kundenavn/ansatt_epost
+  const{data:eksRad}=await sb.from('timeregistrering').select('order_number,kundenavn,ansatt_epost').eq('id',id).single();
+  // Beregn om timene krysser en OT-grense → split-modal
+  const segmenter=await beregnSplit(dato,uid,timer,id);
+  if(segmenter.length>1){
+    const baseRad={
+      order_number:eksRad?.order_number,dato,timer,
+      aktivitet_kode:aktKode,aktivitet_navn:aktObj.navn,
+      er_fakturerbar:aktObj.fakturerbar,kommentar:komm,
+      kundenavn:eksRad?.kundenavn||null,
+      ansatt_id:uid,ansatt_epost:eksRad?.ansatt_epost||''
+    };
+    visSplitModal(segmenter,baseRad,'ordretimeDag',id);
+    return; // Venter på brukerbekreftelse
+  }
+  // Ingen split — oppdater som én rad
+  const timeart=segmenter[0].timeart;
   const lonnsart=LONNSART_MAP[timeart]??120;
   const{error}=await sb.from('timeregistrering').update({
     timer,timeart,lonnsart,aktivitet_kode:aktKode,aktivitet_navn:aktObj.navn,
@@ -2086,6 +2290,7 @@ async function lagreOrdretimeDag(id){
   }).eq('id',id);
   if(error){toast('Feil: '+error.message,'error');return;}
   toast('Oppdatert ✓','success');
+  await nullstillGodkjenningHvisAvvist(dato);
   await lastDag();
 }
 
@@ -2097,7 +2302,7 @@ function visInternTidListe(dato,intern){
   let html=`<div class="intern-seksjon">
     <div class="intern-header">
       <div class="intern-tittel">🕐 Intern tid</div>
-      <button class="btn btn-secondary btn-sm" onclick="visInternTidForm()">+ Legg til</button>
+      ${gjeldendeGodkjenningStatus==='godkjent'?'':'<button class="btn btn-secondary btn-sm" onclick="visInternTidForm()">+ Legg til</button>'}
     </div>
     <div id="intern-form-wrap"></div>`;
   if(intern.length){
@@ -2112,10 +2317,12 @@ function visInternTidListe(dato,intern){
           <div class="timer-akt">${t.aktivitet_navn}</div>
           <div class="timer-komm">${t.kommentar}</div>
         </div>
-        <div class="timer-rad-actions">
-          <button class="btn btn-secondary btn-sm" onclick="redigerInternTid(${t.id})">Rediger</button>
-          <button class="btn btn-danger btn-sm" onclick="bekreftSlett('intern',${t.id})">Slett</button>
-        </div>
+        ${gjeldendeGodkjenningStatus==='godkjent'
+          ?'<div class="timer-rad-actions"><span style="font-size:.8rem;color:var(--muted);">🔒 Låst</span></div>'
+          :`<div class="timer-rad-actions">
+            <button class="btn btn-secondary btn-sm" onclick="redigerInternTid(${t.id})">Rediger</button>
+            <button class="btn btn-danger btn-sm" onclick="bekreftSlett('intern',${t.id})">Slett</button>
+          </div>`}
       </div>`;
     });
     html+='</div>';
@@ -2268,6 +2475,7 @@ async function lagreArbeidsdag(){
   else{({error}=await sb.from('arbeidsdag_logg').insert(rad));}
   if(error){toast('Feil: '+error.message,'error');return;}
   toast(redigeringsArbId?'Oppdatert':'Arbeidsperiode lagret ✓','success');
+  await nullstillGodkjenningHvisAvvist(dato);
   skjulArbForm();await lastDag();
 }
 async function redigerArbeidsdag(id){
@@ -2290,11 +2498,11 @@ async function forslagsArbeidsdag(){
   const tilMin=fraMin+netto*60+pause;
   const tilH=Math.floor(tilMin/60),tilM=Math.round(tilMin%60);
   const til=String(tilH).padStart(2,'0')+':'+String(tilM).padStart(2,'0');
-  visArbForm({fra_tid:'07:30',til_tid:til,pause_minutter:pause,kommentar:''});
+  visArbForm({fra_tid:'07:00',til_tid:til,pause_minutter:pause,kommentar:''});
   if(sumOrdre>ORDINAER_TIMER){
-    toast(`Ordretimer (${fmtTimer(sumOrdre)}) overstiger normaldag. Forslag: 07:30–${til}`,'warning');
+    toast(`Ordretimer (${fmtTimer(sumOrdre)}) overstiger normaldag. Forslag: 07:00–${til}`,'warning');
   } else {
-    toast(`Forslag basert på ${fmtTimer(sumOrdre)} ordretimer → normaldag 07:30–${til}`);
+    toast(`Forslag basert på ${fmtTimer(sumOrdre)} ordretimer → normaldag 07:00–${til}`);
   }
 }
 
@@ -2395,6 +2603,18 @@ async function godkjennDag(ansattId, ansattEpost, dato){
   await lastGodkjenner();
 }
 
+// Nullstiller godkjenning til 'ikke_behandlet' dersom dagen var avvist — kalles etter tekniker-redigering
+async function nullstillGodkjenningHvisAvvist(dato){
+  if(gjeldendeGodkjenningStatus !== 'avvist') return;
+  const user = await getUser();
+  const{error}=await sb.from('dag_godkjenning').upsert({
+    dato, ansatt_id:user.id, ansatt_epost:user.email,
+    status:'ikke_behandlet', kommentar:null,
+    oppdatert_at:new Date().toISOString()
+  },{onConflict:'dato,ansatt_id'});
+  if(!error) toast('Dag sendt til ny godkjenning','info');
+}
+
 // Avvis hel dag for en ansatt (med kommentar)
 async function avvisDag(ansattId, ansattEpost, dato, kommentar){
   const user=await getUser();
@@ -2421,8 +2641,11 @@ async function utforSlett(type,id){
   }
   if(error){toast('Feil: '+error.message,'error');return;}
   toast(melding,'success');
-  if(type==='timer')await oppdaterTimerSeksjon();
-  else await lastDag();
+  if(type==='timer'){await oppdaterTimerSeksjon();return;}
+  // Arbeidsdag og intern tid: nullstill avvist dag + oppdater Min dag
+  const dagDato=document.getElementById('dag-dato')?.value;
+  if(dagDato) await nullstillGodkjenningHvisAvvist(dagDato);
+  await lastDag();
 }
 
 // ── OVERSIKT ──────────────────────────────────────────────────────────────
@@ -2607,7 +2830,7 @@ function visManedGodkjenner(year,month,arbData,gkMap={}){
     const init=r.ansatt_epost.split('@')[0].split(/[._]/).map(s=>s[0]?.toUpperCase()||'').join('').slice(0,2);
     // Oppdater eksisterende oppføring eller legg til ny
     const gkStatus=gkMap[`${dato}|${r.ansatt_id}`]||'ikke_behandlet';
-    const farge=gkStatus==='godkjent'?'gk-godkjent':gkStatus==='avvist'?'gk-avvist':t>=ORDINAER_TIMER?'gk-full':'gk-delvis';
+    const farge=gkStatus==='godkjent'?'gk-godkjent':gkStatus==='avvist'?'gk-avvist':'gk-ventende';
     const statusSuffix=gkStatus==='godkjent'?' ✓':gkStatus==='avvist'?' ✗':'';
     const eks=dagMap[dato].find(x=>x.id===r.ansatt_id);
     if(eks){ eks.t=t; eks.farge=farge; eks.statusSuffix=statusSuffix; }
@@ -2672,8 +2895,8 @@ async function lastGodkjenner(){
 
   // Samle unike ansatte
   const ansatteMap = {};
-  arb.forEach(r => { if(!ansatteMap[r.ansatt_id]) ansatteMap[r.ansatt_id] = {epost:r.ansatt_epost,arb:[],timer:[]}; ansatteMap[r.ansatt_id].arb.push(r); });
-  timer.forEach(r => { if(!ansatteMap[r.ansatt_id]) ansatteMap[r.ansatt_id] = {epost:r.ansatt_epost,arb:[],timer:[]}; ansatteMap[r.ansatt_id].timer.push(r); });
+  arb.forEach(r => { if(!ansatteMap[r.ansatt_id]) ansatteMap[r.ansatt_id] = {id:r.ansatt_id,epost:r.ansatt_epost,arb:[],timer:[]}; ansatteMap[r.ansatt_id].arb.push(r); });
+  timer.forEach(r => { if(!ansatteMap[r.ansatt_id]) ansatteMap[r.ansatt_id] = {id:r.ansatt_id,epost:r.ansatt_epost,arb:[],timer:[]}; ansatteMap[r.ansatt_id].timer.push(r); });
 
   const ansatte = Object.values(ansatteMap).sort((a,b)=>a.epost.localeCompare(b.epost));
 
@@ -2684,8 +2907,13 @@ async function lastGodkjenner(){
 
   const godkjenningMap = await lastGodkjenningStatus(dato, ansatte.map(a=>a.id));
 
-  wrap.innerHTML = `<div style="font-size:.9rem;color:var(--muted);margin-bottom:16px;">${fmtDatoLang(dato)} — ${ansatte.length} ansatt${ansatte.length>1?'e':''} med registreringer</div>` +
-    ansatte.map(a => visGodkjennerAnsatt(a, dato, godkjenningMap[a.id]||null)).join('');
+  const visKunVentende = document.getElementById('gk-filter-ventende')?.checked;
+  const ansatteFiltret = visKunVentende
+    ? ansatte.filter(a=>{ const gk=godkjenningMap[a.id]; return !gk||gk.status==='ikke_behandlet'; })
+    : ansatte;
+
+  wrap.innerHTML = `<div style="font-size:.9rem;color:var(--muted);margin-bottom:16px;">${fmtDatoLang(dato)} — ${ansatteFiltret.length}${visKunVentende?' av '+ansatte.length:''} ansatt${ansatteFiltret.length!==1?'e':''} med registreringer</div>` +
+    ansatteFiltret.map(a => visGodkjennerAnsatt(a, dato, godkjenningMap[a.id]||null)).join('');
 }
 
 function visGodkjennerAnsatt(a, dato, gkStatus){
@@ -2760,9 +2988,13 @@ function visGodkjennerAnsatt(a, dato, gkStatus){
     <button class="btn btn-danger btn-sm" onclick="visAvvisModal(${aId},${aEpost},${aDato})">✗ Avvis med kommentar</button>
   </div>`;
 
+  const behandlingsBadge=(!gkStatus||gkStatus.status==='ikke_behandlet')
+    ?`<span style="background:#fef3c7;color:#92400e;font-size:.75rem;padding:2px 8px;border-radius:20px;margin-left:8px;font-weight:600;">Ubehandlet</span>`
+    :'';
+
   return `<div style="background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin-bottom:14px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div style="font-weight:700;color:var(--accent);">👤 ${a.epost}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:6px;">
+      <div style="font-weight:700;color:var(--accent);display:flex;align-items:center;flex-wrap:wrap;">👤 ${a.epost}${behandlingsBadge}</div>
       <div style="font-size:.85rem;color:${gapFarge};font-weight:600;">
         ${uforklart>0.25?`⚠ ${fmtTimer(uforklart)} uforklart`:'✓ Komplett'}
       </div>
