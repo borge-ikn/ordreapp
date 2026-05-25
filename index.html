@@ -852,7 +852,9 @@ sb.auth.onAuthStateChange(async (event, session) => {
   if (session) {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    document.getElementById('bruker-epost').textContent = session.user.email;
+    const meta = session.user.user_metadata || {};
+    document.getElementById('bruker-epost').textContent =
+      meta.full_name || meta.name || session.user.email;
     hentFilterverdier();
     hentOrdrer(0);
     settDagTilDag(new Date());
@@ -890,8 +892,12 @@ async function lastBrukerRolle() {
   // Hent avdelingskode fra po_ansatte (forhåndsvelger avdeling i planlegger)
   if (brukerPONummer) {
     const { data: poA } = await sb.from('po_ansatte')
-      .select('department_code').eq('number', brukerPONummer).single();
+      .select('department_code, first_name, last_name').eq('number', brukerPONummer).single();
     brukerAvdelingKode = poA?.department_code ? String(poA.department_code) : null;
+    if (poA?.first_name || poA?.last_name) {
+      document.getElementById('bruker-epost').textContent =
+        `${poA.first_name || ''} ${poA.last_name || ''}`.trim();
+    }
   }
 
   const godkjennerTab = document.getElementById('tab-godkjenner');
