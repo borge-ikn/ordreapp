@@ -646,9 +646,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <option>Nord Norge</option><option>Oslo</option><option>Østlandet</option>
         <option>Sandnes</option><option>Stab</option><option>Trondheim</option>
       </datalist>
-      <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;white-space:nowrap;color:#fff;opacity:0.85;">
+      <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;white-space:nowrap;color:var(--text);">
         <input type="checkbox" id="pl-innlant" onchange="plToggleInnlant()">
-        Innlånte teknikere
+        Innleid tekniker
       </label>
       <div id="pl-innlant-avd-wrap" style="display:none;position:relative;align-items:center;">
         <input type="text" id="pl-innlant-avd" list="pl-innlant-avd-list"
@@ -1374,7 +1374,7 @@ async function lastPlanlegger() {
   ]);
   allePlanleggerTeknikere = [
     ...(primærRes.data  || []).map(r => ({ employee_number: String(r.number), name: `${r.first_name} ${r.last_name}`, dept: avdNavn })),
-    ...(innlantRes.data || []).map(r => ({ employee_number: String(r.number), name: `${r.first_name} ${r.last_name}`, dept: `${innlantAvd} (innlånt)` })),
+    ...(innlantRes.data || []).map(r => ({ employee_number: String(r.number), name: `${r.first_name} ${r.last_name}`, dept: `${innlantAvd} (innleid)` })),
   ];
   allePlanleggerOrdrer = ordrer;
   allePlanleggerTildelinger = tildelingerRes.data || [];
