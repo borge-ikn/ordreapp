@@ -1340,18 +1340,19 @@ async function lastPlanlegger() {
   const avdKode = PO_DEPT_MAP[avdNavn] || '';
   const { fra, til } = slicerFraTil('pl');
   const board = document.getElementById('planlegger-board');
-  if (!avdKode) {
-    board.innerHTML = '<div style="padding:20px;opacity:0.5;">Velg en avdeling for å se planleggeren.</div>';
-    return;
-  }
   board.innerHTML = '<div class="loader"><div class="spinner"></div>Laster planlegger...</div>';
+
+  const teknikereQuery = avdKode
+    ? sb.from('po_ansatte')
+        .select('number, first_name, last_name, department_code')
+        .eq('is_archived', false)
+        .eq('department_code', avdKode)
+        .order('last_name')
+    : Promise.resolve({ data: [] });
+
   const [teknikereRes, ordrer, tildelingerRes] = await Promise.all([
-    sb.from('po_ansatte')
-      .select('number, first_name, last_name, department_code')
-      .eq('is_archived', false)
-      .eq('department_code', avdKode)
-      .order('last_name'),
-    hentPlanleggerOrdrer(fra, til, null), // ingen avdelingsfilter — kryssavdeling-tildeling skal være mulig
+    teknikereQuery,
+    hentPlanleggerOrdrer(fra, til, null),
     sb.from('ordre_tildeling').select('order_number, employee_number')
   ]);
   allePlanleggerTeknikere = (teknikereRes.data || []).map(r => ({
