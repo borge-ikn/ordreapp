@@ -3353,7 +3353,7 @@ async function lastOppSkjemaPDF(pdfBlob, filnavn) {
   const form = new FormData();
   form.append('File', pdfBlob, filnavn);
   form.append('OrderId', String(aktivOrdre.ps_id));
-  form.append('CodeId', '36');
+  form.append('documentCode', '36');
   const resp = await fetch('/.netlify/functions/prodsys-proxy?path=documents/files/upload', {
     method: 'POST', body: form
   });
@@ -4082,7 +4082,7 @@ async function lastOppDokument() {
     const form = new FormData();
     form.append('File', fil);
     form.append('OrderId', String(aktivOrdre.ps_id));
-    form.append('CodeId', kode);
+    form.append('documentCode', kode);
     const r = await fetch('/.netlify/functions/prodsys-proxy?path=documents/files/upload', {
       method: 'POST', body: form,
     });
