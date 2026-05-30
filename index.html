@@ -3332,12 +3332,20 @@ async function hentOgVisOrdrelinjer() {
     liste.innerHTML = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:4px;">${linjer.length} artikkel(er) på ordren:</div>
       <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:4px;">
         ${linjer.map(l => {
+          const id = l.Id || l.id;
           const nr = l.ArticleNumber || l.articleNumber || '–';
           const desc = l.Description || l.description || l.Name || l.name || '–';
-          const qty = l.Qty ?? l.qty ?? l.Quantity ?? l.quantity ?? '';
-          return `<div style="display:flex;justify-content:space-between;padding:6px 10px;border-bottom:1px solid #f0f0f0;font-size:.85rem;">
-            <span><span style="font-weight:600;margin-right:6px;">${nr}</span>${desc}</span>
-            <span style="color:var(--muted);white-space:nowrap;margin-left:8px;">${qty}</span>
+          const qty = l.Qty ?? l.qty ?? l.Quantity ?? l.quantity ?? 1;
+          const lineJson = JSON.stringify(l).replace(/'/g, '&#39;');
+          return `<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid #f0f0f0;font-size:.85rem;">
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              <span style="font-weight:600;margin-right:6px;">${nr}</span>${desc}
+            </span>
+            <input type="number" min="0.01" step="any" value="${qty}"
+              id="ol-qty-${id}"
+              style="width:64px;padding:3px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:.83rem;text-align:right;">
+            <button class="btn btn-secondary btn-sm" onclick="oppdaterOrdrelinje(${id},'${lineJson.replace(/"/g,'&quot;')}')">Lagre</button>
+            <button class="btn btn-danger btn-sm" onclick="slettOrdrelinje(${id})">Slett</button>
           </div>`;
         }).join('')}
       </div>`;
@@ -3394,6 +3402,51 @@ function velgArtikkel(id, number, description) {
 function lukkArtikkelDropdown() {
   const dd = document.getElementById('artikkel-sok-dropdown');
   if (dd) dd.style.display = 'none';
+}
+
+async function slettOrdrelinje(id) {
+  if (!confirm('Slett denne ordrelinjen?')) return;
+  try {
+    const resp = await fetch(`/.netlify/functions/prodsys-proxy?path=orderlines/delete&id=${id}`, {
+      method: 'DELETE'
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    await oppdaterCommission(id);
+    hentOgVisOrdrelinjer();
+  } catch(e) {
+    toast('Feil ved sletting: ' + e.message, 'error');
+  }
+}
+
+async function oppdaterOrdrelinje(id, lineJson) {
+  const l = typeof lineJson === 'string' ? JSON.parse(lineJson.replace(/&quot;/g, '"').replace(/&#39;/g, "'")) : lineJson;
+  const qtyInput = document.getElementById(`ol-qty-${id}`);
+  const qty = parseFloat(qtyInput?.value) || 1;
+  const body = {
+    id,
+    qty,
+    description: l.Description || l.description || '',
+    length: l.Length ?? l.length ?? null,
+    width: l.Width ?? l.width ?? null,
+    height: l.Height ?? l.height ?? null,
+    thickness: l.Thickness ?? l.thickness ?? null,
+    unitPrice: l.UnitPrice ?? l.unitPrice ?? null,
+    discountPercentage: l.DiscountPercentage ?? l.discountPercentage ?? null,
+    measureUnit: l.MeasureUnit || l.measureUnit || null,
+  };
+  try {
+    const resp = await fetch(`/.netlify/functions/prodsys-proxy?path=orderlines/update&id=${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    await oppdaterCommission(id);
+    toast('Antall oppdatert', 'success');
+    hentOgVisOrdrelinjer();
+  } catch(e) {
+    toast('Feil ved oppdatering: ' + e.message, 'error');
+  }
 }
 
 async function sendArtikkelTilOrdre() {

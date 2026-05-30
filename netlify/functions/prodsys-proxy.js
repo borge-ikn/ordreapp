@@ -26,6 +26,23 @@ exports.handler = async (event) => {
       const q = encodeURIComponent(params.q || '');
       url = `${PRODSYS_BASE}/articles/orders-list?filter.searchText=${q}&filter.typeId=2&dxLoadOptions.searchOperation=%22contains%22&dxLoadOptions.take=40`;
       method = 'GET';
+    } else if (path === 'orderlines/delete') {
+      if (event.httpMethod !== 'DELETE') {
+        return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+      }
+      const id = params.id;
+      if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'Mangler id' }) };
+      url = `${PRODSYS_BASE}/orderlines/${id}`;
+      method = 'DELETE';
+    } else if (path === 'orderlines/update') {
+      if (event.httpMethod !== 'PUT') {
+        return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+      }
+      const id = params.id;
+      if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'Mangler id' }) };
+      url = `${PRODSYS_BASE}/orderlines/${id}`;
+      method = 'PUT';
+      body = event.body;
     } else if (path === 'orderlines') {
       if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
