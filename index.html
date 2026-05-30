@@ -124,9 +124,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .skj-do-kort { background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px; }
 .do-header { cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none; }
 .do-body { padding-top:12px; }
-.do-cb-liste { display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin:6px 0 4px; }
-.do-cb-item { display:flex;align-items:flex-start;gap:6px;font-size:.85rem;color:var(--text);cursor:pointer;line-height:1.4; }
-.do-cb-item input[type=checkbox] { margin-top:2px;accent-color:var(--accent);flex-shrink:0; }
+.do-tag-liste { display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 6px; }
+.do-tag { padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);background:#f3f4f6;color:var(--text);font-size:.82rem;cursor:pointer;transition:background .15s,color .15s,border-color .15s;line-height:1.4; }
+.do-tag--aktiv { background:#002554;color:#fff;border-color:#002554; }
 .skj-sticky-bunn { position:sticky;bottom:0;background:#fff;border-top:1px solid var(--border);padding:14px 0 6px;margin-top:20px;display:flex;gap:10px; }
 .skj-input[type=date],.skj-input[type=datetime-local] { max-width:220px; }
 .skj-melding { display:none;margin-top:8px;padding:10px 14px;border-radius:8px;font-size:.88rem;line-height:1.5; }
@@ -160,8 +160,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 @keyframes spin { to { transform:rotate(360deg); } }
 
 /* MODAL */
-.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:20px 16px;overflow-y:auto; }
-.modal { background:var(--surface);border-radius:var(--radius);box-shadow:0 20px 60px rgba(0,0,0,.2);width:100%;max-width:720px;padding:28px;position:relative;margin:auto; }
+.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:20px 16px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y; }
+.modal { background:var(--surface);border-radius:var(--radius);box-shadow:0 20px 60px rgba(0,0,0,.2);width:100%;max-width:720px;padding:28px;position:relative;margin:auto;overflow-x:hidden; }
 .modal-close { position:absolute;top:16px;right:16px;background:var(--surface2);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem; }
 .modal-title { font-size:1.25rem;font-weight:700;color:var(--accent);margin-bottom:18px;padding-right:36px; }
 .detail-grid { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
@@ -3848,9 +3848,9 @@ function leggTilSJADeloppgave() {
   const tiltakOpts = Array.from(document.querySelectorAll('#do-tiltak-opts option')).map(o => o.value);
   const risikoOpts = Array.from(document.querySelectorAll('#do-risiko-opts option')).map(o => o.value);
   const farerHtml  = farerOpts.map(f =>
-    `<label class="do-cb-item"><input type="checkbox" name="sja-do-farer-${n}" value="${f}"> ${f}</label>`).join('');
+    `<button type="button" class="do-tag" data-gruppe="farer-${n}" onclick="this.classList.toggle('do-tag--aktiv')">${f}</button>`).join('');
   const tiltakHtml = tiltakOpts.map(t =>
-    `<label class="do-cb-item"><input type="checkbox" name="sja-do-tiltak-${n}" value="${t}"> ${t}</label>`).join('');
+    `<button type="button" class="do-tag" data-gruppe="tiltak-${n}" onclick="this.classList.toggle('do-tag--aktiv')">${t}</button>`).join('');
   const risikoHtml = risikoOpts.map(r => `<option value="${r}">${r}</option>`).join('');
   liste.insertAdjacentHTML('beforeend', `
     <div id="sja-do-${n}" class="skj-do-kort sja-do-row" data-n="${n}">
@@ -3870,7 +3870,7 @@ function leggTilSJADeloppgave() {
         </div>
         <div class="skj-felt">
           <span class="skj-label">Farer</span>
-          <div class="do-cb-liste">${farerHtml}</div>
+          <div class="do-tag-liste">${farerHtml}</div>
           <input id="sja-do-farer-annet-${n}" type="text" class="skj-input" placeholder="Annet fare…" style="margin-top:4px;">
         </div>
         <div class="skj-felt"><span class="skj-label">Risiko</span>
@@ -3881,7 +3881,7 @@ function leggTilSJADeloppgave() {
         </div>
         <div class="skj-felt">
           <span class="skj-label">Tiltak</span>
-          <div class="do-cb-liste">${tiltakHtml}</div>
+          <div class="do-tag-liste">${tiltakHtml}</div>
           <input id="sja-do-tiltak-annet-${n}" type="text" class="skj-input" placeholder="Annet tiltak…" style="margin-top:4px;">
         </div>
         <div class="skj-felt"><span class="skj-label">Ansvarlig</span>
@@ -3924,10 +3924,10 @@ async function lagreSJA(e) {
     const deloppgaver = [];
     document.querySelectorAll('.sja-do-row').forEach(rad => {
       const n = rad.dataset.n;
-      const farerChecked = Array.from(rad.querySelectorAll(`input[name="sja-do-farer-${n}"]:checked`)).map(c => c.value);
+      const farerChecked = Array.from(rad.querySelectorAll(`[data-gruppe="farer-${n}"].do-tag--aktiv`)).map(b => b.textContent.trim());
       const farerAnnet = document.getElementById(`sja-do-farer-annet-${n}`)?.value?.trim();
       if (farerAnnet) farerChecked.push(farerAnnet);
-      const tiltakChecked = Array.from(rad.querySelectorAll(`input[name="sja-do-tiltak-${n}"]:checked`)).map(c => c.value);
+      const tiltakChecked = Array.from(rad.querySelectorAll(`[data-gruppe="tiltak-${n}"].do-tag--aktiv`)).map(b => b.textContent.trim());
       const tiltakAnnet = document.getElementById(`sja-do-tiltak-annet-${n}`)?.value?.trim();
       if (tiltakAnnet) tiltakChecked.push(tiltakAnnet);
       deloppgaver.push({
