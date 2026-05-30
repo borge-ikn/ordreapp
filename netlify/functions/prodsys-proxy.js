@@ -71,11 +71,9 @@ exports.handler = async (event) => {
       body = event.body;
     } else if (path === 'documents/files/upload') {
       if (event.httpMethod !== 'POST') return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
-      const id = params.id;
-      if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'Mangler id' }) };
-      url = `${PRODSYS_BASE}/documents/files/${id}`;
+      url = `${PRODSYS_BASE}/documents/create-from-files`;
       method = 'POST';
-      // Multipart: forward raw body og original Content-Type (inkl. boundary)
+      // Pipe multipart/form-data rett gjennom med original Content-Type (inkl. boundary)
       const rawBody = event.isBase64Encoded
         ? Buffer.from(event.body, 'base64')
         : Buffer.from(event.body || '');

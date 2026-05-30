@@ -3350,25 +3350,16 @@ function signaturHtml(canvasId, label) {
 // Delt PDF-opplasting til ProdSys
 async function lastOppSkjemaPDF(pdfBlob, filnavn) {
   if (!aktivOrdre?.ps_id) throw new Error('Mangler ps_id på ordren');
-  // Steg 1: opprett dokument
-  const r1 = await fetch('/.netlify/functions/prodsys-proxy?path=documents', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ documentCode: 36, orderId: aktivOrdre.ps_id })
-  });
-  if (!r1.ok) throw new Error('Kunne ikke opprette ProdSys-dokument: HTTP ' + r1.status);
-  const docId = await r1.json();
-  const docIdNum = typeof docId === 'object' ? (docId?.id || docId?.data) : docId;
-  if (!docIdNum) throw new Error('Fikk ikke documentId (fikk: ' + JSON.stringify(docId) + ')');
-  // Steg 2: last opp PDF
   const form = new FormData();
-  form.append('file', pdfBlob, filnavn);
-  const r2 = await fetch(`/.netlify/functions/prodsys-proxy?path=documents/files/upload&id=${docIdNum}`, {
+  form.append('Files', pdfBlob, filnavn);
+  form.append('OrderId', String(aktivOrdre.ps_id));
+  form.append('DocumentCode', '36');
+  const resp = await fetch('/.netlify/functions/prodsys-proxy?path=documents/files/upload', {
     method: 'POST', body: form
   });
-  if (!r2.ok) {
-    const errBody = await r2.text().catch(() => '');
-    throw new Error(`Filopplasting feilet: HTTP ${r2.status} – ${errBody.slice(0,300)}`);
+  if (!resp.ok) {
+    const errBody = await resp.text().catch(() => '');
+    throw new Error(`Filopplasting feilet: HTTP ${resp.status} – ${errBody.slice(0, 300)}`);
   }
 }
 
@@ -4086,26 +4077,19 @@ async function lastOppDokument() {
   const fil = filEl?.files?.[0];
   if (!kode) { toast('Velg dokumenttype', 'error'); return; }
   if (!fil) { toast('Velg en fil', 'error'); return; }
-  if (status) status.textContent = 'Oppretter dokument…';
+  if (status) status.textContent = 'Laster opp…';
   try {
-    // Steg 1: opprett dokument
-    const r1 = await fetch('/.netlify/functions/prodsys-proxy?path=documents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ documentCode: parseInt(kode), orderId: aktivOrdre.ps_id }),
-    });
-    if (!r1.ok) throw new Error('Opprett dokument feilet: HTTP ' + r1.status);
-    const docId = await r1.json();
-    if (!docId) throw new Error('Fikk ikke documentId fra ProdSys');
-    // Steg 2: last opp fil
-    if (status) status.textContent = 'Laster opp fil…';
     const form = new FormData();
-    form.append('file', fil);
-    const r2 = await fetch(`/.netlify/functions/prodsys-proxy?path=documents/files/upload&id=${docId}`, {
-      method: 'POST',
-      body: form,
+    form.append('Files', fil);
+    form.append('OrderId', String(aktivOrdre.ps_id));
+    form.append('DocumentCode', kode);
+    const r = await fetch('/.netlify/functions/prodsys-proxy?path=documents/files/upload', {
+      method: 'POST', body: form,
     });
-    if (!r2.ok) throw new Error('Filopplasting feilet: HTTP ' + r2.status);
+    if (!r.ok) {
+      const errBody = await r.text().catch(() => '');
+      throw new Error(`Filopplasting feilet: HTTP ${r.status} – ${errBody.slice(0,200)}`);
+    }
     toast('Dokument lastet opp', 'success');
     if (status) status.textContent = '';
     if (kodeEl) kodeEl.value = '';
