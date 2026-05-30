@@ -122,6 +122,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .skj-person-kort { background:#f9fafb;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px; }
 .skj-do-kort { background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px; }
 .skj-sticky-bunn { position:sticky;bottom:0;background:#fff;border-top:1px solid var(--border);padding:14px 0 6px;margin-top:20px;display:flex;gap:10px; }
+.skj-input[type=date],.skj-input[type=datetime-local] { max-width:220px; }
+.skj-melding { display:none;margin-top:8px;padding:10px 14px;border-radius:8px;font-size:.88rem;line-height:1.5; }
+.skj-melding.advarsel { background:#fff8e1;border-left:3px solid #f59e0b;color:#92400e; }
+.skj-melding.stopp { background:#fee2e2;border-left:3px solid #ef4444;color:#991b1b;font-weight:600; }
+.skj-melding.info { background:#eff6ff;border-left:3px solid #3b82f6;color:#1e40af; }
 @media (max-width:640px) {
   .sja-modal .modal-overlay, .va-modal .modal-overlay,
   #sja-modal.modal-overlay, #va-modal.modal-overlay { padding:0;align-items:stretch; }
@@ -3425,7 +3430,7 @@ function åpneVarmeArbSkjema() {
   const prosjektNavn = `${aktivOrdre.customer_name||''} #${aktivOrdre.order_number||''}`.trim();
   document.getElementById('va-form-wrap').innerHTML = `
     <div class="modal-title" style="margin-bottom:20px;">🔥 Varme arbeider</div>
-    <form id="va-form" onsubmit="lagreVarmeArb(event)">
+    <form id="va-form" onsubmit="lagreVarmeArb(event)" style="max-width:540px;margin:0 auto;">
 
       <div class="skj-seksjon">
         <div class="skj-seksjon-tittel">Om arbeidet</div>
@@ -3694,20 +3699,30 @@ const SJA_ARSAKER = [
 
 const SJA_SJEKKLISTE = [
   { seksjon: 'Dokumentasjon og erfaring', spørsmål: [
-    'Er dette en kjent arbeidsoperasjon for arbeidslaget?',
-    'Finnes dekkende prosedyrer/instruks/jobbpakke?'
+    { sp: 'Er dette en kjent arbeidsoperasjon for arbeidslaget?', trigger: 'nei', type: 'advarsel',
+      melding: '⚠️ Gå gjennom operasjonen med arbeidslaget og gjør alle kjent med fremgangsmåten. Vurder om opplæring er nødvendig.' },
+    { sp: 'Finnes dekkende prosedyrer/instruks/jobbpakke?', trigger: 'nei', type: 'info',
+      melding: 'ℹ️ Dokumenter fremgangsmåten som deloppgaver i denne SJA-en.' }
   ]},
   { seksjon: 'Kompetanse', spørsmål: [
-    'Har vi nødvendig personell og kompetanse for jobben?',
-    'Er det andre som burde delta i SJA-møte?'
+    { sp: 'Har vi nødvendig personell og kompetanse for jobben?', trigger: 'nei', type: 'stopp',
+      melding: '🛑 Ikke start arbeidet. Skaff nødvendig kompetanse eller avklar med leder.' },
+    { sp: 'Er det andre som burde delta i SJA-møte?', trigger: 'ja', type: 'info',
+      melding: 'ℹ️ Inviter de aktuelle personene til SJA-møtet før arbeidet starter.' }
   ]},
   { seksjon: 'Kommunikasjon og koordinering', spørsmål: [
-    'Er det en jobb der flere enheter/arbeidslag må koordineres?',
-    'Er det god kommunikasjon og egnet kommunikasjonsmiddel på plass?',
-    'Er det mulige konflikter med samtidige aktiviteter?',
-    'Er det avklart hvem som leder arbeidet?',
-    'Er det planlagt med tilstrekkelig tid for aktivitetene?',
-    'Har arbeidslaget gjennomgått håndtering av eventuell alarm? Er mulige berørte informert?'
+    { sp: 'Er det en jobb der flere enheter/arbeidslag må koordineres?', trigger: 'ja', type: 'info',
+      melding: 'ℹ️ Avklar koordinering og ansvarsfordeling. Legg til koordineringstiltak som deloppgave.' },
+    { sp: 'Er det god kommunikasjon og egnet kommunikasjonsmiddel på plass?', trigger: 'nei', type: 'advarsel',
+      melding: '⚠️ Sørg for at alle har egnet kommunikasjonsutstyr (radio, mobil) tilgjengelig.' },
+    { sp: 'Er det mulige konflikter med samtidige aktiviteter?', trigger: 'ja', type: 'advarsel',
+      melding: '⚠️ Koordiner med øvrige aktiviteter. Avklar soner og tidsplan.' },
+    { sp: 'Er det avklart hvem som leder arbeidet?', trigger: 'nei', type: 'stopp',
+      melding: '🛑 Avklar hvem som er arbeidsleder før arbeidet starter.' },
+    { sp: 'Er det planlagt med tilstrekkelig tid for aktivitetene?', trigger: 'nei', type: 'advarsel',
+      melding: '⚠️ Juster tidsplan eller reduser omfanget av arbeidet.' },
+    { sp: 'Har arbeidslaget gjennomgått håndtering av eventuell alarm? Er mulige berørte informert?', trigger: 'nei', type: 'advarsel',
+      melding: '⚠️ Gå gjennom alarmhåndtering med alle. Informer berørte parter.' }
   ]}
 ];
 
@@ -3721,21 +3736,24 @@ function åpneSJASkjema() {
   SJA_SJEKKLISTE.forEach((sek, si) => {
     sjekkHtml += `<div class="skj-seksjon" style="margin-bottom:18px;">
       <div style="font-size:.88rem;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em;">${sek.seksjon}</div>`;
-    sek.spørsmål.forEach((sp, qi) => {
+    sek.spørsmål.forEach((q, qi) => {
       const key = `sja-sjekk-${si}-${qi}`;
+      const meldId = `sja-meld-${si}-${qi}`;
       sjekkHtml += `<div class="skj-sporsmal">
-        <div class="skj-sporsmal-tekst">${sp}</div>
+        <div class="skj-sporsmal-tekst">${q.sp}</div>
         <div class="skj-segment">
-          <label><input type="radio" name="${key}" value="ja"><span>Ja</span></label>
-          <label><input type="radio" name="${key}" value="nei"><span>Nei</span></label>
-          <label><input type="radio" name="${key}" value="ia" checked><span>Ikke aktuelt</span></label>
-        </div></div>`;
+          <label><input type="radio" name="${key}" value="ja" onchange="sjekklisteSvar('${meldId}','${q.trigger}','ja')"><span>Ja</span></label>
+          <label><input type="radio" name="${key}" value="nei" onchange="sjekklisteSvar('${meldId}','${q.trigger}','nei')"><span>Nei</span></label>
+          <label><input type="radio" name="${key}" value="ia" checked onchange="sjekklisteSvar('${meldId}','${q.trigger}','ia')"><span>Ikke aktuelt</span></label>
+        </div>
+        <div id="${meldId}" class="skj-melding ${q.type}">${q.melding}</div>
+      </div>`;
     });
     sjekkHtml += '</div>';
   });
   document.getElementById('sja-form-wrap').innerHTML = `
     <div class="modal-title" style="margin-bottom:20px;">📋 SJA – Sikker jobb-analyse</div>
-    <form id="sja-form" onsubmit="lagreSJA(event)">
+    <form id="sja-form" onsubmit="lagreSJA(event)" style="max-width:540px;margin:0 auto;">
 
       <div class="skj-seksjon">
         <div class="skj-seksjon-tittel">Om analysen</div>
@@ -3816,11 +3834,11 @@ function leggTilSJADeloppgave() {
     <div class="skj-felt"><span class="skj-label">Tittel</span>
       <input id="sja-do-tittel-${n}" type="text" class="skj-input"></div>
     <div class="skj-felt"><span class="skj-label">Farer</span>
-      <input id="sja-do-farer-${n}" type="text" class="skj-input"></div>
+      <input id="sja-do-farer-${n}" type="text" class="skj-input" list="do-farer-opts" placeholder="Velg eller skriv…"></div>
     <div class="skj-felt"><span class="skj-label">Risiko</span>
-      <input id="sja-do-risiko-${n}" type="text" class="skj-input"></div>
+      <input id="sja-do-risiko-${n}" type="text" class="skj-input" list="do-risiko-opts" placeholder="Velg eller skriv…"></div>
     <div class="skj-felt"><span class="skj-label">Tiltak</span>
-      <input id="sja-do-tiltak-${n}" type="text" class="skj-input"></div>
+      <input id="sja-do-tiltak-${n}" type="text" class="skj-input" list="do-tiltak-opts" placeholder="Velg eller skriv…"></div>
     <div class="skj-felt"><span class="skj-label">Ansvarlig</span>
       <input id="sja-do-ansvarlig-${n}" type="text" class="skj-input"></div>
     <button type="button" onclick="document.getElementById('sja-do-${n}').remove()"
@@ -3962,12 +3980,12 @@ function genererSJAPDF(data) {
   SJA_SJEKKLISTE.forEach((sek, si) => {
     if (y > 260) { doc.addPage(); y = 15; }
     doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.text(sek.seksjon, M+2, y); y += 5;
-    sek.spørsmål.forEach((sp, qi) => {
+    sek.spørsmål.forEach((q, qi) => {
       if (y > 270) { doc.addPage(); y = 15; }
       const svar = data.sjekkliste?.[si]?.[qi] || 'ia';
       const svarTekst = svar === 'ja' ? '✓ Ja' : svar === 'nei' ? '✗ Nei' : '– Ikke aktuelt';
       doc.setFont('helvetica','normal'); doc.setFontSize(8);
-      const lines = doc.splitTextToSize(`${sp}  →  ${svarTekst}`, W - M - 8);
+      const lines = doc.splitTextToSize(`${q.sp}  →  ${svarTekst}`, W - M - 8);
       doc.text(lines, M+4, y); y += lines.length * 4 + 2;
     });
     y += 2;
@@ -3980,6 +3998,11 @@ function genererSJAPDF(data) {
     if (data.ansvarlig_signatur) doc.addImage(data.ansvarlig_signatur, 'PNG', W/2, y, 60, 18);
   }
   return doc.output('blob');
+}
+
+function sjekklisteSvar(meldId, trigger, valgt) {
+  const el = document.getElementById(meldId);
+  if (el) el.style.display = valgt === trigger ? 'block' : 'none';
 }
 
 // ── ABUS DROPDOWN ─────────────────────────────────────────────────────────
@@ -4433,6 +4456,36 @@ async function sendArtikkelTilOrdre() {
     <div id="va-form-wrap"></div>
   </div>
 </div>
+<datalist id="do-farer-opts">
+  <option value="Fall fra høyde">
+  <option value="Klemskade / klemfare">
+  <option value="Elektrisk fare">
+  <option value="Velt- / tippefare">
+  <option value="Kjemikalier / farlige stoffer">
+  <option value="Støy og vibrasjon">
+  <option value="Brannfare / varmt arbeid">
+  <option value="Fallende gjenstander">
+  <option value="Ergonomisk belastning">
+  <option value="Skarpe kanter / gjenstander">
+</datalist>
+<datalist id="do-risiko-opts">
+  <option value="Lav — usannsynlig, liten konsekvens">
+  <option value="Middels — mulig, moderat konsekvens">
+  <option value="Høy — sannsynlig, alvorlig konsekvens">
+  <option value="Kritisk — svært sannsynlig, katastrofal konsekvens">
+</datalist>
+<datalist id="do-tiltak-opts">
+  <option value="Sikre området med sperringer og skilt">
+  <option value="Bruk personlig verneutstyr (hjelm, sele, vernesko, hansker)">
+  <option value="Koble fra strøm – lås ut og merk">
+  <option value="Sikre mot utilsiktet bevegelse (kiler, bremser, stoppere)">
+  <option value="Sørg for tilstrekkelig ventilasjon">
+  <option value="Ha brannslokkingsutstyr tilgjengelig">
+  <option value="Varsle og koordiner med berørte parter">
+  <option value="Kontroller festepunkter og sertifisering">
+  <option value="Bruk godkjent og sertifisert løfteutstyr">
+  <option value="Etabler fallsikring">
+</datalist>
 <div id="ov-dato-slicer" onclick="event.stopPropagation()" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
 <div id="pl-dato-slicer" onclick="event.stopPropagation()" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
 </body>
