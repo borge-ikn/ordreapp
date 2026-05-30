@@ -3351,9 +3351,10 @@ function signaturHtml(canvasId, label) {
 async function lastOppSkjemaPDF(pdfBlob, filnavn) {
   if (!aktivOrdre?.ps_id) throw new Error('Mangler ps_id på ordren');
   const form = new FormData();
-  form.append('File', pdfBlob, filnavn);
-  form.append('OrderId', String(aktivOrdre.ps_id));
+  form.append('files', pdfBlob, filnavn);
+  form.append('orderId', String(aktivOrdre.ps_id));
   form.append('documentCode', '36');
+  form.append('documentNameOption', '3');
   const resp = await fetch('/.netlify/functions/prodsys-proxy?path=documents/files/upload', {
     method: 'POST', body: form
   });
@@ -4080,9 +4081,10 @@ async function lastOppDokument() {
   if (status) status.textContent = 'Laster opp…';
   try {
     const form = new FormData();
-    form.append('File', fil);
-    form.append('OrderId', String(aktivOrdre.ps_id));
+    form.append('files', fil);
+    form.append('orderId', String(aktivOrdre.ps_id));
     form.append('documentCode', kode);
+    form.append('documentNameOption', '3');
     const r = await fetch('/.netlify/functions/prodsys-proxy?path=documents/files/upload', {
       method: 'POST', body: form,
     });
