@@ -61,11 +61,6 @@ exports.handler = async (event) => {
       if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'Mangler id' }) };
       url = `${PRODSYS_BASE}/orders/${id}/documents`;
       method = 'GET';
-    } else if (path === 'documents/files') {
-      const id = params.id;
-      if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'Mangler id' }) };
-      url = `${PRODSYS_BASE}/documents/${id}/files`;
-      method = 'GET';
     } else if (path === 'document-codes') {
       url = `${PRODSYS_BASE}/document-codes/simple`;
       method = 'GET';
@@ -94,12 +89,10 @@ exports.handler = async (event) => {
       return { statusCode: resp.status, headers: { 'Content-Type': 'application/json' }, body: text };
 
     // ── FILNEDLASTING ─────────────────────────────────────────────────────────
-    } else if (path === 'files/download') {
+    } else if (path === 'files') {
       const id = params.id;
-      const name = params.name || 'fil';
       if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'Mangler id' }) };
-      url = `${PRODSYS_BASE}/files/${id}`;
-      const resp = await fetch(url, { method: 'GET', headers: { 'x-token': token } });
+      const resp = await fetch(`${PRODSYS_BASE}/files/${id}`, { method: 'GET', headers: { 'x-token': token } });
       if (!resp.ok) return { statusCode: resp.status, body: JSON.stringify({ error: 'Feil fra ProdSys' }) };
       const arrayBuf = await resp.arrayBuffer();
       return {
@@ -107,7 +100,7 @@ exports.handler = async (event) => {
         isBase64Encoded: true,
         headers: {
           'Content-Type': resp.headers.get('content-type') || 'application/octet-stream',
-          'Content-Disposition': `attachment; filename="${name}"`,
+          'Content-Disposition': resp.headers.get('content-disposition') || 'attachment',
         },
         body: Buffer.from(arrayBuf).toString('base64'),
       };

@@ -3329,12 +3329,11 @@ async function hentOgVisDokumenter() {
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="font-size:.78rem;color:var(--muted);">${fmtDato(d.dateCreated)}</span>
+            <span style="font-size:.78rem;color:var(--muted);">${(d.filesIds||[]).length} fil(er)</span>
             <span id="dok-pil-${d.id}" style="font-size:.72rem;color:var(--muted);">▶</span>
           </div>
         </div>
-        <div id="dok-filer-${d.id}" style="display:none;padding:6px 12px 8px;border-top:1px solid #f0f0f0;">
-          <div class="loader" style="padding:4px 0;"><div class="spinner"></div></div>
-        </div>
+        <div id="dok-filer-${d.id}" data-files='${JSON.stringify(d.filesIds||[])}' style="display:none;padding:6px 12px 8px;border-top:1px solid #f0f0f0;"></div>
       </div>`).join('');
   } catch(e) {
     liste.innerHTML = `<p style="font-size:.82rem;color:var(--red);">Kunne ikke hente dokumenter: ${e.message}</p>`;
@@ -3348,26 +3347,20 @@ async function toggleDokFiler(docId) {
   const aapen = wrap.style.display !== 'none';
   wrap.style.display = aapen ? 'none' : 'block';
   if (pil) pil.textContent = aapen ? '▶' : '▼';
-  if (!aapen && wrap.querySelector('.spinner')) {
-    try {
-      const resp = await fetch(`/.netlify/functions/prodsys-proxy?path=documents/files&id=${docId}`);
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      const filer = await resp.json();
-      const arr = Array.isArray(filer) ? filer : (filer.data || []);
-      if (!arr.length) {
-        wrap.innerHTML = '<p style="font-size:.82rem;color:var(--muted);margin:0;">Ingen filer.</p>';
-        return;
-      }
-      wrap.innerHTML = arr.map(f => {
-        const url = `/.netlify/functions/prodsys-proxy?path=files/download&id=${f.id}&name=${encodeURIComponent(f.name || f.path || 'fil')}`;
-        return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:.83rem;">
-          <span style="flex:1;">${f.name || f.path || '–'}</span>
-          <a href="${url}" download="${f.name || 'fil'}" class="btn btn-secondary btn-sm" style="text-decoration:none;">Last ned</a>
-        </div>`;
-      }).join('');
-    } catch(e) {
-      wrap.innerHTML = `<p style="font-size:.82rem;color:var(--red);">Feil: ${e.message}</p>`;
+  if (!aapen && !wrap.dataset.rendered) {
+    wrap.dataset.rendered = '1';
+    const filesIds = JSON.parse(wrap.dataset.files || '[]');
+    if (!filesIds.length) {
+      wrap.innerHTML = '<p style="font-size:.82rem;color:var(--muted);margin:0;">Ingen filer.</p>';
+      return;
     }
+    wrap.innerHTML = filesIds.map(fileId => {
+      const url = `/.netlify/functions/prodsys-proxy?path=files&id=${fileId}`;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:.83rem;">
+        <span style="flex:1;color:var(--muted);">Fil #${fileId}</span>
+        <a href="${url}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">Last ned</a>
+      </div>`;
+    }).join('');
   }
 }
 
