@@ -99,6 +99,34 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .order-card { background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px;cursor:pointer;transition:box-shadow .15s,transform .1s;display:flex;justify-content:space-between;align-items:flex-start;gap:16px; }
 .order-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.12);transform:translateY(-1px); }
 .artikkel-sok-rad:hover { background:#f5f7fa; }
+
+/* ── SKJEMA-KOMPONENTER (SJA / VA) ─────────────────────────────────────── */
+.skj-seksjon { margin-bottom:22px; }
+.skj-seksjon-tittel { font-size:.95rem;font-weight:700;color:var(--accent);border-left:3px solid var(--accent);padding-left:10px;margin-bottom:14px; }
+.skj-input { width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;font-size:1rem;box-sizing:border-box;background:#fff; }
+.skj-input:focus { outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(28,52,97,.1); }
+.skj-textarea { width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;font-size:1rem;resize:vertical;min-height:80px;box-sizing:border-box; }
+.skj-label { font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:5px;display:block; }
+.skj-felt { margin-bottom:14px; }
+.skj-checkbox-rad { display:flex;align-items:flex-start;gap:12px;padding:11px 10px;border-radius:8px;cursor:pointer;user-select:none;-webkit-user-select:none; }
+.skj-checkbox-rad:active { background:#eef2ff; }
+.skj-checkbox-rad input[type=checkbox] { width:20px;height:20px;flex-shrink:0;margin-top:1px;accent-color:var(--accent); }
+.skj-checkbox-rad span { font-size:.9rem;line-height:1.4;color:var(--text); }
+.skj-segment { display:flex;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;margin-top:6px; }
+.skj-segment label { flex:1;display:flex;align-items:center;justify-content:center;padding:11px 6px;font-size:.9rem;cursor:pointer;border-right:1px solid var(--border);transition:background .12s; }
+.skj-segment label:last-child { border-right:none; }
+.skj-segment label:has(input:checked) { background:var(--accent);color:#fff;font-weight:600; }
+.skj-segment input[type=radio] { display:none; }
+.skj-sporsmal { margin-bottom:16px; }
+.skj-sporsmal-tekst { font-size:.92rem;margin-bottom:6px;color:var(--text); }
+.skj-person-kort { background:#f9fafb;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px; }
+.skj-do-kort { background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px; }
+.skj-sticky-bunn { position:sticky;bottom:0;background:#fff;border-top:1px solid var(--border);padding:14px 0 6px;margin-top:20px;display:flex;gap:10px; }
+@media (max-width:640px) {
+  .sja-modal .modal-overlay, .va-modal .modal-overlay,
+  #sja-modal.modal-overlay, #va-modal.modal-overlay { padding:0;align-items:stretch; }
+  #sja-modal .modal, #va-modal .modal { max-width:100%;border-radius:0;padding:16px;min-height:100dvh; }
+}
 .order-nr { font-size:1rem;font-weight:700;color:var(--accent); }
 .order-kunde { font-size:.95rem;margin-top:2px; }
 .order-meta { display:flex;gap:12px;margin-top:6px;flex-wrap:wrap; }
@@ -3338,12 +3366,12 @@ function rensSignatur(canvasId) {
 }
 
 function signaturHtml(canvasId, label) {
-  return `<div style="margin-bottom:12px;">
-    <label style="font-size:.82rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">${label}</label>
-    <canvas id="${canvasId}" width="340" height="100"
-      style="border:1px solid #d1d5db;border-radius:8px;background:#fff;display:block;touch-action:none;max-width:100%;"></canvas>
+  return `<div class="skj-felt">
+    <span class="skj-label">${label}</span>
+    <canvas id="${canvasId}" width="600" height="130"
+      style="border:1.5px solid var(--border);border-radius:10px;background:#fff;display:block;touch-action:none;width:100%;height:130px;"></canvas>
     <button type="button" onclick="rensSignatur('${canvasId}')"
-      style="font-size:.78rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 0;">Tøm</button>
+      style="font-size:.8rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:2px;">✕ Tøm signatur</button>
   </div>`;
 }
 
@@ -3396,80 +3424,92 @@ function åpneVarmeArbSkjema() {
   const now = new Date().toISOString().slice(0, 16);
   const prosjektNavn = `${aktivOrdre.customer_name||''} #${aktivOrdre.order_number||''}`.trim();
   document.getElementById('va-form-wrap').innerHTML = `
-    <div class="modal-title" style="font-size:1.05rem;">🔥 Varme arbeider</div>
+    <div class="modal-title" style="margin-bottom:20px;">🔥 Varme arbeider</div>
     <form id="va-form" onsubmit="lagreVarmeArb(event)">
-      <div class="detail-grid" style="margin-bottom:16px;">
-        <div class="detail-field detail-full"><label>Arbeidets art *</label>
-          <input id="va-art" type="text" class="form-input" required style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
-        <div class="detail-field detail-full"><label>Prosjekt</label>
-          <input id="va-prosjekt" type="text" class="form-input" value="${prosjektNavn}" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
-        <div class="detail-field detail-full"><label>Arbeidsplass/adresse</label>
-          <input id="va-arbeidsplass" type="text" class="form-input" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
-        <div class="detail-field"><label>Dato/tid start</label>
-          <input id="va-start" type="datetime-local" value="${now}" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
-        <div class="detail-field"><label>Dato/tid slutt</label>
-          <input id="va-slutt" type="datetime-local" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
-      </div>
-      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:14px;">
-        <div style="font-weight:600;font-size:.9rem;margin-bottom:10px;">Oppdragsgiver</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-          <div style="flex:1;min-width:140px;"><label style="font-size:.8rem;color:var(--muted);">Navn/firma</label>
-            <input id="va-oppdragsgiver-navn" type="text" style="width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.85rem;"></div>
-          <div style="flex:1;min-width:120px;"><label style="font-size:.8rem;color:var(--muted);">Mobilnummer</label>
-            <input id="va-oppdragsgiver-mobil" type="tel" style="width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.85rem;"></div>
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel">Om arbeidet</div>
+        <div class="skj-felt"><span class="skj-label">Arbeidets art *</span>
+          <input id="va-art" type="text" class="skj-input" required placeholder="Beskriv arbeidet…"></div>
+        <div class="skj-felt"><span class="skj-label">Prosjekt / ordre</span>
+          <input id="va-prosjekt" type="text" class="skj-input" value="${prosjektNavn}"></div>
+        <div class="skj-felt"><span class="skj-label">Arbeidsplass / adresse</span>
+          <input id="va-arbeidsplass" type="text" class="skj-input" placeholder="Hvor skal arbeidet utføres?"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="skj-felt"><span class="skj-label">Dato / tid start</span>
+            <input id="va-start" type="datetime-local" class="skj-input" value="${now}"></div>
+          <div class="skj-felt"><span class="skj-label">Dato / tid slutt</span>
+            <input id="va-slutt" type="datetime-local" class="skj-input"></div>
         </div>
+      </div>
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel">Oppdragsgiver</div>
+        <div class="skj-felt"><span class="skj-label">Navn / firma</span>
+          <input id="va-oppdragsgiver-navn" type="text" class="skj-input" autocomplete="organization"></div>
+        <div class="skj-felt"><span class="skj-label">Mobilnummer</span>
+          <input id="va-oppdragsgiver-mobil" type="tel" class="skj-input" autocomplete="tel" inputmode="tel"></div>
         ${signaturHtml('va-oppdragsgiver-sig', 'Signatur oppdragsgiver')}
       </div>
-      <div style="margin-bottom:14px;">
-        <div style="font-weight:600;font-size:.9rem;margin-bottom:8px;">Utførende person(er)/firma
-          <button type="button" onclick="leggTilVAUtforende()" class="btn btn-secondary btn-sm" style="margin-left:10px;">+ Legg til</button>
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel" style="display:flex;align-items:center;justify-content:space-between;">
+          Utførende person(er) / firma
+          <button type="button" onclick="leggTilVAUtforende()" class="btn btn-secondary btn-sm">+ Legg til</button>
         </div>
         <div id="va-utforende-liste"></div>
       </div>
-      <div style="margin-bottom:14px;">
-        <div style="font-weight:600;font-size:.9rem;margin-bottom:8px;">Brannvakt(er)
-          <button type="button" onclick="leggTilVABrannvakt()" class="btn btn-secondary btn-sm" style="margin-left:10px;">+ Legg til</button>
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel" style="display:flex;align-items:center;justify-content:space-between;">
+          Brannvakt(er)
+          <button type="button" onclick="leggTilVABrannvakt()" class="btn btn-secondary btn-sm">+ Legg til</button>
         </div>
         <div id="va-brannvakt-liste"></div>
       </div>
-      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:14px;">
-        <div style="font-weight:600;font-size:.9rem;margin-bottom:10px;">Sikkerhetskrav — Før arbeidet starter</div>
-        ${VA_SIKKERHETSKRAV.map((t,i) => `<label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:.84rem;cursor:pointer;">
-          <input type="checkbox" id="va-sk-${i}" style="margin-top:2px;flex-shrink:0;"> <span>${t}</span></label>`).join('')}
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel">Sikkerhetskrav — Før arbeidet starter</div>
+        ${VA_SIKKERHETSKRAV.map((t,i) => `<label class="skj-checkbox-rad">
+          <input type="checkbox" id="va-sk-${i}"> <span>${t}</span></label>`).join('')}
       </div>
-      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:14px;">
-        <div style="font-weight:600;font-size:.9rem;margin-bottom:10px;">Eksplosjonsfarlige rom og områder</div>
-        <div style="display:flex;gap:12px;margin-bottom:8px;">
-          <label style="font-size:.85rem;cursor:pointer;"><input type="radio" name="va-eksplosjon" value="nei" checked onchange="vaEksplosjonEndret()"> Ikke aktuelt</label>
-          <label style="font-size:.85rem;cursor:pointer;"><input type="radio" name="va-eksplosjon" value="ja" onchange="vaEksplosjonEndret()"> Ja</label>
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel">Eksplosjonsfarlige rom og områder</div>
+        <p style="font-size:.85rem;color:var(--muted);margin:0 0 10px;">Gjelder rom hvor det foreligger eksplosjonsfare pga. brannfarlig gass, damp eller støv.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <label style="display:flex;align-items:center;gap:10px;padding:14px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:.95rem;">
+            <input type="radio" name="va-eksplosjon" value="nei" checked onchange="vaEksplosjonEndret()" style="width:20px;height:20px;accent-color:var(--accent);"> Ikke aktuelt</label>
+          <label style="display:flex;align-items:center;gap:10px;padding:14px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:.95rem;">
+            <input type="radio" name="va-eksplosjon" value="ja" onchange="vaEksplosjonEndret()" style="width:20px;height:20px;accent-color:var(--accent);"> Ja, aktuelt</label>
         </div>
-        <div id="va-eksplosjon-detaljer" style="display:none;">
-          <div style="margin-bottom:8px;">
-            <label style="font-size:.84rem;font-weight:600;">Skriftlig arbeidstillatelse signert av kontrollør</label>
-            <div style="display:flex;gap:12px;margin-top:4px;">
-              <label style="font-size:.84rem;cursor:pointer;"><input type="radio" name="va-tillatelse" value="ja"> Ja</label>
-              <label style="font-size:.84rem;cursor:pointer;"><input type="radio" name="va-tillatelse" value="nei"> Nei</label>
+        <div id="va-eksplosjon-detaljer" style="display:none;background:#fff8e1;border:1.5px solid #fbbf24;border-radius:10px;padding:14px;">
+          <div class="skj-felt">
+            <span class="skj-label">Skriftlig arbeidstillatelse signert av kontrollør</span>
+            <div class="skj-segment">
+              <label><input type="radio" name="va-tillatelse" value="ja"><span>Ja</span></label>
+              <label><input type="radio" name="va-tillatelse" value="nei"><span>Nei</span></label>
             </div>
           </div>
-          <div><label style="font-size:.84rem;">Navn på kontrollør</label>
-            <input id="va-kontroller-navn" type="text" style="width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.85rem;margin-top:4px;"></div>
+          <div class="skj-felt"><span class="skj-label">Navn på kontrollør</span>
+            <input id="va-kontroller-navn" type="text" class="skj-input"></div>
         </div>
       </div>
-      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:20px;">
-        <div style="font-weight:600;font-size:.9rem;margin-bottom:10px;">Oppfølging etter avsluttet arbeid</div>
-        ${VA_OPPFOLGING.map((t,i) => `<label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:.84rem;cursor:pointer;">
-          <input type="checkbox" id="va-opp-${i}" style="margin-top:2px;flex-shrink:0;"> <span>${t}</span></label>`).join('')}
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel">Oppfølging etter avsluttet arbeid</div>
+        ${VA_OPPFOLGING.map((t,i) => `<label class="skj-checkbox-rad">
+          <input type="checkbox" id="va-opp-${i}"> <span>${t}</span></label>`).join('')}
       </div>
-      <div id="va-lagre-status" style="font-size:.85rem;color:var(--muted);margin-bottom:8px;min-height:20px;"></div>
-      <div style="display:flex;gap:8px;">
-        <button type="submit" class="btn btn-primary">💾 Lagre og send til ProdSys</button>
+
+      <div id="va-lagre-status" style="font-size:.9rem;color:var(--muted);min-height:20px;text-align:center;"></div>
+      <div class="skj-sticky-bunn">
+        <button type="submit" class="btn btn-primary" style="flex:1;">💾 Lagre og send til ProdSys</button>
         <button type="button" class="btn btn-secondary" onclick="lukkVAModal()">Avbryt</button>
       </div>
     </form>`;
   document.getElementById('va-modal').style.display = 'flex';
-  requestAnimationFrame(() => {
-    initSignaturCanvas('va-oppdragsgiver-sig');
-  });
+  requestAnimationFrame(() => { initSignaturCanvas('va-oppdragsgiver-sig'); });
 }
 
 function vaEksplosjonEndret() {
@@ -3479,17 +3519,16 @@ function vaEksplosjonEndret() {
 }
 
 function vaPersonRadHtml(prefix, nr) {
-  return `<div id="${prefix}-rad-${nr}" style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:8px;">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-      <div style="flex:1;min-width:130px;"><label style="font-size:.78rem;color:var(--muted);">Navn</label>
-        <input id="${prefix}-navn-${nr}" type="text" style="width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.83rem;"></div>
-      <div style="flex:1;min-width:100px;"><label style="font-size:.78rem;color:var(--muted);">Mobil</label>
-        <input id="${prefix}-mobil-${nr}" type="tel" style="width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.83rem;"></div>
-      <div style="flex:1;min-width:100px;"><label style="font-size:.78rem;color:var(--muted);">Sertifikatnr.</label>
-        <input id="${prefix}-sert-${nr}" type="text" style="width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.83rem;"></div>
-    </div>
+  return `<div id="${prefix}-rad-${nr}" class="skj-person-kort">
+    <div class="skj-felt"><span class="skj-label">Navn</span>
+      <input id="${prefix}-navn-${nr}" type="text" class="skj-input" autocomplete="name"></div>
+    <div class="skj-felt"><span class="skj-label">Mobilnummer</span>
+      <input id="${prefix}-mobil-${nr}" type="tel" class="skj-input" autocomplete="tel"></div>
+    <div class="skj-felt"><span class="skj-label">Sertifikatnummer</span>
+      <input id="${prefix}-sert-${nr}" type="text" class="skj-input"></div>
     ${signaturHtml(`${prefix}-sig-${nr}`, 'Signatur')}
-    <button type="button" onclick="document.getElementById('${prefix}-rad-${nr}').remove()" style="font-size:.78rem;color:var(--red);background:none;border:none;cursor:pointer;">Fjern</button>
+    <button type="button" onclick="document.getElementById('${prefix}-rad-${nr}').remove()"
+      style="font-size:.85rem;color:var(--red);background:none;border:none;cursor:pointer;padding:4px 0;">🗑 Fjern</button>
   </div>`;
 }
 
@@ -3680,71 +3719,83 @@ function åpneSJASkjema() {
   const prosjektNavn = `${aktivOrdre.customer_name||''} #${aktivOrdre.order_number||''}`.trim();
   let sjekkHtml = '';
   SJA_SJEKKLISTE.forEach((sek, si) => {
-    sjekkHtml += `<div style="margin-bottom:10px;"><div style="font-weight:600;font-size:.87rem;margin-bottom:6px;color:var(--accent);">${sek.seksjon}</div>`;
+    sjekkHtml += `<div class="skj-seksjon" style="margin-bottom:18px;">
+      <div style="font-size:.88rem;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em;">${sek.seksjon}</div>`;
     sek.spørsmål.forEach((sp, qi) => {
       const key = `sja-sjekk-${si}-${qi}`;
-      sjekkHtml += `<div style="margin-bottom:8px;"><div style="font-size:.84rem;margin-bottom:4px;">${sp}</div>
-        <div style="display:flex;gap:16px;">
-          <label style="font-size:.83rem;cursor:pointer;"><input type="radio" name="${key}" value="ja"> Ja</label>
-          <label style="font-size:.83rem;cursor:pointer;"><input type="radio" name="${key}" value="nei"> Nei</label>
-          <label style="font-size:.83rem;cursor:pointer;"><input type="radio" name="${key}" value="ia" checked> Ikke aktuelt</label>
+      sjekkHtml += `<div class="skj-sporsmal">
+        <div class="skj-sporsmal-tekst">${sp}</div>
+        <div class="skj-segment">
+          <label><input type="radio" name="${key}" value="ja"><span>Ja</span></label>
+          <label><input type="radio" name="${key}" value="nei"><span>Nei</span></label>
+          <label><input type="radio" name="${key}" value="ia" checked><span>Ikke aktuelt</span></label>
         </div></div>`;
     });
     sjekkHtml += '</div>';
   });
   document.getElementById('sja-form-wrap').innerHTML = `
-    <div class="modal-title" style="font-size:1.05rem;">📋 SJA – Sikker jobb-analyse</div>
+    <div class="modal-title" style="margin-bottom:20px;">📋 SJA – Sikker jobb-analyse</div>
     <form id="sja-form" onsubmit="lagreSJA(event)">
-      <div class="detail-grid" style="margin-bottom:16px;">
-        <div class="detail-field detail-full"><label>Tittel *</label>
-          <input id="sja-tittel" type="text" required style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
-        <div class="detail-field"><label>Prosjekt</label>
-          <input id="sja-prosjekt" type="text" value="${prosjektNavn}" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
-        <div class="detail-field"><label>Ansvarlig</label>
-          <input id="sja-ansvarlig" type="text" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
-        <div class="detail-field"><label>Dato</label>
-          <input id="sja-dato" type="date" value="${today}" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
-        <div class="detail-field"><label>Ansvarlig bedrift</label>
-          <input id="sja-bedrift" type="text" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
-      </div>
-      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:14px;">
-        <div style="font-weight:600;font-size:.9rem;margin-bottom:10px;">Årsak til at SJA skal gjennomføres</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-          ${SJA_ARSAKER.map((a,i) => `<label style="display:flex;align-items:flex-start;gap:6px;font-size:.82rem;cursor:pointer;">
-            <input type="checkbox" id="sja-arsak-${i}" style="margin-top:2px;flex-shrink:0;"> <span>${a}</span></label>`).join('')}
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel">Om analysen</div>
+        <div class="skj-felt"><span class="skj-label">Tittel *</span>
+          <input id="sja-tittel" type="text" class="skj-input" required placeholder="Hva gjelder SJA-en?"></div>
+        <div class="skj-felt"><span class="skj-label">Prosjekt / ordre</span>
+          <input id="sja-prosjekt" type="text" class="skj-input" value="${prosjektNavn}"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="skj-felt"><span class="skj-label">Ansvarlig person</span>
+            <input id="sja-ansvarlig" type="text" class="skj-input" autocomplete="name"></div>
+          <div class="skj-felt"><span class="skj-label">Dato</span>
+            <input id="sja-dato" type="date" class="skj-input" value="${today}"></div>
         </div>
+        <div class="skj-felt"><span class="skj-label">Ansvarlig bedrift</span>
+          <input id="sja-bedrift" type="text" class="skj-input" autocomplete="organization"></div>
       </div>
-      <div style="margin-bottom:14px;">
-        <div style="font-weight:600;font-size:.9rem;margin-bottom:8px;">Deloppgaver
-          <button type="button" onclick="leggTilSJADeloppgave()" class="btn btn-secondary btn-sm" style="margin-left:10px;">+ Legg til</button>
-        </div>
-        <div id="sja-deloppg-liste">
-          <div style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 1fr 28px;gap:6px;font-size:.76rem;font-weight:600;color:var(--muted);padding:0 4px 4px;">
-            <span>Tittel</span><span>Farer</span><span>Risiko</span><span>Tiltak</span><span>Ansvarlig</span><span></span>
-          </div>
-        </div>
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel">Årsak til SJA</div>
+        ${SJA_ARSAKER.map((a,i) => `<label class="skj-checkbox-rad">
+          <input type="checkbox" id="sja-arsak-${i}"> <span>${a}</span></label>`).join('')}
       </div>
-      <div style="margin-bottom:14px;">
-        <div style="font-weight:600;font-size:.9rem;margin-bottom:8px;">Deltagere
-          <button type="button" onclick="leggTilSJADeltager()" class="btn btn-secondary btn-sm" style="margin-left:10px;">+ Legg til</button>
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel" style="display:flex;align-items:center;justify-content:space-between;">
+          Deloppgaver
+          <button type="button" onclick="leggTilSJADeloppgave()" class="btn btn-secondary btn-sm">+ Legg til</button>
+        </div>
+        <div id="sja-deloppg-liste"></div>
+      </div>
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel" style="display:flex;align-items:center;justify-content:space-between;">
+          Deltagere
+          <button type="button" onclick="leggTilSJADeltager()" class="btn btn-secondary btn-sm">+ Legg til</button>
         </div>
         <div id="sja-deltagere-liste"></div>
       </div>
-      <div style="margin-bottom:14px;">
-        <label style="font-weight:600;font-size:.9rem;">Lærepunkter</label>
-        <textarea id="sja-larepunkter" rows="3" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:.85rem;margin-top:6px;resize:vertical;"></textarea>
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel">Lærepunkter</div>
+        <textarea id="sja-larepunkter" class="skj-textarea" placeholder="Notater, erfaringer, forbedringspunkter…"></textarea>
       </div>
-      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:14px;">
-        <div style="font-weight:600;font-size:.9rem;margin-bottom:10px;">Sjekkliste</div>
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel">Sjekkliste</div>
         ${sjekkHtml}
       </div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
-        <div style="flex:1;min-width:200px;">${signaturHtml('sja-utforende-sig', 'Utførende signatur')}</div>
-        <div style="flex:1;min-width:200px;">${signaturHtml('sja-ansvarlig-sig', 'Ansvarlig signatur')}</div>
+
+      <div class="skj-seksjon">
+        <div class="skj-seksjon-tittel">Signaturer</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>${signaturHtml('sja-utforende-sig', 'Utførende')}</div>
+          <div>${signaturHtml('sja-ansvarlig-sig', 'Ansvarlig')}</div>
+        </div>
       </div>
-      <div id="sja-lagre-status" style="font-size:.85rem;color:var(--muted);margin-bottom:8px;min-height:20px;"></div>
-      <div style="display:flex;gap:8px;">
-        <button type="submit" class="btn btn-primary">💾 Lagre og send til ProdSys</button>
+
+      <div id="sja-lagre-status" style="font-size:.9rem;color:var(--muted);min-height:20px;text-align:center;"></div>
+      <div class="skj-sticky-bunn">
+        <button type="submit" class="btn btn-primary" style="flex:1;">💾 Lagre og send til ProdSys</button>
         <button type="button" class="btn btn-secondary" onclick="lukkSJAModal()">Avbryt</button>
       </div>
     </form>`;
@@ -3760,13 +3811,20 @@ function leggTilSJADeloppgave() {
   const n = _sjaDeloppgNr;
   const liste = document.getElementById('sja-deloppg-liste');
   if (!liste) return;
-  liste.insertAdjacentHTML('beforeend', `<div id="sja-do-${n}" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 1fr 28px;gap:6px;margin-bottom:6px;">
-    <input id="sja-do-tittel-${n}" type="text" placeholder="Tittel" style="padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;">
-    <input id="sja-do-farer-${n}" type="text" placeholder="Farer" style="padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;">
-    <input id="sja-do-risiko-${n}" type="text" placeholder="Risiko" style="padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;">
-    <input id="sja-do-tiltak-${n}" type="text" placeholder="Tiltak" style="padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;">
-    <input id="sja-do-ansvarlig-${n}" type="text" placeholder="Ansvarlig" style="padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;">
-    <button type="button" onclick="document.getElementById('sja-do-${n}').remove()" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:1rem;padding:0;">✕</button>
+  liste.insertAdjacentHTML('beforeend', `<div id="sja-do-${n}" class="skj-do-kort">
+    <div style="font-weight:600;font-size:.82rem;color:var(--muted);margin-bottom:10px;">Deloppgave ${n}</div>
+    <div class="skj-felt"><span class="skj-label">Tittel</span>
+      <input id="sja-do-tittel-${n}" type="text" class="skj-input"></div>
+    <div class="skj-felt"><span class="skj-label">Farer</span>
+      <input id="sja-do-farer-${n}" type="text" class="skj-input"></div>
+    <div class="skj-felt"><span class="skj-label">Risiko</span>
+      <input id="sja-do-risiko-${n}" type="text" class="skj-input"></div>
+    <div class="skj-felt"><span class="skj-label">Tiltak</span>
+      <input id="sja-do-tiltak-${n}" type="text" class="skj-input"></div>
+    <div class="skj-felt"><span class="skj-label">Ansvarlig</span>
+      <input id="sja-do-ansvarlig-${n}" type="text" class="skj-input"></div>
+    <button type="button" onclick="document.getElementById('sja-do-${n}').remove()"
+      style="font-size:.85rem;color:var(--red);background:none;border:none;cursor:pointer;padding:4px 0;">🗑 Fjern</button>
   </div>`);
 }
 
@@ -3775,15 +3833,14 @@ function leggTilSJADeltager() {
   const n = _sjaDeltNr;
   const liste = document.getElementById('sja-deltagere-liste');
   if (!liste) return;
-  liste.insertAdjacentHTML('beforeend', `<div id="sja-dt-${n}" style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:8px;">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-      <div style="flex:1;min-width:140px;"><label style="font-size:.78rem;color:var(--muted);">Navn</label>
-        <input id="sja-dt-navn-${n}" type="text" style="width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.83rem;"></div>
-      <div style="flex:1;min-width:140px;"><label style="font-size:.78rem;color:var(--muted);">Firma</label>
-        <input id="sja-dt-firma-${n}" type="text" style="width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.83rem;"></div>
-    </div>
+  liste.insertAdjacentHTML('beforeend', `<div id="sja-dt-${n}" class="skj-person-kort">
+    <div class="skj-felt"><span class="skj-label">Navn</span>
+      <input id="sja-dt-navn-${n}" type="text" class="skj-input" autocomplete="name"></div>
+    <div class="skj-felt"><span class="skj-label">Firma</span>
+      <input id="sja-dt-firma-${n}" type="text" class="skj-input" autocomplete="organization"></div>
     ${signaturHtml(`sja-dt-sig-${n}`, 'Signatur')}
-    <button type="button" onclick="document.getElementById('sja-dt-${n}').remove()" style="font-size:.78rem;color:var(--red);background:none;border:none;cursor:pointer;">Fjern</button>
+    <button type="button" onclick="document.getElementById('sja-dt-${n}').remove()"
+      style="font-size:.85rem;color:var(--red);background:none;border:none;cursor:pointer;padding:4px 0;">🗑 Fjern</button>
   </div>`);
   requestAnimationFrame(() => initSignaturCanvas(`sja-dt-sig-${n}`));
 }
@@ -4364,13 +4421,13 @@ async function sendArtikkelTilOrdre() {
   }
 }
 </script>
-<div class="modal-overlay" id="sja-modal" style="display:none;" onclick="lukkSJAModalKlikk(event)">
+<div class="modal-overlay sja-modal" id="sja-modal" style="display:none;" onclick="lukkSJAModalKlikk(event)">
   <div class="modal" style="max-width:780px;max-height:92vh;overflow-y:auto;">
     <button class="modal-close" onclick="lukkSJAModal()">✕</button>
     <div id="sja-form-wrap"></div>
   </div>
 </div>
-<div class="modal-overlay" id="va-modal" style="display:none;" onclick="lukkVAModalKlikk(event)">
+<div class="modal-overlay va-modal" id="va-modal" style="display:none;" onclick="lukkVAModalKlikk(event)">
   <div class="modal" style="max-width:780px;max-height:92vh;overflow-y:auto;">
     <button class="modal-close" onclick="lukkVAModal()">✕</button>
     <div id="va-form-wrap"></div>
