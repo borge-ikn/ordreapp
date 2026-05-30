@@ -3335,13 +3335,16 @@ async function sokArtikler(q) {
       dropdown.innerHTML = '<div style="padding:8px 12px;color:var(--muted);">Ingen treff</div>';
       return;
     }
-    dropdown.innerHTML = items.map(a =>
-      `<div class="artikkel-sok-rad" onclick='velgArtikkel(${a.id},${JSON.stringify(a.articleNumber)},${JSON.stringify(a.description||a.name||'')})'
+    if (items[0]) console.log('[artikkelSok] eksempel-felt:', Object.keys(items[0]), items[0]);
+    dropdown.innerHTML = items.map(a => {
+      const nr = a.articleNumber || a.no || a.articleNo || a.number || a.artNo || '';
+      const desc = a.description || a.name || '';
+      return `<div class="artikkel-sok-rad" onclick='velgArtikkel(${a.id},${JSON.stringify(nr)},${JSON.stringify(desc)})'
         style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;">
-        <span style="font-weight:600;">${a.articleNumber||''}</span>
-        <span style="color:#555;margin-left:6px;">${a.description||a.name||''}</span>
-      </div>`
-    ).join('');
+        <span style="font-weight:600;">${nr}</span>
+        <span style="color:#555;margin-left:6px;">${desc}</span>
+      </div>`;
+    }).join('');
   } catch(e) {
     dropdown.innerHTML = `<div style="padding:8px 12px;color:var(--red);">Feil: ${e.message}</div>`;
   }
