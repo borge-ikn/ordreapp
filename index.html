@@ -1836,7 +1836,7 @@ async function fjernMinTildelingMedSjekk(orderNumber){
 // ── ORDRE DETALJ + ORDRETIMER ─────────────────────────────────────────────
 
 async function visDetalj(jsonStr){
-  aktivOrdre=JSON.parse(jsonStr);redigeringsId=null;
+  aktivOrdre=JSON.parse(jsonStr);redigeringsId=null;_artiklerLastet=false;
   document.getElementById('modal-innhold').innerHTML=`
     <div class="modal-title">#${aktivOrdre.order_number} – ${aktivOrdre.customer_name||'–'}</div>
     <div class="detail-grid">
@@ -3284,6 +3284,20 @@ async function oppdaterCommission(orderLineId) {
 }
 
 let _artikkelSokTimeout = null;
+let _artiklerLastet = false;
+
+function toggleArtikkelSeksjon() {
+  const innhold = document.getElementById('artikkel-innhold');
+  const pil = document.getElementById('artikkel-pil');
+  if (!innhold) return;
+  const aapen = innhold.style.display !== 'none';
+  innhold.style.display = aapen ? 'none' : 'block';
+  if (pil) pil.textContent = aapen ? '▶' : '▼';
+  if (!aapen && !_artiklerLastet) {
+    _artiklerLastet = true;
+    hentOgVisOrdrelinjer();
+  }
+}
 let _valgtArtikkel = null;
 
 function oppdaterArtikkelSeksjon() {
@@ -3291,30 +3305,29 @@ function oppdaterArtikkelSeksjon() {
   if (!seksjon) return;
   const harPsId = !!(aktivOrdre && aktivOrdre.ps_id);
   seksjon.innerHTML = `
-    <div class="timer-header">
-      <div class="timer-heading">📦 Artikler</div>
+    <div class="timer-header" onclick="toggleArtikkelSeksjon()" style="cursor:pointer;user-select:none;">
+      <div class="timer-heading">📦 Artikler <span id="artikkel-pil" style="font-size:.75rem;color:var(--muted);">▶</span></div>
     </div>
-    ${!harPsId ? '<p style="font-size:.85rem;color:var(--muted)">Intern ProdSys-ID mangler på denne ordren — artikkeltillegg ikke tilgjengelig.</p>' : `
-    <div id="ordrelinjer-liste" style="margin-bottom:12px;">
-      <div class="loader" style="padding:8px 0;"><div class="spinner"></div></div>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">
-      <div style="flex:1;min-width:180px;position:relative;">
-        <input id="artikkel-sok-input" type="text" placeholder="Søk artikkelnr. eller beskrivelse…"
-          oninput="artikkelSokDebounce(this.value)"
-          autocomplete="off"
-          style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:.88rem;">
-        <div id="artikkel-sok-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d1d5db;border-radius:0 0 8px 8px;z-index:200;max-height:220px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.1);font-size:.85rem;"></div>
+    <div id="artikkel-innhold" style="display:none;">
+      ${!harPsId ? '<p style="font-size:.85rem;color:var(--muted)">Intern ProdSys-ID mangler på denne ordren — artikkeltillegg ikke tilgjengelig.</p>' : `
+      <div id="ordrelinjer-liste" style="margin-bottom:12px;"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">
+        <div style="flex:1;min-width:180px;position:relative;">
+          <input id="artikkel-sok-input" type="text" placeholder="Søk artikkelnr. eller beskrivelse…"
+            oninput="artikkelSokDebounce(this.value)"
+            autocomplete="off"
+            style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:.88rem;">
+          <div id="artikkel-sok-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d1d5db;border-radius:0 0 8px 8px;z-index:200;max-height:220px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.1);font-size:.85rem;"></div>
+        </div>
+        <div style="width:80px;">
+          <input id="artikkel-qty-input" type="number" min="0.01" step="any" value="1"
+            style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:.88rem;" placeholder="Antall">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="sendArtikkelTilOrdre()">Legg til</button>
       </div>
-      <div style="width:80px;">
-        <input id="artikkel-qty-input" type="number" min="0.01" step="any" value="1"
-          style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:.88rem;" placeholder="Antall">
-      </div>
-      <button class="btn btn-primary btn-sm" onclick="sendArtikkelTilOrdre()">Legg til</button>
-    </div>
-    <div id="artikkel-status" style="font-size:.82rem;color:var(--muted);min-height:18px;"></div>
-    `}`;
-  if (harPsId) hentOgVisOrdrelinjer();
+      <div id="artikkel-status" style="font-size:.82rem;color:var(--muted);min-height:18px;"></div>
+      `}
+    </div>`;
 }
 
 async function hentOgVisOrdrelinjer() {
