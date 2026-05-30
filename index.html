@@ -4161,7 +4161,14 @@ function toggleAbusDropdown(e) {
   if (!open) {
     const rect = document.getElementById('abus-tab').getBoundingClientRect();
     dd.style.top = rect.bottom + 4 + 'px';
-    dd.style.left = Math.max(8, rect.left) + 'px';
+    const ddW = Math.min(300, window.innerWidth - 16);
+    if (rect.left + ddW > window.innerWidth - 8) {
+      dd.style.left = 'auto';
+      dd.style.right = Math.max(8, window.innerWidth - rect.right) + 'px';
+    } else {
+      dd.style.left = Math.max(8, rect.left) + 'px';
+      dd.style.right = 'auto';
+    }
   }
   dd.style.display = open ? 'none' : 'block';
 }
