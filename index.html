@@ -93,6 +93,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .order-list { display:flex;flex-direction:column;gap:10px; }
 .order-card { background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px;cursor:pointer;transition:box-shadow .15s,transform .1s;display:flex;justify-content:space-between;align-items:flex-start;gap:16px; }
 .order-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.12);transform:translateY(-1px); }
+.artikkel-sok-rad:hover { background:#f5f7fa; }
 .order-nr { font-size:1rem;font-weight:700;color:var(--accent); }
 .order-kunde { font-size:.95rem;margin-top:2px; }
 .order-meta { display:flex;gap:12px;margin-top:6px;flex-wrap:wrap; }
@@ -155,6 +156,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .tform-group input:focus,.tform-group select:focus,.tform-group textarea:focus { border-color:var(--accent); }
 .tform-group textarea { resize:vertical;min-height:64px; }
 .tform-actions { display:flex;gap:8px;justify-content:flex-end;margin-top:14px; }
+
+/* PO SYNC */
+.po-badge { display:inline-flex;align-items:center;font-size:.72rem;font-weight:600;padding:2px 7px;border-radius:12px;margin-top:4px; }
+.po-badge.ok    { background:#d1fae5;color:#065f46; }
+.po-badge.feil  { background:#fee2e2;color:#991b1b;cursor:help; }
+.po-badge.usent { background:#f3f4f6;color:#9ca3af; }
 
 /* MIN DAG */
 .dag-nav { background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap; }
@@ -739,6 +746,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <button class="modal-close" onclick="lukkModal()">✕</button>
     <div id="modal-innhold"></div>
     <hr class="section-divider">
+    <div id="artikkel-seksjon"></div>
+    <hr class="section-divider">
     <div id="timer-seksjon"></div>
   </div>
 </div>
@@ -796,6 +805,7 @@ const SUPABASE_URL      = 'https://eeikodpeeybrzgxcsflh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlaWtvZHBlZXlicnpneGNzZmxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzY3MjcsImV4cCI6MjA5MzYxMjcyN30.nJFkmdOvpHrq2MGaDIyF0GShPBUOnOB9h-cf9-elsTY';
 const MAKE_WEBHOOK        = 'https://hook.eu1.make.com/4xa8o3um368rto24hc6oq9edgwo25bvt';
 const MAKE_ORDERS_WEBHOOK = 'https://hook.eu1.make.com/5l3wj9ejndmng98am5y6ip3jb5rlvpym';
+const MAKE_PO_TIMEREGISTRER_WEBHOOK = 'LIMES_INN_MAKE_WEBHOOK_URL_HER';
 const SHAREPOINT_URL      = 'https://industrikran.sharepoint.com/sites/QHSE/GoverningDocumentLibrary/Forms/AllItems.aspx?viewid=ae431a03-b1ff-4406-924e-7f2267f2f6bb';
 const PAGE_SIZE         = 30;
 const ORDINAER_TIMER    = 7.5;
@@ -1022,6 +1032,7 @@ async function getUser() {
 
 function mapProdsysOrdre(o) {
   return {
+    ps_id: o.id,
     order_number: o.orderNumber,
     customer_name: o.customerName,
     delivery_date: o.deliveryDate,
@@ -1032,6 +1043,7 @@ function mapProdsysOrdre(o) {
     status_name: o.statusName,
     category_id: o.categoryId,
     order_group: o.orderGroup || null,
+    customer_number: o.customerNumber || null,
     note: o.note
   };
 }
@@ -1226,7 +1238,7 @@ async function utforSplit(){
   }));
   // Fjern intern 'timer'-felt (er allerede satt per segment) og editId
   rader.forEach(r=>{delete r.editId;});
-  const{error}=await sb.from('timeregistrering').insert(rader);
+  const{data:insRader,error}=await sb.from('timeregistrering').insert(rader).select('id');
   if(error){toast('Feil: '+error.message,'error');return;}
   toast(`Timer lagret (${rader.length} poster) ✓`,'success');
   // Ta vare på kontekst-info FØR lukkSplitModal nullstiller dem
@@ -1244,6 +1256,7 @@ async function utforSplit(){
       if(empNr&&orderNr) lagreTildelingDB(orderNr,empNr);
     }
     await oppdaterTimerSeksjon();
+    if(!editId&&insRader) insRader.forEach((r,i)=>{ void sendTimeTilPO(r.id, rader[i]); });
   }
 }
 
@@ -1427,6 +1440,12 @@ document.addEventListener('click', function(e) {
     if (panel.contains(e.target)) return;
     panel.style.display = 'none';
   });
+  // Lukk artikkelsøk-dropdown ved klikk utenfor
+  const dd = document.getElementById('artikkel-sok-dropdown');
+  const inp = document.getElementById('artikkel-sok-input');
+  if (dd && dd.style.display !== 'none' && !dd.contains(e.target) && e.target !== inp) {
+    dd.style.display = 'none';
+  }
 });
 function renderSlicer(pfx) {
   const c = document.getElementById(`${pfx}-dato-slicer`);
@@ -1831,6 +1850,7 @@ async function visDetalj(jsonStr){
       ${aktivOrdre.note?`<div class="detail-field detail-full"><label>Notat</label><div class="detail-note">${aktivOrdre.note}</div></div>`:''}
     </div>`;
   document.getElementById('detalj-modal').style.display='flex';
+  oppdaterArtikkelSeksjon();
   await oppdaterTimerSeksjon();
 }
 
@@ -1854,6 +1874,12 @@ async function oppdaterTimerSeksjon(){
     timer.forEach(t=>{
       const erEgen=t.ansatt_id===uid;
       const dot=`<span class="fakt-dot ${t.er_fakturerbar?'ja':'nei'}" title="${t.er_fakturerbar?'Fakturerbar':'Ikke fakturerbar'}"></span>`;
+      const poFeilTitle=t.po_feil?(t.po_feil.replace(/"/g,"'").slice(0,120)):'';
+      const poBadge=t.po_sendt
+        ?`<span class="po-badge ok" title="Sendt til PowerOffice${t.po_id?' · ID '+t.po_id:''}">✓ PO</span>`
+        :t.po_feil
+          ?`<span class="po-badge feil" title="${poFeilTitle}">⚠ PO-feil</span>`
+          :`<span class="po-badge usent" title="Ikke sendt til PowerOffice">· PO</span>`;
       html+=`<div class="timer-rad">
         <div class="timer-rad-info">
           <div class="timer-rad-top">
@@ -1864,8 +1890,10 @@ async function oppdaterTimerSeksjon(){
           <div class="timer-akt">${t.aktivitet_navn}</div>
           <div class="timer-komm">${t.kommentar}</div>
           <div class="timer-ansatt">👤 ${t.ansatt_epost}</div>
+          ${poBadge}
         </div>
         ${erEgen?`<div class="timer-rad-actions">
+          ${!t.po_sendt?`<button class="btn btn-secondary btn-sm" onclick="retrySendPO(${t.id})" title="${t.po_feil?poFeilTitle:'Ikke sendt til PowerOffice'}">→ PO</button>`:''}
           <button class="btn btn-secondary btn-sm" onclick="redigerTimer(${t.id})">Rediger</button>
           <button class="btn btn-danger btn-sm" onclick="bekreftSlett('timer',${t.id})">Slett</button>
         </div>`:''}
@@ -1935,19 +1963,78 @@ async function lagreTimer(){
     aktivitet_kode:aktKode,aktivitet_navn:aktObj.navn,
     er_fakturerbar:aktObj.fakturerbar,kommentar:komm,
     ansatt_id:user.id,ansatt_epost:user.email,oppdatert_at:new Date().toISOString()};
-  let error;
-  if(redigeringsId){({error}=await sb.from('timeregistrering').update(rad).eq('id',redigeringsId));}
-  else{({error}=await sb.from('timeregistrering').insert(rad));}
+  let error, nyId=null;
+  if(redigeringsId){
+    ({error}=await sb.from('timeregistrering').update({...rad,po_sendt:false,po_id:null,po_sendt_at:null,po_feil:null}).eq('id',redigeringsId));
+  } else {
+    const{data:ins,error:e}=await sb.from('timeregistrering').insert(rad).select('id').single();
+    error=e; if(ins) nyId=ins.id;
+  }
   if(error){toast('Feil: '+error.message,'error');return;}
   // Auto-tildel ordren til brukeren ved ny registrering
   if(!redigeringsId){const empNr=brukerPONummer??brukerProdsysId;if(empNr)lagreTildelingDB(aktivOrdre.order_number,empNr);}
   toast(redigeringsId?'Timer oppdatert':'Timer lagret ✓','success');
   await oppdaterTimerSeksjon();
+  if(nyId) void sendTimeTilPO(nyId, rad);
 }
 async function redigerTimer(id){
   const{data}=await sb.from('timeregistrering').select('*').eq('id',id).single();
   if(data)visTimerForm(data);
 }
+
+// ── POWEROFFICE SYNC ──────────────────────────────────────────────────────────
+async function sendTimeTilPO(id, rad){
+  if(!brukerPONummer){
+    await sb.from('timeregistrering').update({po_feil:'Bruker ikke koblet til ansatt i PowerOffice'}).eq('id',id);
+    if(aktivOrdre) await oppdaterTimerSeksjon();
+    return;
+  }
+  const poBody={
+    ActivityCode: String(rad.aktivitet_kode),
+    EmployeeCode: Number(brukerPONummer),
+    Date: rad.dato,
+    Minutes: Math.round(Number(rad.timer)*60),
+    Comment: rad.kommentar||'',
+    ExternalImportReference: ('ikn-sb-'+id).slice(0,50)
+  };
+  if(rad.order_number) poBody.ProjectCode=String(rad.order_number);
+  if(aktivOrdre?.customer_number) poBody.CustomerCode=Number(aktivOrdre.customer_number);
+  if(brukerAvdelingKode) poBody.DepartmentCode=String(brukerAvdelingKode);
+  try{
+    const resp=await fetch(MAKE_PO_TIMEREGISTRER_WEBHOOK,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(poBody)
+    });
+    const result=await resp.json().catch(()=>({}));
+    if(!resp.ok||result.error){
+      const feil=result.error||result.Message||`HTTP ${resp.status}`;
+      await sb.from('timeregistrering').update({po_feil:String(feil).slice(0,500),po_sendt:false}).eq('id',id);
+      toast('PO-feil: '+feil,'warning');
+    } else {
+      const poId=result.Id??result.id??null;
+      await sb.from('timeregistrering').update({
+        po_id: poId!=null?String(poId):null,
+        po_sendt: true,
+        po_sendt_at: new Date().toISOString(),
+        po_feil: null
+      }).eq('id',id);
+    }
+  } catch(err){
+    await sb.from('timeregistrering').update({po_feil:err.message.slice(0,500),po_sendt:false}).eq('id',id);
+    toast('Kunne ikke nå Make-webhook','error');
+  }
+  if(aktivOrdre) await oppdaterTimerSeksjon();
+}
+
+async function retrySendPO(id){
+  const{data:rad}=await sb.from('timeregistrering').select('*').eq('id',id).single();
+  if(!rad) return;
+  await sb.from('timeregistrering').update({po_feil:null}).eq('id',id);
+  await oppdaterTimerSeksjon();
+  void sendTimeTilPO(id,rad);
+}
+
 function lukkModal(){document.getElementById('detalj-modal').style.display='none';aktivOrdre=null;}
 function lukkModalKlikk(e){if(e.target===document.getElementById('detalj-modal'))lukkModal();}
 
@@ -3128,7 +3215,9 @@ async function sendOrdre(e){
         : (res?.title || res?.detail || res?.message || ('HTTP '+(wrapper.statusCode||resp.status)));
       throw new Error(errDetalj);
     }
-    const ordreNr = res.orderNumber || res.id || payload.orderNumber || 0;
+    // ProdSys POST /orders returnerer kun orderId som tall: {"ok":true,"data":67944}
+    const psId = typeof wrapper.data === 'number' ? wrapper.data : (res?.id || res?.orderId || null);
+    const ordreNr = typeof res === 'object' ? (res.orderNumber || res.id || 0) : 0;
     toast('Ordre opprettet!'+(ordreNr?' #'+ordreNr:''),'success');
     nullstillSkjema();
     byttFane('sok');
@@ -3136,6 +3225,7 @@ async function sendOrdre(e){
 
     // Åpne den nyopprettede ordren i modal umiddelbart
     const nyOrdre = {
+      ps_id:          psId,
       order_number:   ordreNr,
       customer_name:  kundenavn || null,
       status_name:    res.statusName || res.status_name || 'Ny',
@@ -3147,8 +3237,151 @@ async function sendOrdre(e){
       note:           payload.note
     };
     visDetalj(JSON.stringify(nyOrdre));
+
+    // Scenario B: legg til forhåndsdefinerte artikler for valgt gruppe
+    if (psId && payload.orderGroup) {
+      const maler = await hentGruppeArtikler(payload.orderGroup);
+      for (const mal of maler) {
+        try {
+          const olResp = await leggTilArtikkel(psId, mal.article_id, mal.qty);
+          if (olResp?.id) await oppdaterCommission(olResp.id);
+        } catch(e) {
+          console.warn('Feil ved automatisk artikkeltillegg:', e.message);
+        }
+      }
+      if (maler.length > 0) toast(`${maler.length} artikkel(er) lagt til automatisk`, 'success');
+    }
   }catch(err){toast('Feil: '+err.message,'error');}
   finally{btn.disabled=false;btn.textContent='Opprett ordre';}
+}
+
+// ── ARTIKKEL-FUNKSJONER (Scenario A + B) ──────────────────────────────────
+
+async function hentGruppeArtikler(gruppeNavn) {
+  const { data, error } = await sb.from('gruppe_artikkelmal')
+    .select('*').eq('gruppe_navn', gruppeNavn);
+  if (error) { console.warn('gruppe_artikkelmal feil:', error.message); return []; }
+  return data || [];
+}
+
+async function leggTilArtikkel(orderId, articleId, qty) {
+  const resp = await fetch('/.netlify/functions/prodsys-proxy?path=orderlines', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderId, articleId, qty, type: 2, orderLineId: null, id: null, allowAddingProducts: false })
+  });
+  if (!resp.ok) throw new Error('Feil ved POST orderlines: ' + resp.status);
+  return resp.json().catch(() => ({}));
+}
+
+async function oppdaterCommission(orderLineId) {
+  const resp = await fetch(`/.netlify/functions/prodsys-proxy?path=orderlines/commission&id=${orderLineId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}'
+  });
+  if (!resp.ok) console.warn('commission feil:', resp.status);
+}
+
+let _artikkelSokTimeout = null;
+let _valgtArtikkel = null;
+
+function oppdaterArtikkelSeksjon() {
+  const seksjon = document.getElementById('artikkel-seksjon');
+  if (!seksjon) return;
+  const harPsId = !!(aktivOrdre && aktivOrdre.ps_id);
+  seksjon.innerHTML = `
+    <div class="timer-header">
+      <div class="timer-heading">📦 Legg til artikkel</div>
+    </div>
+    ${!harPsId ? '<p style="font-size:.85rem;color:var(--muted)">Intern ProdSys-ID mangler på denne ordren — artikkeltillegg ikke tilgjengelig.</p>' : `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">
+      <div style="flex:1;min-width:180px;position:relative;">
+        <input id="artikkel-sok-input" type="text" placeholder="Søk artikkelnr. eller beskrivelse…"
+          oninput="artikkelSokDebounce(this.value)"
+          autocomplete="off"
+          style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:.88rem;">
+        <div id="artikkel-sok-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d1d5db;border-radius:0 0 8px 8px;z-index:200;max-height:220px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.1);font-size:.85rem;"></div>
+      </div>
+      <div style="width:80px;">
+        <input id="artikkel-qty-input" type="number" min="0.01" step="any" value="1"
+          style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:.88rem;" placeholder="Antall">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="sendArtikkelTilOrdre()">Legg til</button>
+    </div>
+    <div id="artikkel-status" style="font-size:.82rem;color:var(--muted);min-height:18px;"></div>
+    `}`;
+}
+
+function artikkelSokDebounce(val) {
+  _valgtArtikkel = null;
+  document.getElementById('artikkel-status').textContent = '';
+  clearTimeout(_artikkelSokTimeout);
+  if (val.length < 2) { lukkArtikkelDropdown(); return; }
+  _artikkelSokTimeout = setTimeout(() => sokArtikler(val), 300);
+}
+
+async function sokArtikler(q) {
+  const dropdown = document.getElementById('artikkel-sok-dropdown');
+  if (!dropdown) return;
+  dropdown.innerHTML = '<div style="padding:8px 12px;color:var(--muted);">Søker…</div>';
+  dropdown.style.display = 'block';
+  try {
+    const resp = await fetch(`/.netlify/functions/prodsys-proxy?path=articles/search&q=${encodeURIComponent(q)}`);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    const items = Array.isArray(json) ? json : (json.data || []);
+    if (!items.length) {
+      dropdown.innerHTML = '<div style="padding:8px 12px;color:var(--muted);">Ingen treff</div>';
+      return;
+    }
+    dropdown.innerHTML = items.map(a =>
+      `<div class="artikkel-sok-rad" onclick='velgArtikkel(${a.id},${JSON.stringify(a.articleNumber)},${JSON.stringify(a.description||a.name||'')})'
+        style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;">
+        <span style="font-weight:600;">${a.articleNumber||''}</span>
+        <span style="color:#555;margin-left:6px;">${a.description||a.name||''}</span>
+      </div>`
+    ).join('');
+  } catch(e) {
+    dropdown.innerHTML = `<div style="padding:8px 12px;color:var(--red);">Feil: ${e.message}</div>`;
+  }
+}
+
+function velgArtikkel(id, number, description) {
+  _valgtArtikkel = { id, number, description };
+  const input = document.getElementById('artikkel-sok-input');
+  if (input) input.value = `${number} – ${description}`;
+  lukkArtikkelDropdown();
+  const status = document.getElementById('artikkel-status');
+  if (status) status.textContent = `Valgt: ${number}`;
+}
+
+function lukkArtikkelDropdown() {
+  const dd = document.getElementById('artikkel-sok-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+async function sendArtikkelTilOrdre() {
+  if (!_valgtArtikkel) { toast('Velg en artikkel fra listen', 'error'); return; }
+  const qty = parseFloat(document.getElementById('artikkel-qty-input')?.value) || 1;
+  const orderId = aktivOrdre?.ps_id;
+  if (!orderId) { toast('Mangler intern ordre-ID', 'error'); return; }
+  const status = document.getElementById('artikkel-status');
+  if (status) status.textContent = 'Legger til…';
+  try {
+    const olResp = await leggTilArtikkel(orderId, _valgtArtikkel.id, qty);
+    if (olResp?.id) await oppdaterCommission(olResp.id);
+    toast('Artikkel lagt til: ' + _valgtArtikkel.number, 'success');
+    _valgtArtikkel = null;
+    const input = document.getElementById('artikkel-sok-input');
+    if (input) input.value = '';
+    const qtyInput = document.getElementById('artikkel-qty-input');
+    if (qtyInput) qtyInput.value = '1';
+    if (status) status.textContent = '';
+  } catch(e) {
+    toast('Feil: ' + e.message, 'error');
+    if (status) status.textContent = '';
+  }
 }
 </script>
 <div id="ov-dato-slicer" onclick="event.stopPropagation()" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
