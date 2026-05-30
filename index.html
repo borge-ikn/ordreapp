@@ -3358,14 +3358,18 @@ async function lastOppSkjemaPDF(pdfBlob, filnavn) {
   });
   if (!r1.ok) throw new Error('Kunne ikke opprette ProdSys-dokument: HTTP ' + r1.status);
   const docId = await r1.json();
-  if (!docId) throw new Error('Fikk ikke documentId');
+  const docIdNum = typeof docId === 'object' ? (docId?.id || docId?.data) : docId;
+  if (!docIdNum) throw new Error('Fikk ikke documentId (fikk: ' + JSON.stringify(docId) + ')');
   // Steg 2: last opp PDF
   const form = new FormData();
   form.append('file', pdfBlob, filnavn);
-  const r2 = await fetch(`/.netlify/functions/prodsys-proxy?path=documents/files/upload&id=${docId}`, {
+  const r2 = await fetch(`/.netlify/functions/prodsys-proxy?path=documents/files/upload&id=${docIdNum}`, {
     method: 'POST', body: form
   });
-  if (!r2.ok) throw new Error('Filopplasting feilet: HTTP ' + r2.status);
+  if (!r2.ok) {
+    const errBody = await r2.text().catch(() => '');
+    throw new Error(`Filopplasting feilet: HTTP ${r2.status} – ${errBody.slice(0,300)}`);
+  }
 }
 
 // ── VARME ARBEIDER ────────────────────────────────────────────────────────
