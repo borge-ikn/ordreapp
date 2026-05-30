@@ -6,6 +6,7 @@
 <title>Industrikran – Ordreapp</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="stylesheet" href="dashboard-theme.css">
 <style>
 :root {
@@ -1887,7 +1888,11 @@ async function visDetalj(jsonStr){
       <div class="detail-field"><label>Kundereferanse</label><span>${aktivOrdre.customer_reference||'–'}</span></div>
       <div class="detail-field"><label>Ref.nummer</label><span>${aktivOrdre.customer_reference_number||'–'}</span></div>
       ${aktivOrdre.note?`<div class="detail-field detail-full"><label>Notat</label><div class="detail-note">${aktivOrdre.note}</div></div>`:''}
-    </div>`;
+    </div>
+    ${aktivOrdre.ps_id ? `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+      <button class="btn btn-secondary btn-sm" onclick="åpneSJASkjema()">📋 Ny SJA</button>
+      <button class="btn btn-secondary btn-sm" onclick="åpneVarmeArbSkjema()">🔥 Varme arbeider</button>
+    </div>` : ''}`;
   document.getElementById('detalj-modal').style.display='flex';
   oppdaterArtikkelSeksjon();
   oppdaterDokumentSeksjon();
@@ -3295,6 +3300,635 @@ async function sendOrdre(e){
   finally{btn.disabled=false;btn.textContent='Opprett ordre';}
 }
 
+// ── SJA OG VARME ARBEIDER ────────────────────────────────────────────────
+
+// Delte canvas-signatur-hjelpere
+function initSignaturCanvas(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - rect.left) * (canvas.width / rect.width), y: (src.clientY - rect.top) * (canvas.height / rect.height) };
+  }
+  function start(e) { e.preventDefault(); drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+  function draw(e) { e.preventDefault(); if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.stroke(); }
+  function stop() { drawing = false; }
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stop);
+  canvas.addEventListener('mouseleave', stop);
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove', draw, { passive: false });
+  canvas.addEventListener('touchend', stop);
+}
+
+function hentSignaturBase64(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+  const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+  return data.some((v, i) => i % 4 === 3 && v > 0) ? canvas.toDataURL('image/png') : null;
+}
+
+function rensSignatur(canvasId) {
+  const c = document.getElementById(canvasId);
+  if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+}
+
+function signaturHtml(canvasId, label) {
+  return `<div style="margin-bottom:12px;">
+    <label style="font-size:.82rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">${label}</label>
+    <canvas id="${canvasId}" width="340" height="100"
+      style="border:1px solid #d1d5db;border-radius:8px;background:#fff;display:block;touch-action:none;max-width:100%;"></canvas>
+    <button type="button" onclick="rensSignatur('${canvasId}')"
+      style="font-size:.78rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 0;">Tøm</button>
+  </div>`;
+}
+
+// Delt PDF-opplasting til ProdSys
+async function lastOppSkjemaPDF(pdfBlob, filnavn) {
+  if (!aktivOrdre?.ps_id) throw new Error('Mangler ps_id på ordren');
+  // Steg 1: opprett dokument
+  const r1 = await fetch('/.netlify/functions/prodsys-proxy?path=documents', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ documentCode: 36, orderId: aktivOrdre.ps_id })
+  });
+  if (!r1.ok) throw new Error('Kunne ikke opprette ProdSys-dokument: HTTP ' + r1.status);
+  const docId = await r1.json();
+  if (!docId) throw new Error('Fikk ikke documentId');
+  // Steg 2: last opp PDF
+  const form = new FormData();
+  form.append('file', pdfBlob, filnavn);
+  const r2 = await fetch(`/.netlify/functions/prodsys-proxy?path=documents/files/upload&id=${docId}`, {
+    method: 'POST', body: form
+  });
+  if (!r2.ok) throw new Error('Filopplasting feilet: HTTP ' + r2.status);
+}
+
+// ── VARME ARBEIDER ────────────────────────────────────────────────────────
+
+const VA_SIKKERHETSKRAV = [
+  'Oppdragstaker har ansvarsdekning i forhold til oppdragets størrelse og risiko.',
+  'Skriftlig risikovurdering av takarbeid er gjennomført og vedlagt denne sjekklisten. Ved annet arbeid enn takarbeid kan avkrysning utelates.',
+  'Risiko ved brennbar isolasjon i konstruksjoner er vurdert.',
+  'Åpninger i gulv, vegger og himlinger/tak er tettet.',
+  'Skjulte rom er kontrollert (trebjelkelag, ventilasjons- og avsugkanaler, nedforinger og rør og lignende).',
+  'Brennbare materialer/væsker er fjernet.',
+  'Brennbart materiale som ikke kan flyttes og brennbare bygningsdeler er beskyttet eller fuktet.',
+  'Egnet og tilstrekkelig slokkeutstyr i forskriftsmessig stand, minimum 2 stk. 6 kg/liter håndslokkeapparat skal være lett tilgjengelig.',
+  'Brannalarmdetektorer eller sløyfer er utkoblet.',
+  'Navngitt(e) brannvakt(er) er til stede under arbeidet, i pauser og nødvendig tid etter at arbeidet er avsluttet, minimum en time etter at arbeidet er avsluttet.',
+  'Arbeidsutstyret er kontrollert og i orden.',
+  'Behovet for økt beredskap for å kunne takle branntilløp er vurdert.',
+  'Det finnes minst to rømningsveier fra risikoområdet.',
+  'Nødnummer og prosedyrer for varsling av brann og ulykker er kjent. Arbeidsplassens adresse er kjent.'
+];
+
+const VA_OPPFOLGING = [
+  'Etterkontroll slik at det ikke er fare for at brann kan oppstå.',
+  'Brannalarmdetektorer eller sløyfe kobles inn igjen av',
+  'Gassflasker plasseres nært ytterdør/port for lett å kunne bringes i sikkerhet hvis det skulle oppstå brann.'
+];
+
+let _vaUtforendeNr = 0, _vaBrannvaktNr = 0;
+
+function åpneVarmeArbSkjema() {
+  _vaUtforendeNr = 0; _vaBrannvaktNr = 0;
+  const now = new Date().toISOString().slice(0, 16);
+  const prosjektNavn = `${aktivOrdre.customer_name||''} #${aktivOrdre.order_number||''}`.trim();
+  document.getElementById('va-form-wrap').innerHTML = `
+    <div class="modal-title" style="font-size:1.05rem;">🔥 Varme arbeider</div>
+    <form id="va-form" onsubmit="lagreVarmeArb(event)">
+      <div class="detail-grid" style="margin-bottom:16px;">
+        <div class="detail-field detail-full"><label>Arbeidets art *</label>
+          <input id="va-art" type="text" class="form-input" required style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
+        <div class="detail-field detail-full"><label>Prosjekt</label>
+          <input id="va-prosjekt" type="text" class="form-input" value="${prosjektNavn}" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
+        <div class="detail-field detail-full"><label>Arbeidsplass/adresse</label>
+          <input id="va-arbeidsplass" type="text" class="form-input" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
+        <div class="detail-field"><label>Dato/tid start</label>
+          <input id="va-start" type="datetime-local" value="${now}" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
+        <div class="detail-field"><label>Dato/tid slutt</label>
+          <input id="va-slutt" type="datetime-local" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
+      </div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:14px;">
+        <div style="font-weight:600;font-size:.9rem;margin-bottom:10px;">Oppdragsgiver</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+          <div style="flex:1;min-width:140px;"><label style="font-size:.8rem;color:var(--muted);">Navn/firma</label>
+            <input id="va-oppdragsgiver-navn" type="text" style="width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.85rem;"></div>
+          <div style="flex:1;min-width:120px;"><label style="font-size:.8rem;color:var(--muted);">Mobilnummer</label>
+            <input id="va-oppdragsgiver-mobil" type="tel" style="width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.85rem;"></div>
+        </div>
+        ${signaturHtml('va-oppdragsgiver-sig', 'Signatur oppdragsgiver')}
+      </div>
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:600;font-size:.9rem;margin-bottom:8px;">Utførende person(er)/firma
+          <button type="button" onclick="leggTilVAUtforende()" class="btn btn-secondary btn-sm" style="margin-left:10px;">+ Legg til</button>
+        </div>
+        <div id="va-utforende-liste"></div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:600;font-size:.9rem;margin-bottom:8px;">Brannvakt(er)
+          <button type="button" onclick="leggTilVABrannvakt()" class="btn btn-secondary btn-sm" style="margin-left:10px;">+ Legg til</button>
+        </div>
+        <div id="va-brannvakt-liste"></div>
+      </div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:14px;">
+        <div style="font-weight:600;font-size:.9rem;margin-bottom:10px;">Sikkerhetskrav — Før arbeidet starter</div>
+        ${VA_SIKKERHETSKRAV.map((t,i) => `<label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:.84rem;cursor:pointer;">
+          <input type="checkbox" id="va-sk-${i}" style="margin-top:2px;flex-shrink:0;"> <span>${t}</span></label>`).join('')}
+      </div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:14px;">
+        <div style="font-weight:600;font-size:.9rem;margin-bottom:10px;">Eksplosjonsfarlige rom og områder</div>
+        <div style="display:flex;gap:12px;margin-bottom:8px;">
+          <label style="font-size:.85rem;cursor:pointer;"><input type="radio" name="va-eksplosjon" value="nei" checked onchange="vaEksplosjonEndret()"> Ikke aktuelt</label>
+          <label style="font-size:.85rem;cursor:pointer;"><input type="radio" name="va-eksplosjon" value="ja" onchange="vaEksplosjonEndret()"> Ja</label>
+        </div>
+        <div id="va-eksplosjon-detaljer" style="display:none;">
+          <div style="margin-bottom:8px;">
+            <label style="font-size:.84rem;font-weight:600;">Skriftlig arbeidstillatelse signert av kontrollør</label>
+            <div style="display:flex;gap:12px;margin-top:4px;">
+              <label style="font-size:.84rem;cursor:pointer;"><input type="radio" name="va-tillatelse" value="ja"> Ja</label>
+              <label style="font-size:.84rem;cursor:pointer;"><input type="radio" name="va-tillatelse" value="nei"> Nei</label>
+            </div>
+          </div>
+          <div><label style="font-size:.84rem;">Navn på kontrollør</label>
+            <input id="va-kontroller-navn" type="text" style="width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.85rem;margin-top:4px;"></div>
+        </div>
+      </div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:20px;">
+        <div style="font-weight:600;font-size:.9rem;margin-bottom:10px;">Oppfølging etter avsluttet arbeid</div>
+        ${VA_OPPFOLGING.map((t,i) => `<label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:.84rem;cursor:pointer;">
+          <input type="checkbox" id="va-opp-${i}" style="margin-top:2px;flex-shrink:0;"> <span>${t}</span></label>`).join('')}
+      </div>
+      <div id="va-lagre-status" style="font-size:.85rem;color:var(--muted);margin-bottom:8px;min-height:20px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button type="submit" class="btn btn-primary">💾 Lagre og send til ProdSys</button>
+        <button type="button" class="btn btn-secondary" onclick="lukkVAModal()">Avbryt</button>
+      </div>
+    </form>`;
+  document.getElementById('va-modal').style.display = 'flex';
+  requestAnimationFrame(() => {
+    initSignaturCanvas('va-oppdragsgiver-sig');
+  });
+}
+
+function vaEksplosjonEndret() {
+  const val = document.querySelector('input[name="va-eksplosjon"]:checked')?.value;
+  const el = document.getElementById('va-eksplosjon-detaljer');
+  if (el) el.style.display = val === 'ja' ? 'block' : 'none';
+}
+
+function vaPersonRadHtml(prefix, nr) {
+  return `<div id="${prefix}-rad-${nr}" style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:8px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+      <div style="flex:1;min-width:130px;"><label style="font-size:.78rem;color:var(--muted);">Navn</label>
+        <input id="${prefix}-navn-${nr}" type="text" style="width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.83rem;"></div>
+      <div style="flex:1;min-width:100px;"><label style="font-size:.78rem;color:var(--muted);">Mobil</label>
+        <input id="${prefix}-mobil-${nr}" type="tel" style="width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.83rem;"></div>
+      <div style="flex:1;min-width:100px;"><label style="font-size:.78rem;color:var(--muted);">Sertifikatnr.</label>
+        <input id="${prefix}-sert-${nr}" type="text" style="width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.83rem;"></div>
+    </div>
+    ${signaturHtml(`${prefix}-sig-${nr}`, 'Signatur')}
+    <button type="button" onclick="document.getElementById('${prefix}-rad-${nr}').remove()" style="font-size:.78rem;color:var(--red);background:none;border:none;cursor:pointer;">Fjern</button>
+  </div>`;
+}
+
+function leggTilVAUtforende() {
+  _vaUtforendeNr++;
+  const liste = document.getElementById('va-utforende-liste');
+  if (liste) { liste.insertAdjacentHTML('beforeend', vaPersonRadHtml('va-utf', _vaUtforendeNr)); initSignaturCanvas(`va-utf-sig-${_vaUtforendeNr}`); }
+}
+
+function leggTilVABrannvakt() {
+  _vaBrannvaktNr++;
+  const liste = document.getElementById('va-brannvakt-liste');
+  if (liste) { liste.insertAdjacentHTML('beforeend', vaPersonRadHtml('va-bv', _vaBrannvaktNr)); initSignaturCanvas(`va-bv-sig-${_vaBrannvaktNr}`); }
+}
+
+function lukkVAModal() { document.getElementById('va-modal').style.display = 'none'; }
+function lukkVAModalKlikk(e) { if (e.target === document.getElementById('va-modal')) lukkVAModal(); }
+
+async function lagreVarmeArb(e) {
+  e.preventDefault();
+  const status = document.getElementById('va-lagre-status');
+  if (status) status.textContent = 'Lagrer…';
+  try {
+    const sikkerhetskrav = VA_SIKKERHETSKRAV.map((_,i) => document.getElementById(`va-sk-${i}`)?.checked || false);
+    const oppfolging = VA_OPPFOLGING.map((_,i) => document.getElementById(`va-opp-${i}`)?.checked || false);
+    const eksplJa = document.querySelector('input[name="va-eksplosjon"]:checked')?.value === 'ja';
+    // Saml utforende
+    const utforende = [];
+    document.querySelectorAll('[id^="va-utf-rad-"]').forEach(rad => {
+      const nr = rad.id.replace('va-utf-rad-','');
+      utforende.push({ navn: document.getElementById(`va-utf-navn-${nr}`)?.value||'', mobil: document.getElementById(`va-utf-mobil-${nr}`)?.value||'', sertifikat_nr: document.getElementById(`va-utf-sert-${nr}`)?.value||'', signatur: hentSignaturBase64(`va-utf-sig-${nr}`) });
+    });
+    const brannvakter = [];
+    document.querySelectorAll('[id^="va-bv-rad-"]').forEach(rad => {
+      const nr = rad.id.replace('va-bv-rad-','');
+      brannvakter.push({ navn: document.getElementById(`va-bv-navn-${nr}`)?.value||'', mobil: document.getElementById(`va-bv-mobil-${nr}`)?.value||'', sertifikat_nr: document.getElementById(`va-bv-sert-${nr}`)?.value||'', signatur: hentSignaturBase64(`va-bv-sig-${nr}`) });
+    });
+    const uid = await getUid();
+    const email = (await sb.auth.getUser()).data?.user?.email || '';
+    // INSERT varme_arbeider
+    const { data: vaRad, error: vaErr } = await sb.from('varme_arbeider').insert({
+      order_number: aktivOrdre.order_number,
+      ps_order_id: aktivOrdre.ps_id,
+      arbeidets_art: document.getElementById('va-art')?.value||'',
+      arbeidsplass: document.getElementById('va-arbeidsplass')?.value||'',
+      dato_start: document.getElementById('va-start')?.value||null,
+      dato_slutt: document.getElementById('va-slutt')?.value||null,
+      oppdragsgiver_navn: document.getElementById('va-oppdragsgiver-navn')?.value||'',
+      oppdragsgiver_mobil: document.getElementById('va-oppdragsgiver-mobil')?.value||'',
+      oppdragsgiver_signatur: hentSignaturBase64('va-oppdragsgiver-sig'),
+      sikkerhetskrav, eksplosjonsfarlige_rom: eksplJa,
+      arbeidstillatelse_signert: document.querySelector('input[name="va-tillatelse"]:checked')?.value === 'ja',
+      navn_kontroller: document.getElementById('va-kontroller-navn')?.value||'',
+      oppfolging, created_by: email
+    }).select().single();
+    if (vaErr) throw vaErr;
+    // INSERT utforende og brannvakter
+    if (utforende.length) await sb.from('varme_arbeider_utforende').insert(utforende.map(u => ({ ...u, varme_arbeider_id: vaRad.id })));
+    if (brannvakter.length) await sb.from('varme_arbeider_brannvakt').insert(brannvakter.map(b => ({ ...b, varme_arbeider_id: vaRad.id })));
+    // Generer og last opp PDF
+    if (status) status.textContent = 'Genererer PDF…';
+    const pdfBlob = genererVarmeArbPDF({ ...vaRad, utforende, brannvakter, sikkerhetskrav, oppfolging });
+    if (status) status.textContent = 'Laster opp til ProdSys…';
+    await lastOppSkjemaPDF(pdfBlob, `VarmeArbeider_${aktivOrdre.order_number}.pdf`);
+    toast('Varme arbeider lagret og sendt til ProdSys ✓', 'success');
+    lukkVAModal();
+    _dokumenterLastet = false;
+  } catch(err) {
+    toast('Feil: ' + err.message, 'error');
+    if (status) status.textContent = '';
+  }
+}
+
+function genererVarmeArbPDF(data) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+  const navy = [0, 37, 84], gold = [241, 180, 52], W = 210, M = 14;
+  let y = 0;
+  // Header
+  doc.setFillColor(...navy); doc.rect(0, 0, W, 22, 'F');
+  doc.setTextColor(255, 255, 255); doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+  doc.text('Sjekkliste for utførelse av varme arbeider', M, 14);
+  doc.setFillColor(...gold); doc.rect(0, 22, W, 1.5, 'F');
+  y = 32;
+  doc.setTextColor(0,0,0); doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+  function field(label, val, x2) {
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text(label, M, y);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    const lines = doc.splitTextToSize(val||'–', (x2||W) - M - 2);
+    doc.text(lines, M, y + 4);
+    y += 4 + (lines.length * 4.5) + 3;
+  }
+  field('Arbeidets art:', data.arbeidets_art);
+  field('Arbeidsplass:', data.arbeidsplass);
+  const startStr = data.dato_start ? new Date(data.dato_start).toLocaleString('nb-NO') : '–';
+  const sluttStr = data.dato_slutt ? new Date(data.dato_slutt).toLocaleString('nb-NO') : '–';
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text('Dato start:', M, y); doc.text('Dato slutt:', W/2, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  doc.text(startStr, M, y+4); doc.text(sluttStr, W/2, y+4);
+  y += 10;
+  field('Oppdragsgiver:', `${data.oppdragsgiver_navn||'–'} – Mob: ${data.oppdragsgiver_mobil||'–'}`);
+  if (data.oppdragsgiver_signatur) {
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text('Signatur oppdragsgiver:', M, y); y += 4;
+    doc.addImage(data.oppdragsgiver_signatur, 'PNG', M, y, 60, 18); y += 22;
+  }
+  // Utforende
+  if (data.utforende?.length) {
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text('Utførende:', M, y); y += 5;
+    data.utforende.forEach(u => {
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+      doc.text(`${u.navn||'–'} | Mob: ${u.mobil||'–'} | Sert: ${u.sertifikat_nr||'–'}`, M+2, y); y += 4;
+      if (u.signatur) { doc.addImage(u.signatur, 'PNG', M+2, y, 50, 16); y += 19; }
+    });
+    y += 2;
+  }
+  // Brannvakter
+  if (data.brannvakter?.length) {
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text('Brannvakter:', M, y); y += 5;
+    data.brannvakter.forEach(b => {
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+      doc.text(`${b.navn||'–'} | Mob: ${b.mobil||'–'} | Sert: ${b.sertifikat_nr||'–'}`, M+2, y); y += 4;
+      if (b.signatur) { doc.addImage(b.signatur, 'PNG', M+2, y, 50, 16); y += 19; }
+    });
+    y += 2;
+  }
+  // Sikkerhetskrav
+  if (y > 240) { doc.addPage(); y = 15; }
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text('Sikkerhetskrav:', M, y); y += 5;
+  VA_SIKKERHETSKRAV.forEach((t, i) => {
+    if (y > 270) { doc.addPage(); y = 15; }
+    const checked = data.sikkerhetskrav?.[i];
+    doc.setFillColor(checked ? 0 : 255, checked ? 120 : 255, checked ? 0 : 255);
+    doc.rect(M, y-3, 3.5, 3.5, checked ? 'F' : 'S');
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+    const lines = doc.splitTextToSize(t, W - M - 8);
+    doc.text(lines, M + 5, y); y += lines.length * 3.8 + 1.5;
+  });
+  // Oppfølging
+  if (y > 240) { doc.addPage(); y = 15; }
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text('Oppfølging:', M, y); y += 5;
+  VA_OPPFOLGING.forEach((t, i) => {
+    const checked = data.oppfolging?.[i];
+    doc.setFillColor(checked ? 0 : 255, checked ? 120 : 255, checked ? 0 : 255);
+    doc.rect(M, y-3, 3.5, 3.5, checked ? 'F' : 'S');
+    doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    doc.text(t, M + 5, y); y += 5;
+  });
+  return doc.output('blob');
+}
+
+// ── SJA ───────────────────────────────────────────────────────────────────
+
+const SJA_ARSAKER = [
+  'Arbeid i høyden med fare for fall',
+  'Arbeidet medfører avvik fra prosedyrer',
+  'Aktiviteten er ny, kompleks eller ukjent',
+  'Samarbeid mellom personer som ikke har jobbet sammen før',
+  'Bruk av utstyr arbeidstaker ikke har erfaring med',
+  'Arbeidet gjennomføres under endrede forutsetninger (sted, vær, utstyr, metode)',
+  'Det har tidligere skjedd ulykker eller hendelser ved tilsvarende arbeid',
+  'Det stilles krav fra kunde eller andre eksterne til at SJA skal utføres'
+];
+
+const SJA_SJEKKLISTE = [
+  { seksjon: 'Dokumentasjon og erfaring', spørsmål: [
+    'Er dette en kjent arbeidsoperasjon for arbeidslaget?',
+    'Finnes dekkende prosedyrer/instruks/jobbpakke?'
+  ]},
+  { seksjon: 'Kompetanse', spørsmål: [
+    'Har vi nødvendig personell og kompetanse for jobben?',
+    'Er det andre som burde delta i SJA-møte?'
+  ]},
+  { seksjon: 'Kommunikasjon og koordinering', spørsmål: [
+    'Er det en jobb der flere enheter/arbeidslag må koordineres?',
+    'Er det god kommunikasjon og egnet kommunikasjonsmiddel på plass?',
+    'Er det mulige konflikter med samtidige aktiviteter?',
+    'Er det avklart hvem som leder arbeidet?',
+    'Er det planlagt med tilstrekkelig tid for aktivitetene?',
+    'Har arbeidslaget gjennomgått håndtering av eventuell alarm? Er mulige berørte informert?'
+  ]}
+];
+
+let _sjaDeloppgNr = 0, _sjaDeltNr = 0;
+
+function åpneSJASkjema() {
+  _sjaDeloppgNr = 0; _sjaDeltNr = 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const prosjektNavn = `${aktivOrdre.customer_name||''} #${aktivOrdre.order_number||''}`.trim();
+  let sjekkHtml = '';
+  SJA_SJEKKLISTE.forEach((sek, si) => {
+    sjekkHtml += `<div style="margin-bottom:10px;"><div style="font-weight:600;font-size:.87rem;margin-bottom:6px;color:var(--accent);">${sek.seksjon}</div>`;
+    sek.spørsmål.forEach((sp, qi) => {
+      const key = `sja-sjekk-${si}-${qi}`;
+      sjekkHtml += `<div style="margin-bottom:8px;"><div style="font-size:.84rem;margin-bottom:4px;">${sp}</div>
+        <div style="display:flex;gap:16px;">
+          <label style="font-size:.83rem;cursor:pointer;"><input type="radio" name="${key}" value="ja"> Ja</label>
+          <label style="font-size:.83rem;cursor:pointer;"><input type="radio" name="${key}" value="nei"> Nei</label>
+          <label style="font-size:.83rem;cursor:pointer;"><input type="radio" name="${key}" value="ia" checked> Ikke aktuelt</label>
+        </div></div>`;
+    });
+    sjekkHtml += '</div>';
+  });
+  document.getElementById('sja-form-wrap').innerHTML = `
+    <div class="modal-title" style="font-size:1.05rem;">📋 SJA – Sikker jobb-analyse</div>
+    <form id="sja-form" onsubmit="lagreSJA(event)">
+      <div class="detail-grid" style="margin-bottom:16px;">
+        <div class="detail-field detail-full"><label>Tittel *</label>
+          <input id="sja-tittel" type="text" required style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
+        <div class="detail-field"><label>Prosjekt</label>
+          <input id="sja-prosjekt" type="text" value="${prosjektNavn}" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
+        <div class="detail-field"><label>Ansvarlig</label>
+          <input id="sja-ansvarlig" type="text" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
+        <div class="detail-field"><label>Dato</label>
+          <input id="sja-dato" type="date" value="${today}" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
+        <div class="detail-field"><label>Ansvarlig bedrift</label>
+          <input id="sja-bedrift" type="text" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:.88rem;"></div>
+      </div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:14px;">
+        <div style="font-weight:600;font-size:.9rem;margin-bottom:10px;">Årsak til at SJA skal gjennomføres</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          ${SJA_ARSAKER.map((a,i) => `<label style="display:flex;align-items:flex-start;gap:6px;font-size:.82rem;cursor:pointer;">
+            <input type="checkbox" id="sja-arsak-${i}" style="margin-top:2px;flex-shrink:0;"> <span>${a}</span></label>`).join('')}
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:600;font-size:.9rem;margin-bottom:8px;">Deloppgaver
+          <button type="button" onclick="leggTilSJADeloppgave()" class="btn btn-secondary btn-sm" style="margin-left:10px;">+ Legg til</button>
+        </div>
+        <div id="sja-deloppg-liste">
+          <div style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 1fr 28px;gap:6px;font-size:.76rem;font-weight:600;color:var(--muted);padding:0 4px 4px;">
+            <span>Tittel</span><span>Farer</span><span>Risiko</span><span>Tiltak</span><span>Ansvarlig</span><span></span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:600;font-size:.9rem;margin-bottom:8px;">Deltagere
+          <button type="button" onclick="leggTilSJADeltager()" class="btn btn-secondary btn-sm" style="margin-left:10px;">+ Legg til</button>
+        </div>
+        <div id="sja-deltagere-liste"></div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-weight:600;font-size:.9rem;">Lærepunkter</label>
+        <textarea id="sja-larepunkter" rows="3" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:.85rem;margin-top:6px;resize:vertical;"></textarea>
+      </div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:14px;">
+        <div style="font-weight:600;font-size:.9rem;margin-bottom:10px;">Sjekkliste</div>
+        ${sjekkHtml}
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+        <div style="flex:1;min-width:200px;">${signaturHtml('sja-utforende-sig', 'Utførende signatur')}</div>
+        <div style="flex:1;min-width:200px;">${signaturHtml('sja-ansvarlig-sig', 'Ansvarlig signatur')}</div>
+      </div>
+      <div id="sja-lagre-status" style="font-size:.85rem;color:var(--muted);margin-bottom:8px;min-height:20px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button type="submit" class="btn btn-primary">💾 Lagre og send til ProdSys</button>
+        <button type="button" class="btn btn-secondary" onclick="lukkSJAModal()">Avbryt</button>
+      </div>
+    </form>`;
+  document.getElementById('sja-modal').style.display = 'flex';
+  requestAnimationFrame(() => {
+    initSignaturCanvas('sja-utforende-sig');
+    initSignaturCanvas('sja-ansvarlig-sig');
+  });
+}
+
+function leggTilSJADeloppgave() {
+  _sjaDeloppgNr++;
+  const n = _sjaDeloppgNr;
+  const liste = document.getElementById('sja-deloppg-liste');
+  if (!liste) return;
+  liste.insertAdjacentHTML('beforeend', `<div id="sja-do-${n}" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 1fr 28px;gap:6px;margin-bottom:6px;">
+    <input id="sja-do-tittel-${n}" type="text" placeholder="Tittel" style="padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;">
+    <input id="sja-do-farer-${n}" type="text" placeholder="Farer" style="padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;">
+    <input id="sja-do-risiko-${n}" type="text" placeholder="Risiko" style="padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;">
+    <input id="sja-do-tiltak-${n}" type="text" placeholder="Tiltak" style="padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;">
+    <input id="sja-do-ansvarlig-${n}" type="text" placeholder="Ansvarlig" style="padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;">
+    <button type="button" onclick="document.getElementById('sja-do-${n}').remove()" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:1rem;padding:0;">✕</button>
+  </div>`);
+}
+
+function leggTilSJADeltager() {
+  _sjaDeltNr++;
+  const n = _sjaDeltNr;
+  const liste = document.getElementById('sja-deltagere-liste');
+  if (!liste) return;
+  liste.insertAdjacentHTML('beforeend', `<div id="sja-dt-${n}" style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:8px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+      <div style="flex:1;min-width:140px;"><label style="font-size:.78rem;color:var(--muted);">Navn</label>
+        <input id="sja-dt-navn-${n}" type="text" style="width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.83rem;"></div>
+      <div style="flex:1;min-width:140px;"><label style="font-size:.78rem;color:var(--muted);">Firma</label>
+        <input id="sja-dt-firma-${n}" type="text" style="width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.83rem;"></div>
+    </div>
+    ${signaturHtml(`sja-dt-sig-${n}`, 'Signatur')}
+    <button type="button" onclick="document.getElementById('sja-dt-${n}').remove()" style="font-size:.78rem;color:var(--red);background:none;border:none;cursor:pointer;">Fjern</button>
+  </div>`);
+  requestAnimationFrame(() => initSignaturCanvas(`sja-dt-sig-${n}`));
+}
+
+function lukkSJAModal() { document.getElementById('sja-modal').style.display = 'none'; }
+function lukkSJAModalKlikk(e) { if (e.target === document.getElementById('sja-modal')) lukkSJAModal(); }
+
+async function lagreSJA(e) {
+  e.preventDefault();
+  const status = document.getElementById('sja-lagre-status');
+  if (status) status.textContent = 'Lagrer…';
+  try {
+    const arsaker = SJA_ARSAKER.map((_,i) => document.getElementById(`sja-arsak-${i}`)?.checked || false);
+    const sjekkliste = {};
+    SJA_SJEKKLISTE.forEach((sek, si) => {
+      sjekkliste[si] = sek.spørsmål.map((_,qi) => document.querySelector(`input[name="sja-sjekk-${si}-${qi}"]:checked`)?.value || 'ia');
+    });
+    // Deloppgaver
+    const deloppgaver = [];
+    document.querySelectorAll('[id^="sja-do-"]:not([id*="-tittel"]):not([id*="-farer"]):not([id*="-risiko"]):not([id*="-tiltak"]):not([id*="-ansvarlig"])').forEach(rad => {
+      const n = rad.id.replace('sja-do-','');
+      if (isNaN(n)) return;
+      deloppgaver.push({ tittel: document.getElementById(`sja-do-tittel-${n}`)?.value||'', farer: document.getElementById(`sja-do-farer-${n}`)?.value||'', risiko: document.getElementById(`sja-do-risiko-${n}`)?.value||'', tiltak: document.getElementById(`sja-do-tiltak-${n}`)?.value||'', ansvarlig: document.getElementById(`sja-do-ansvarlig-${n}`)?.value||'' });
+    });
+    const deltagere = [];
+    document.querySelectorAll('[id^="sja-dt-"]:not([id*="-navn"]):not([id*="-firma"]):not([id*="-sig"])').forEach(rad => {
+      const n = rad.id.replace('sja-dt-','');
+      if (isNaN(n)) return;
+      deltagere.push({ navn: document.getElementById(`sja-dt-navn-${n}`)?.value||'', firma: document.getElementById(`sja-dt-firma-${n}`)?.value||'', signatur: hentSignaturBase64(`sja-dt-sig-${n}`) });
+    });
+    const email = (await sb.auth.getUser()).data?.user?.email || '';
+    const { data: sjaRad, error: sjaErr } = await sb.from('sja').insert({
+      order_number: aktivOrdre.order_number,
+      ps_order_id: aktivOrdre.ps_id,
+      prosjekt: document.getElementById('sja-prosjekt')?.value||'',
+      ansvarlig: document.getElementById('sja-ansvarlig')?.value||'',
+      tittel: document.getElementById('sja-tittel')?.value||'',
+      dato: document.getElementById('sja-dato')?.value||null,
+      ansvarlig_bedrift: document.getElementById('sja-bedrift')?.value||'',
+      arsaker, larepunkter: document.getElementById('sja-larepunkter')?.value||'',
+      sjekkliste,
+      utforende_signatur: hentSignaturBase64('sja-utforende-sig'),
+      ansvarlig_signatur: hentSignaturBase64('sja-ansvarlig-sig'),
+      created_by: email
+    }).select().single();
+    if (sjaErr) throw sjaErr;
+    if (deloppgaver.length) await sb.from('sja_deloppgaver').insert(deloppgaver.map(d => ({ ...d, sja_id: sjaRad.id })));
+    if (deltagere.length) await sb.from('sja_deltagere').insert(deltagere.map(d => ({ ...d, sja_id: sjaRad.id })));
+    if (status) status.textContent = 'Genererer PDF…';
+    const pdfBlob = genererSJAPDF({ ...sjaRad, deloppgaver, deltagere, arsaker, sjekkliste });
+    if (status) status.textContent = 'Laster opp til ProdSys…';
+    await lastOppSkjemaPDF(pdfBlob, `SJA_${aktivOrdre.order_number}.pdf`);
+    toast('SJA lagret og sendt til ProdSys ✓', 'success');
+    lukkSJAModal();
+    _dokumenterLastet = false;
+  } catch(err) {
+    toast('Feil: ' + err.message, 'error');
+    if (status) status.textContent = '';
+  }
+}
+
+function genererSJAPDF(data) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+  const navy = [0, 37, 84], W = 210, M = 14;
+  let y = 0;
+  doc.setFillColor(...navy); doc.rect(0, 0, W, 22, 'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text('SJA – Sikker jobb-analyse', M, 14);
+  doc.setFillColor(241,180,52); doc.rect(0, 22, W, 1.5, 'F');
+  y = 32; doc.setTextColor(0,0,0);
+  function field(label, val) {
+    if (y > 270) { doc.addPage(); y = 15; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text(label, M, y);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    const lines = doc.splitTextToSize(val||'–', W - M - 4);
+    doc.text(lines, M, y+4); y += 4 + lines.length*4.5 + 3;
+  }
+  field('Tittel:', data.tittel);
+  field('Prosjekt:', data.prosjekt);
+  field('Ansvarlig:', data.ansvarlig);
+  field('Dato:', data.dato ? new Date(data.dato).toLocaleDateString('nb-NO') : '–');
+  field('Ansvarlig bedrift:', data.ansvarlig_bedrift);
+  // Årsaker
+  const valgtArsaker = SJA_ARSAKER.filter((_,i) => data.arsaker?.[i]);
+  if (valgtArsaker.length) field('Årsaker:', valgtArsaker.join('; '));
+  // Deloppgaver
+  if (data.deloppgaver?.length) {
+    if (y > 240) { doc.addPage(); y = 15; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text('Deloppgaver:', M, y); y += 5;
+    data.deloppgaver.forEach((d, i) => {
+      if (y > 270) { doc.addPage(); y = 15; }
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text(`${i+1}. ${d.tittel||'–'}`, M+2, y); y += 4;
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+      if (d.farer) { doc.text(`Farer: ${d.farer}`, M+4, y); y += 4; }
+      if (d.risiko) { doc.text(`Risiko: ${d.risiko}`, M+4, y); y += 4; }
+      if (d.tiltak) { doc.text(`Tiltak: ${d.tiltak}`, M+4, y); y += 4; }
+      if (d.ansvarlig) { doc.text(`Ansvarlig: ${d.ansvarlig}`, M+4, y); y += 4; }
+      y += 2;
+    });
+  }
+  // Deltagere
+  if (data.deltagere?.length) {
+    if (y > 240) { doc.addPage(); y = 15; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text('Deltagere:', M, y); y += 5;
+    data.deltagere.forEach(d => {
+      if (y > 270) { doc.addPage(); y = 15; }
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+      doc.text(`${d.navn||'–'} – ${d.firma||'–'}`, M+2, y); y += 4;
+      if (d.signatur) { doc.addImage(d.signatur, 'PNG', M+2, y, 50, 16); y += 19; }
+    });
+    y += 2;
+  }
+  // Lærepunkter
+  if (data.larepunkter) field('Lærepunkter:', data.larepunkter);
+  // Sjekkliste
+  if (y > 230) { doc.addPage(); y = 15; }
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text('Sjekkliste:', M, y); y += 6;
+  SJA_SJEKKLISTE.forEach((sek, si) => {
+    if (y > 260) { doc.addPage(); y = 15; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.text(sek.seksjon, M+2, y); y += 5;
+    sek.spørsmål.forEach((sp, qi) => {
+      if (y > 270) { doc.addPage(); y = 15; }
+      const svar = data.sjekkliste?.[si]?.[qi] || 'ia';
+      const svarTekst = svar === 'ja' ? '✓ Ja' : svar === 'nei' ? '✗ Nei' : '– Ikke aktuelt';
+      doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      const lines = doc.splitTextToSize(`${sp}  →  ${svarTekst}`, W - M - 8);
+      doc.text(lines, M+4, y); y += lines.length * 4 + 2;
+    });
+    y += 2;
+  });
+  // Signaturer
+  if (data.utforende_signatur || data.ansvarlig_signatur) {
+    if (y > 240) { doc.addPage(); y = 15; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text('Utførende signatur:', M, y); doc.text('Ansvarlig signatur:', W/2, y); y += 3;
+    if (data.utforende_signatur) doc.addImage(data.utforende_signatur, 'PNG', M, y, 60, 18);
+    if (data.ansvarlig_signatur) doc.addImage(data.ansvarlig_signatur, 'PNG', W/2, y, 60, 18);
+  }
+  return doc.output('blob');
+}
+
 // ── ABUS DROPDOWN ─────────────────────────────────────────────────────────
 function abusSharePointSok(e) {
   e.preventDefault();
@@ -3740,6 +4374,18 @@ async function sendArtikkelTilOrdre() {
   }
 }
 </script>
+<div class="modal-overlay" id="sja-modal" style="display:none;" onclick="lukkSJAModalKlikk(event)">
+  <div class="modal" style="max-width:780px;max-height:92vh;overflow-y:auto;">
+    <button class="modal-close" onclick="lukkSJAModal()">✕</button>
+    <div id="sja-form-wrap"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="va-modal" style="display:none;" onclick="lukkVAModalKlikk(event)">
+  <div class="modal" style="max-width:780px;max-height:92vh;overflow-y:auto;">
+    <button class="modal-close" onclick="lukkVAModal()">✕</button>
+    <div id="va-form-wrap"></div>
+  </div>
+</div>
 <div id="ov-dato-slicer" onclick="event.stopPropagation()" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
 <div id="pl-dato-slicer" onclick="event.stopPropagation()" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
 </body>
