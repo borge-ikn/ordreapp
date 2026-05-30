@@ -161,7 +161,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 /* MODAL */
 .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:20px 16px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y; }
-.modal { background:var(--surface);border-radius:var(--radius);box-shadow:0 20px 60px rgba(0,0,0,.2);width:100%;max-width:720px;padding:28px;position:relative;margin:auto;overflow-x:hidden; }
+.modal { background:var(--surface);border-radius:var(--radius);box-shadow:0 20px 60px rgba(0,0,0,.2);width:100%;max-width:720px;padding:28px;position:relative;margin:auto;overflow-x:clip; }
 .modal-close { position:absolute;top:16px;right:16px;background:var(--surface2);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem; }
 .modal-title { font-size:1.25rem;font-weight:700;color:var(--accent);margin-bottom:18px;padding-right:36px; }
 .detail-grid { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
@@ -3779,8 +3779,9 @@ function åpneSJASkjema() {
 
       <div class="skj-seksjon">
         <div class="skj-seksjon-tittel">Årsak til SJA</div>
-        ${SJA_ARSAKER.map((a,i) => `<label class="skj-checkbox-rad">
-          <input type="checkbox" id="sja-arsak-${i}"> <span>${a}</span></label>`).join('')}
+        <div class="do-tag-liste">
+          ${SJA_ARSAKER.map((a,i) => `<button type="button" class="do-tag" data-arsak="${i}" onclick="this.classList.toggle('do-tag--aktiv')">${a}</button>`).join('')}
+        </div>
       </div>
 
       <div class="skj-seksjon">
@@ -3915,7 +3916,7 @@ async function lagreSJA(e) {
   const status = document.getElementById('sja-lagre-status');
   if (status) status.textContent = 'Lagrer…';
   try {
-    const arsaker = SJA_ARSAKER.map((_,i) => document.getElementById(`sja-arsak-${i}`)?.checked || false);
+    const arsaker = SJA_ARSAKER.map((_,i) => !!document.querySelector(`[data-arsak="${i}"].do-tag--aktiv`));
     const sjekkliste = {};
     SJA_SJEKKLISTE.forEach((sek, si) => {
       sjekkliste[si] = sek.spørsmål.map((_,qi) => document.querySelector(`input[name="sja-sjekk-${si}-${qi}"]:checked`)?.value || 'ia');
