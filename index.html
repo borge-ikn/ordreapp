@@ -3329,7 +3329,11 @@ async function hentOgVisOrdrelinjer() {
       liste.innerHTML = '<p style="font-size:.85rem;color:var(--muted);margin:0 0 4px;">Ingen artikler på ordren ennå.</p>';
       return;
     }
-    liste.innerHTML = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:4px;">${linjer.length} artikkel(er) på ordren:</div>
+    liste.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-size:.82rem;color:var(--muted);">${linjer.length} artikkel(er) på ordren</span>
+        <button id="slett-valgte-btn" class="btn btn-danger btn-sm" style="display:none;" onclick="slettValgte()">Slett valgte</button>
+      </div>
       <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:4px;">
         ${linjer.map(l => {
           const id = l.Id || l.id;
@@ -3338,6 +3342,8 @@ async function hentOgVisOrdrelinjer() {
           const qty = l.Qty ?? l.qty ?? l.Quantity ?? l.quantity ?? 1;
           const lineJson = JSON.stringify(l).replace(/'/g, '&#39;');
           return `<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid #f0f0f0;font-size:.85rem;">
+            <input type="checkbox" class="ol-checkbox" data-id="${id}" onchange="oppdaterSlettValgteBtn()"
+              style="width:15px;height:15px;flex-shrink:0;cursor:pointer;">
             <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
               <span style="font-weight:600;margin-right:6px;">${nr}</span>${desc}
             </span>
@@ -3345,7 +3351,6 @@ async function hentOgVisOrdrelinjer() {
               id="ol-qty-${id}"
               style="width:64px;padding:3px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:.83rem;text-align:right;">
             <button class="btn btn-secondary btn-sm" onclick="oppdaterOrdrelinje(${id},'${lineJson.replace(/"/g,'&quot;')}')">Lagre</button>
-            <button class="btn btn-danger btn-sm" onclick="slettOrdrelinje(${id})">Slett</button>
           </div>`;
         }).join('')}
       </div>`;
@@ -3404,12 +3409,36 @@ function lukkArtikkelDropdown() {
   if (dd) dd.style.display = 'none';
 }
 
+function oppdaterSlettValgteBtn() {
+  const valgte = document.querySelectorAll('.ol-checkbox:checked');
+  const btn = document.getElementById('slett-valgte-btn');
+  if (btn) btn.style.display = valgte.length ? 'inline-flex' : 'none';
+  if (btn && valgte.length) btn.textContent = `Slett valgte (${valgte.length})`;
+}
+
+async function slettValgte() {
+  const valgte = [...document.querySelectorAll('.ol-checkbox:checked')];
+  if (!valgte.length) return;
+  if (!confirm(`Slett ${valgte.length} ordrelinje(r)?`)) return;
+  const ids = valgte.map(cb => cb.dataset.id);
+  let feil = 0;
+  for (const id of ids) {
+    try {
+      const resp = await fetch(`/.netlify/functions/prodsys-proxy?path=orderlines/delete&id=${id}`, { method: 'DELETE' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      await oppdaterCommission(id);
+    } catch(e) {
+      feil++;
+    }
+  }
+  if (feil) toast(`${ids.length - feil} slettet, ${feil} feilet`, 'error');
+  else toast(`${ids.length} ordrelinje(r) slettet`, 'success');
+  hentOgVisOrdrelinjer();
+}
+
 async function slettOrdrelinje(id) {
-  if (!confirm('Slett denne ordrelinjen?')) return;
   try {
-    const resp = await fetch(`/.netlify/functions/prodsys-proxy?path=orderlines/delete&id=${id}`, {
-      method: 'DELETE'
-    });
+    const resp = await fetch(`/.netlify/functions/prodsys-proxy?path=orderlines/delete&id=${id}`, { method: 'DELETE' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     await oppdaterCommission(id);
     hentOgVisOrdrelinjer();
