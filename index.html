@@ -539,30 +539,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="tab"        id="tab-oversikt"   onclick="byttFane('oversikt')"   style="display:none;">📊 Oversikt</div>
     <div class="tab abus-dropdown-wrap" id="abus-tab" onclick="toggleAbusDropdown(event)">
       🔗 ABUS <span style="font-size:.65rem;">▼</span>
-      <div class="abus-dropdown" id="abus-dropdown" style="display:none;" onclick="event.stopPropagation()">
-        <div style="padding:10px 12px 6px;">
-          <form onsubmit="abusSharePointSok(event)" style="display:flex;gap:6px;">
-            <input id="abus-sok-input" type="text" placeholder="Søk i ABUS-dok…"
-              style="flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.84rem;min-width:0;">
-            <button type="submit"
-              style="padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:.84rem;cursor:pointer;white-space:nowrap;">Søk</button>
-          </form>
-        </div>
-        <hr style="margin:4px 0;border:none;border-top:1px solid #f0f0f0;">
-        <a href="https://portal.abus-kransysteme.de/" target="_blank">Dashboard</a>
-        <a href="https://portal.abus-kransysteme.de/box/nextcloud" target="_blank">ABUS Box</a>
-        <a href="https://portal.abus-kransysteme.de/documentation/pdf" target="_blank">Dokumentasjon (PDF)</a>
-        <a href="https://portal.abus-kransysteme.de/documentation/online" target="_blank">Dokumentasjon (mobil)</a>
-        <a href="https://portal.abus-kransysteme.de/documentation/service" target="_blank">Servicedokumentasjon</a>
-        <a href="https://portal.abus-kransysteme.de/abukondfis" target="_blank">ABUKonfis</a>
-        <a href="https://portal.abus-kransysteme.de/spareparts/catalog/WINETIS" target="_blank">Reservedeler (WINETIS)</a>
-        <a href="https://portal.abus-kransysteme.de/spareparts/catalog/Preisliste" target="_blank">Reservedeler (prisliste)</a>
-        <a href="https://portal.abus-kransysteme.de/spareparts/search" target="_blank">Reservedeler (søk)</a>
-        <a href="https://portal.abus-kransysteme.de/apis/sales" target="_blank">Salgsinformasjon</a>
-        <a href="https://portal.abus-kransysteme.de/apis/technical" target="_blank">Teknisk informasjon</a>
-        <a href="https://portal.abus-kransysteme.de/academy" target="_blank">ABUS Academy</a>
-        <a href="https://portal.abus-kransysteme.de/insight" target="_blank">ABUS Insight</a>
-      </div>
     </div>
   </div>
 
@@ -1516,7 +1492,7 @@ document.addEventListener('click', function(e) {
   // Lukk ABUS-dropdown ved klikk utenfor
   const abusDd = document.getElementById('abus-dropdown');
   const abusTab = document.getElementById('abus-tab');
-  if (abusDd && abusDd.style.display !== 'none' && abusTab && !abusTab.contains(e.target)) {
+  if (abusDd && abusDd.style.display !== 'none' && !abusTab?.contains(e.target) && !abusDd.contains(e.target)) {
     abusDd.style.display = 'none';
   }
   // Lukk artikkelsøk-dropdown ved klikk utenfor
@@ -4662,6 +4638,30 @@ async function sendArtikkelTilOrdre() {
   <option value="Avklar beredskapsplan og nødprosedyre med kunde">
   <option value="Sørg for tilstrekkelig ventilasjon ved kjemikaliearbeid">
 </datalist>
+<div class="abus-dropdown" id="abus-dropdown" style="display:none;">
+  <div style="padding:10px 12px 6px;">
+    <form onsubmit="abusSharePointSok(event)" style="display:flex;gap:6px;">
+      <input id="abus-sok-input" type="text" placeholder="Søk i ABUS-dok…"
+        style="flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.84rem;min-width:0;">
+      <button type="submit"
+        style="padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:.84rem;cursor:pointer;white-space:nowrap;">Søk</button>
+    </form>
+  </div>
+  <hr style="margin:4px 0;border:none;border-top:1px solid #f0f0f0;">
+  <a href="https://portal.abus-kransysteme.de/" target="_blank">Dashboard</a>
+  <a href="https://portal.abus-kransysteme.de/box/nextcloud" target="_blank">ABUS Box</a>
+  <a href="https://portal.abus-kransysteme.de/documentation/pdf" target="_blank">Dokumentasjon (PDF)</a>
+  <a href="https://portal.abus-kransysteme.de/documentation/online" target="_blank">Dokumentasjon (mobil)</a>
+  <a href="https://portal.abus-kransysteme.de/documentation/service" target="_blank">Servicedokumentasjon</a>
+  <a href="https://portal.abus-kransysteme.de/abukondfis" target="_blank">ABUKonfis</a>
+  <a href="https://portal.abus-kransysteme.de/spareparts/catalog/WINETIS" target="_blank">Reservedeler (WINETIS)</a>
+  <a href="https://portal.abus-kransysteme.de/spareparts/catalog/Preisliste" target="_blank">Reservedeler (prisliste)</a>
+  <a href="https://portal.abus-kransysteme.de/spareparts/search" target="_blank">Reservedeler (søk)</a>
+  <a href="https://portal.abus-kransysteme.de/apis/sales" target="_blank">Salgsinformasjon</a>
+  <a href="https://portal.abus-kransysteme.de/apis/technical" target="_blank">Teknisk informasjon</a>
+  <a href="https://portal.abus-kransysteme.de/academy" target="_blank">ABUS Academy</a>
+  <a href="https://portal.abus-kransysteme.de/insight" target="_blank">ABUS Insight</a>
+</div>
 <div id="ov-dato-slicer" onclick="event.stopPropagation()" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
 <div id="pl-dato-slicer" onclick="event.stopPropagation()" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
 </body>
