@@ -4457,16 +4457,21 @@ async function sendArtikkelTilOrdre() {
   </div>
 </div>
 <datalist id="do-farer-opts">
-  <option value="Fall fra høyde">
-  <option value="Klemskade / klemfare">
-  <option value="Elektrisk fare">
-  <option value="Velt- / tippefare">
-  <option value="Kjemikalier / farlige stoffer">
-  <option value="Støy og vibrasjon">
-  <option value="Brannfare / varmt arbeid">
+  <option value="Arbeid i høyden – fallrisiko">
+  <option value="Alenearbeid uten tilsyn">
+  <option value="Kjøring av kran eller løfteutstyr">
+  <option value="Arbeid på elektrisk / energisatt anlegg">
   <option value="Fallende gjenstander">
-  <option value="Ergonomisk belastning">
-  <option value="Skarpe kanter / gjenstander">
+  <option value="Tunge løft og uheldige arbeidsstillinger">
+  <option value="Kjøring av truck internt eller hos kunde">
+  <option value="Bilkjøring – transitt til/fra oppdrag">
+  <option value="Støy og vibrerende verktøy">
+  <option value="Kjemikalier og farlige stoffer">
+  <option value="Manglende kompetanse / opplæring for oppgaven">
+  <option value="Støv og lokal eksponering hos kunde">
+  <option value="Arbeid under spenning / energisatt maskin">
+  <option value="Klemfare ved montering av kran eller utstyr">
+  <option value="Velt- / tippefare ved løft">
 </datalist>
 <datalist id="do-risiko-opts">
   <option value="Lav — usannsynlig, liten konsekvens">
@@ -4475,16 +4480,20 @@ async function sendArtikkelTilOrdre() {
   <option value="Kritisk — svært sannsynlig, katastrofal konsekvens">
 </datalist>
 <datalist id="do-tiltak-opts">
-  <option value="Sikre området med sperringer og skilt">
-  <option value="Bruk personlig verneutstyr (hjelm, sele, vernesko, hansker)">
-  <option value="Koble fra strøm – lås ut og merk">
-  <option value="Sikre mot utilsiktet bevegelse (kiler, bremser, stoppere)">
-  <option value="Sørg for tilstrekkelig ventilasjon">
-  <option value="Ha brannslokkingsutstyr tilgjengelig">
-  <option value="Varsle og koordiner med berørte parter">
-  <option value="Kontroller festepunkter og sertifisering">
-  <option value="Bruk godkjent og sertifisert løfteutstyr">
-  <option value="Etabler fallsikring">
+  <option value="Bruk godkjent fallsikringsutstyr og sele">
+  <option value="Ingen arbeid i høyden uten vaktmann">
+  <option value="Avklar med kunde – aldri alenearbeid på høyrisiko">
+  <option value="Bruk nødpeilesender ved alenearbeid">
+  <option value="Koble fra og lås ut all energi (LOTO)">
+  <option value="Kontroller sertifikat og kompetanse for oppgaven">
+  <option value="Sikre lasten og etabler sikker sone">
+  <option value="Bruk verneutstyr: hjelm, vernesko, hansker, vernebriller">
+  <option value="Sett opp sperringer og varsle omgivelsene">
+  <option value="Kontroller løfteutstyr og sertifikater før bruk">
+  <option value="Bruk hørselsvern ved støyende arbeid">
+  <option value="Benytt støttepunkt og hjelpemidler ved tunge løft">
+  <option value="Avklar beredskapsplan og nødprosedyre med kunde">
+  <option value="Sørg for tilstrekkelig ventilasjon ved kjemikaliearbeid">
 </datalist>
 <div id="ov-dato-slicer" onclick="event.stopPropagation()" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
 <div id="pl-dato-slicer" onclick="event.stopPropagation()" style="display:none;position:fixed;z-index:9999;min-width:160px;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding-bottom:6px;max-height:360px;overflow-y:auto;color:#111827;font-size:0.88rem;"></div>
