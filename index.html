@@ -65,6 +65,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .tab { padding:14px 20px;font-size:.9rem;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap; }
 .tab:hover { color:var(--accent); }
 .tab.active { color:var(--accent);border-bottom-color:var(--accent); }
+.abus-dropdown-wrap { position:relative; }
+.abus-dropdown { position:absolute;top:100%;left:0;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:220px;z-index:200;padding:4px 0; }
+.abus-dropdown a { display:block;padding:9px 16px;font-size:.87rem;color:var(--text);text-decoration:none;white-space:nowrap; }
+.abus-dropdown a:hover { background:#f5f7fa;color:var(--accent); }
 
 /* MAIN */
 .main { max-width:960px;margin:24px auto;padding:0 16px; }
@@ -493,6 +497,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="tab"        id="tab-dokumenter" onclick="byttFane('dokumenter')">📄 Dokumenter</div>
     <div class="tab"        id="tab-planlegger" onclick="byttFane('planlegger')" style="display:none;">📋 Planlegger</div>
     <div class="tab"        id="tab-oversikt"   onclick="byttFane('oversikt')"   style="display:none;">📊 Oversikt</div>
+    <div class="tab abus-dropdown-wrap" id="abus-tab" onclick="toggleAbusDropdown(event)">
+      🔗 ABUS <span style="font-size:.65rem;">▼</span>
+      <div class="abus-dropdown" id="abus-dropdown" style="display:none;" onclick="event.stopPropagation()">
+        <a href="https://portal.abus-kransysteme.de/" target="_blank">Dashboard</a>
+        <a href="https://portal.abus-kransysteme.de/box/nextcloud" target="_blank">ABUS Box</a>
+        <a href="https://portal.abus-kransysteme.de/documentation/pdf" target="_blank">Dokumentasjon (PDF)</a>
+        <a href="https://portal.abus-kransysteme.de/documentation/online" target="_blank">Dokumentasjon (mobil)</a>
+        <a href="https://portal.abus-kransysteme.de/documentation/service" target="_blank">Servicedokumentasjon</a>
+        <a href="https://portal.abus-kransysteme.de/abukondfis" target="_blank">ABUKonfis</a>
+        <a href="https://portal.abus-kransysteme.de/spareparts/catalog/WINETIS" target="_blank">Reservedeler (WINETIS)</a>
+        <a href="https://portal.abus-kransysteme.de/spareparts/catalog/Preisliste" target="_blank">Reservedeler (prisliste)</a>
+        <a href="https://portal.abus-kransysteme.de/spareparts/search" target="_blank">Reservedeler (søk)</a>
+        <a href="https://portal.abus-kransysteme.de/apis/sales" target="_blank">Salgsinformasjon</a>
+        <a href="https://portal.abus-kransysteme.de/apis/technical" target="_blank">Teknisk informasjon</a>
+        <a href="https://portal.abus-kransysteme.de/academy" target="_blank">ABUS Academy</a>
+        <a href="https://portal.abus-kransysteme.de/insight" target="_blank">ABUS Insight</a>
+      </div>
+    </div>
   </div>
 
   <!-- ORDRESØK -->
@@ -1442,6 +1464,12 @@ document.addEventListener('click', function(e) {
     if (panel.contains(e.target)) return;
     panel.style.display = 'none';
   });
+  // Lukk ABUS-dropdown ved klikk utenfor
+  const abusDd = document.getElementById('abus-dropdown');
+  const abusTab = document.getElementById('abus-tab');
+  if (abusDd && abusDd.style.display !== 'none' && abusTab && !abusTab.contains(e.target)) {
+    abusDd.style.display = 'none';
+  }
   // Lukk artikkelsøk-dropdown ved klikk utenfor
   const dd = document.getElementById('artikkel-sok-dropdown');
   const inp = document.getElementById('artikkel-sok-input');
@@ -3256,6 +3284,13 @@ async function sendOrdre(e){
     }
   }catch(err){toast('Feil: '+err.message,'error');}
   finally{btn.disabled=false;btn.textContent='Opprett ordre';}
+}
+
+// ── ABUS DROPDOWN ─────────────────────────────────────────────────────────
+function toggleAbusDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('abus-dropdown');
+  if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
 }
 
 // ── DOKUMENT-FUNKSJONER ───────────────────────────────────────────────────
