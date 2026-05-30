@@ -3292,9 +3292,12 @@ function oppdaterArtikkelSeksjon() {
   const harPsId = !!(aktivOrdre && aktivOrdre.ps_id);
   seksjon.innerHTML = `
     <div class="timer-header">
-      <div class="timer-heading">📦 Legg til artikkel</div>
+      <div class="timer-heading">📦 Artikler</div>
     </div>
     ${!harPsId ? '<p style="font-size:.85rem;color:var(--muted)">Intern ProdSys-ID mangler på denne ordren — artikkeltillegg ikke tilgjengelig.</p>' : `
+    <div id="ordrelinjer-liste" style="margin-bottom:12px;">
+      <div class="loader" style="padding:8px 0;"><div class="spinner"></div></div>
+    </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">
       <div style="flex:1;min-width:180px;position:relative;">
         <input id="artikkel-sok-input" type="text" placeholder="Søk artikkelnr. eller beskrivelse…"
@@ -3311,6 +3314,36 @@ function oppdaterArtikkelSeksjon() {
     </div>
     <div id="artikkel-status" style="font-size:.82rem;color:var(--muted);min-height:18px;"></div>
     `}`;
+  if (harPsId) hentOgVisOrdrelinjer();
+}
+
+async function hentOgVisOrdrelinjer() {
+  const liste = document.getElementById('ordrelinjer-liste');
+  if (!liste) return;
+  try {
+    const resp = await fetch(`/.netlify/functions/prodsys-proxy?path=orderlines/list&orderId=${aktivOrdre.ps_id}`);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    const linjer = Array.isArray(json) ? json : (json.data || []);
+    if (!linjer.length) {
+      liste.innerHTML = '<p style="font-size:.85rem;color:var(--muted);margin:0 0 4px;">Ingen artikler på ordren ennå.</p>';
+      return;
+    }
+    liste.innerHTML = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:4px;">${linjer.length} artikkel(er) på ordren:</div>
+      <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:4px;">
+        ${linjer.map(l => {
+          const nr = l.ArticleNumber || l.articleNumber || '–';
+          const desc = l.Description || l.description || l.Name || l.name || '–';
+          const qty = l.Qty ?? l.qty ?? l.Quantity ?? l.quantity ?? '';
+          return `<div style="display:flex;justify-content:space-between;padding:6px 10px;border-bottom:1px solid #f0f0f0;font-size:.85rem;">
+            <span><span style="font-weight:600;margin-right:6px;">${nr}</span>${desc}</span>
+            <span style="color:var(--muted);white-space:nowrap;margin-left:8px;">${qty}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } catch(e) {
+    liste.innerHTML = `<p style="font-size:.82rem;color:var(--red);">Kunne ikke hente artikler: ${e.message}</p>`;
+  }
 }
 
 function artikkelSokDebounce(val) {
@@ -3380,6 +3413,7 @@ async function sendArtikkelTilOrdre() {
     const qtyInput = document.getElementById('artikkel-qty-input');
     if (qtyInput) qtyInput.value = '1';
     if (status) status.textContent = '';
+    hentOgVisOrdrelinjer();
   } catch(e) {
     toast('Feil: ' + e.message, 'error');
     if (status) status.textContent = '';

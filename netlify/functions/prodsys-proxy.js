@@ -17,7 +17,12 @@ exports.handler = async (event) => {
   try {
     let url, method, body;
 
-    if (path === 'articles/search') {
+    if (path === 'orderlines/list') {
+      const orderId = params.orderId;
+      if (!orderId) return { statusCode: 400, body: JSON.stringify({ error: 'Mangler orderId' }) };
+      url = `${PRODSYS_BASE}/orderlines?filter.orderId=${orderId}`;
+      method = 'GET';
+    } else if (path === 'articles/search') {
       const q = encodeURIComponent(params.q || '');
       url = `${PRODSYS_BASE}/articles/orders-list?filter.searchText=${q}&filter.typeId=2&dxLoadOptions.searchOperation=%22contains%22&dxLoadOptions.take=40`;
       method = 'GET';
