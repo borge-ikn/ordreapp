@@ -4045,7 +4045,7 @@ function genererSJAPDF(data) {
     checkBody.push([{ content: sek.seksjon, colSpan: 2, styles: { fillColor: [230, 236, 245], fontStyle: 'bold', fontSize: 8.5, textColor: navy } }]);
     sek.spørsmål.forEach((q, qi) => {
       const svar = data.sjekkliste?.[si]?.[qi] || 'ia';
-      checkBody.push([q.sp, svar === 'ja' ? '✓ Ja' : svar === 'nei' ? '✗ Nei' : '– Ikke aktuelt']);
+      checkBody.push([q.sp, svar === 'ja' ? 'Ja' : svar === 'nei' ? 'Nei' : 'Ikke aktuelt']);
     });
   });
   doc.autoTable({
