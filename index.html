@@ -748,6 +748,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <hr class="section-divider">
     <div id="artikkel-seksjon"></div>
     <hr class="section-divider">
+    <div id="dokument-seksjon"></div>
+    <hr class="section-divider">
     <div id="timer-seksjon"></div>
   </div>
 </div>
@@ -1836,7 +1838,7 @@ async function fjernMinTildelingMedSjekk(orderNumber){
 // ── ORDRE DETALJ + ORDRETIMER ─────────────────────────────────────────────
 
 async function visDetalj(jsonStr){
-  aktivOrdre=JSON.parse(jsonStr);redigeringsId=null;_artiklerLastet=false;
+  aktivOrdre=JSON.parse(jsonStr);redigeringsId=null;_artiklerLastet=false;_dokumenterLastet=false;
   document.getElementById('modal-innhold').innerHTML=`
     <div class="modal-title">#${aktivOrdre.order_number} – ${aktivOrdre.customer_name||'–'}</div>
     <div class="detail-grid">
@@ -1851,6 +1853,7 @@ async function visDetalj(jsonStr){
     </div>`;
   document.getElementById('detalj-modal').style.display='flex';
   oppdaterArtikkelSeksjon();
+  oppdaterDokumentSeksjon();
   await oppdaterTimerSeksjon();
 }
 
@@ -3253,6 +3256,180 @@ async function sendOrdre(e){
     }
   }catch(err){toast('Feil: '+err.message,'error');}
   finally{btn.disabled=false;btn.textContent='Opprett ordre';}
+}
+
+// ── DOKUMENT-FUNKSJONER ───────────────────────────────────────────────────
+
+let _dokumenterLastet = false;
+let _dokumentKoder = null;
+
+function oppdaterDokumentSeksjon() {
+  const seksjon = document.getElementById('dokument-seksjon');
+  if (!seksjon) return;
+  const harPsId = !!(aktivOrdre && aktivOrdre.ps_id);
+  seksjon.innerHTML = `
+    <div class="timer-header" onclick="toggleDokumentSeksjon()" style="cursor:pointer;user-select:none;">
+      <div class="timer-heading">📄 Dokumenter <span id="dokument-pil" style="font-size:.75rem;color:var(--muted);">▶</span></div>
+    </div>
+    <div id="dokument-innhold" style="display:none;">
+      ${!harPsId ? '<p style="font-size:.85rem;color:var(--muted)">Intern ProdSys-ID mangler — dokumenter ikke tilgjengelig.</p>' : `
+      <div id="dokumenter-liste" style="margin-bottom:12px;"></div>
+      <div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;background:#f9fafb;">
+        <div style="font-size:.82rem;font-weight:600;margin-bottom:8px;color:var(--muted);">Last opp nytt dokument</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+          <div style="flex:1;min-width:160px;">
+            <select id="dok-kode-select" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:.85rem;">
+              <option value="">Laster koder…</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:160px;">
+            <input type="file" id="dok-fil-input" style="width:100%;font-size:.83rem;">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="lastOppDokument()">Last opp</button>
+        </div>
+        <div id="dok-opplasting-status" style="font-size:.82rem;color:var(--muted);min-height:18px;margin-top:6px;"></div>
+      </div>
+      `}
+    </div>`;
+  if (harPsId) hentDokumentKoder();
+}
+
+function toggleDokumentSeksjon() {
+  const innhold = document.getElementById('dokument-innhold');
+  const pil = document.getElementById('dokument-pil');
+  if (!innhold) return;
+  const aapen = innhold.style.display !== 'none';
+  innhold.style.display = aapen ? 'none' : 'block';
+  if (pil) pil.textContent = aapen ? '▶' : '▼';
+  if (!aapen && !_dokumenterLastet) {
+    _dokumenterLastet = true;
+    hentOgVisDokumenter();
+  }
+}
+
+async function hentOgVisDokumenter() {
+  const liste = document.getElementById('dokumenter-liste');
+  if (!liste) return;
+  liste.innerHTML = '<div class="loader" style="padding:8px 0;"><div class="spinner"></div></div>';
+  try {
+    const resp = await fetch(`/.netlify/functions/prodsys-proxy?path=orders/documents&id=${aktivOrdre.ps_id}`);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const docs = await resp.json();
+    const arr = Array.isArray(docs) ? docs : (docs.data || []);
+    if (!arr.length) {
+      liste.innerHTML = '<p style="font-size:.85rem;color:var(--muted);margin:0 0 8px;">Ingen dokumenter på denne ordren.</p>';
+      return;
+    }
+    liste.innerHTML = arr.map(d => `
+      <div style="border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px;overflow:hidden;">
+        <div onclick="toggleDokFiler(${d.id})" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;cursor:pointer;background:#f9fafb;">
+          <div>
+            <span style="font-weight:600;font-size:.87rem;">${d.codeName || '–'}</span>
+            ${d.documentNumber ? `<span style="color:var(--muted);font-size:.8rem;margin-left:6px;">${d.documentNumber}</span>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:.78rem;color:var(--muted);">${fmtDato(d.dateCreated)}</span>
+            <span id="dok-pil-${d.id}" style="font-size:.72rem;color:var(--muted);">▶</span>
+          </div>
+        </div>
+        <div id="dok-filer-${d.id}" style="display:none;padding:6px 12px 8px;border-top:1px solid #f0f0f0;">
+          <div class="loader" style="padding:4px 0;"><div class="spinner"></div></div>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    liste.innerHTML = `<p style="font-size:.82rem;color:var(--red);">Kunne ikke hente dokumenter: ${e.message}</p>`;
+  }
+}
+
+async function toggleDokFiler(docId) {
+  const wrap = document.getElementById(`dok-filer-${docId}`);
+  const pil = document.getElementById(`dok-pil-${docId}`);
+  if (!wrap) return;
+  const aapen = wrap.style.display !== 'none';
+  wrap.style.display = aapen ? 'none' : 'block';
+  if (pil) pil.textContent = aapen ? '▶' : '▼';
+  if (!aapen && wrap.querySelector('.spinner')) {
+    try {
+      const resp = await fetch(`/.netlify/functions/prodsys-proxy?path=documents/files&id=${docId}`);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const filer = await resp.json();
+      const arr = Array.isArray(filer) ? filer : (filer.data || []);
+      if (!arr.length) {
+        wrap.innerHTML = '<p style="font-size:.82rem;color:var(--muted);margin:0;">Ingen filer.</p>';
+        return;
+      }
+      wrap.innerHTML = arr.map(f => {
+        const url = `/.netlify/functions/prodsys-proxy?path=files/download&id=${f.id}&name=${encodeURIComponent(f.name || f.path || 'fil')}`;
+        return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:.83rem;">
+          <span style="flex:1;">${f.name || f.path || '–'}</span>
+          <a href="${url}" download="${f.name || 'fil'}" class="btn btn-secondary btn-sm" style="text-decoration:none;">Last ned</a>
+        </div>`;
+      }).join('');
+    } catch(e) {
+      wrap.innerHTML = `<p style="font-size:.82rem;color:var(--red);">Feil: ${e.message}</p>`;
+    }
+  }
+}
+
+async function hentDokumentKoder() {
+  if (_dokumentKoder) { fyllDokKodeSelect(_dokumentKoder); return; }
+  try {
+    const resp = await fetch('/.netlify/functions/prodsys-proxy?path=document-codes');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    _dokumentKoder = Array.isArray(data) ? data : (data.data || []);
+    fyllDokKodeSelect(_dokumentKoder);
+  } catch(e) {
+    const sel = document.getElementById('dok-kode-select');
+    if (sel) sel.innerHTML = '<option value="">Kunne ikke laste koder</option>';
+  }
+}
+
+function fyllDokKodeSelect(koder) {
+  const sel = document.getElementById('dok-kode-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Velg dokumenttype…</option>' +
+    koder.map(k => `<option value="${k.id}">${k.name || k.codeName || k.id}</option>`).join('');
+}
+
+async function lastOppDokument() {
+  const kodeEl = document.getElementById('dok-kode-select');
+  const filEl = document.getElementById('dok-fil-input');
+  const status = document.getElementById('dok-opplasting-status');
+  const kode = kodeEl?.value;
+  const fil = filEl?.files?.[0];
+  if (!kode) { toast('Velg dokumenttype', 'error'); return; }
+  if (!fil) { toast('Velg en fil', 'error'); return; }
+  if (status) status.textContent = 'Oppretter dokument…';
+  try {
+    // Steg 1: opprett dokument
+    const r1 = await fetch('/.netlify/functions/prodsys-proxy?path=documents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ documentCode: parseInt(kode), orderId: aktivOrdre.ps_id }),
+    });
+    if (!r1.ok) throw new Error('Opprett dokument feilet: HTTP ' + r1.status);
+    const docId = await r1.json();
+    if (!docId) throw new Error('Fikk ikke documentId fra ProdSys');
+    // Steg 2: last opp fil
+    if (status) status.textContent = 'Laster opp fil…';
+    const form = new FormData();
+    form.append('file', fil);
+    const r2 = await fetch(`/.netlify/functions/prodsys-proxy?path=documents/files/upload&id=${docId}`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!r2.ok) throw new Error('Filopplasting feilet: HTTP ' + r2.status);
+    toast('Dokument lastet opp', 'success');
+    if (status) status.textContent = '';
+    if (kodeEl) kodeEl.value = '';
+    if (filEl) filEl.value = '';
+    _dokumenterLastet = false;
+    hentOgVisDokumenter();
+  } catch(e) {
+    toast('Feil: ' + e.message, 'error');
+    if (status) status.textContent = '';
+  }
 }
 
 // ── ARTIKKEL-FUNKSJONER (Scenario A + B) ──────────────────────────────────
