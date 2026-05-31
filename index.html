@@ -793,6 +793,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <button class="modal-close" onclick="lukkModal()">✕</button>
     <div id="modal-innhold"></div>
     <hr class="section-divider">
+    <div id="skjemaer-seksjon"></div>
+    <hr class="section-divider">
     <div id="artikkel-seksjon"></div>
     <hr class="section-divider">
     <div id="dokument-seksjon"></div>
@@ -1904,14 +1906,67 @@ async function visDetalj(jsonStr){
       <div class="detail-field"><label>Ref.nummer</label><span>${aktivOrdre.customer_reference_number||'–'}</span></div>
       ${aktivOrdre.note?`<div class="detail-field detail-full"><label>Notat</label><div class="detail-note">${aktivOrdre.note}</div></div>`:''}
     </div>
-    ${aktivOrdre.ps_id ? `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-      <button class="btn btn-secondary btn-sm" onclick="åpneSJASkjema()">📋 Ny SJA</button>
-      <button class="btn btn-secondary btn-sm" onclick="åpneVarmeArbSkjema()">🔥 Varme arbeider</button>
-    </div>` : ''}`;
+    `;
   document.getElementById('detalj-modal').style.display='flex';
+  hentOgVisSkjemaer();
   oppdaterArtikkelSeksjon();
   oppdaterDokumentSeksjon();
   await oppdaterTimerSeksjon();
+}
+
+async function hentOgVisSkjemaer() {
+  const seksjon = document.getElementById('skjemaer-seksjon');
+  if (!seksjon || !aktivOrdre) return;
+  seksjon.innerHTML = '<div style="font-size:.8rem;color:var(--muted);padding:4px 0;">Laster skjemaer…</div>';
+  const [{ data: sjaer }, { data: vaer }] = await Promise.all([
+    sb.from('sja').select('id,tittel,dato,status').eq('order_number', aktivOrdre.order_number).order('dato', {ascending:false}),
+    sb.from('varme_arbeider').select('id,arbeidets_art,dato_start,status').eq('order_number', aktivOrdre.order_number).order('dato_start', {ascending:false})
+  ]);
+  const items = [
+    ...(sjaer||[]).map(s => ({...s, type:'sja', label: s.tittel||'SJA', dato: s.dato})),
+    ...(vaer||[]).map(v => ({...v, type:'va', label: v.arbeidets_art||'Varme arbeider', dato: v.dato_start})),
+  ].sort((a,b) => (b.dato||'').localeCompare(a.dato||''));
+  const nyBtn = aktivOrdre.ps_id ? `<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+    <button class="btn btn-secondary btn-sm" onclick="åpneSJASkjema()">📋 Ny SJA</button>
+    <button class="btn btn-secondary btn-sm" onclick="åpneVarmeArbSkjema()">🔥 Ny varme arbeider</button>
+  </div>` : '';
+  if (!items.length) {
+    seksjon.innerHTML = `<div class="timer-header"><div class="timer-heading">📋 Skjemaer</div></div>${nyBtn}<p style="color:var(--muted);font-size:.85rem;">Ingen skjemaer ennå.</p>`;
+    return;
+  }
+  const rader = items.map(item => {
+    const kladd = item.status !== 'fullfort';
+    const ikon = item.type === 'sja' ? '📋' : '🔥';
+    const dato = item.dato ? new Date(item.dato).toLocaleDateString('nb-NO') : '–';
+    const badge = kladd
+      ? `<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:.75rem;white-space:nowrap;">🟡 Kladd</span>`
+      : `<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:10px;font-size:.75rem;white-space:nowrap;">✅ Fullført</span>`;
+    const knapper = kladd
+      ? `<button class="btn btn-secondary btn-sm" onclick="fortsetteSkjema('${item.type}','${item.id}')">Fortsett</button>
+         <button class="btn btn-sm" style="color:var(--red);background:none;border:1px solid var(--red);padding:4px 10px;border-radius:6px;font-size:.8rem;cursor:pointer;" onclick="slettSkjema('${item.type}','${item.id}')">Slett</button>`
+      : '';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+      <span style="font-size:.9rem;">${ikon} <strong>${item.label}</strong></span>
+      <span style="font-size:.8rem;color:var(--muted);">${dato}</span>
+      ${badge}
+      <div style="margin-left:auto;display:flex;gap:6px;">${knapper}</div>
+    </div>`;
+  }).join('');
+  seksjon.innerHTML = `<div class="timer-header"><div class="timer-heading">📋 Skjemaer</div></div>${nyBtn}${rader}`;
+}
+
+async function fortsetteSkjema(type, id) {
+  if (type === 'sja') await åpneSJASkjema(id);
+  else await åpneVarmeArbSkjema(id);
+}
+
+async function slettSkjema(type, id) {
+  if (!confirm('Slett kladden? Dette kan ikke angres.')) return;
+  const tabell = type === 'sja' ? 'sja' : 'varme_arbeider';
+  const { error } = await sb.from(tabell).delete().eq('id', id);
+  if (error) { toast('Feil ved sletting: ' + error.message, 'error'); return; }
+  toast('Kladd slettet', 'success');
+  hentOgVisSkjemaer();
 }
 
 async function oppdaterTimerSeksjon(){
@@ -3406,8 +3461,8 @@ const VA_OPPFOLGING = [
 
 let _vaUtforendeNr = 0, _vaBrannvaktNr = 0;
 
-function åpneVarmeArbSkjema() {
-  _vaUtforendeNr = 0; _vaBrannvaktNr = 0;
+async function åpneVarmeArbSkjema(vaId = null) {
+  _vaUtforendeNr = 0; _vaBrannvaktNr = 0; _vaRedigeringsId = null;
   const now = new Date().toISOString().slice(0, 16);
   const prosjektNavn = `${aktivOrdre.customer_name||''} #${aktivOrdre.order_number||''}`.trim();
   document.getElementById('va-form-wrap').innerHTML = `
@@ -3491,12 +3546,116 @@ function åpneVarmeArbSkjema() {
 
       <div id="va-lagre-status" style="font-size:.9rem;color:var(--muted);min-height:20px;text-align:center;"></div>
       <div class="skj-sticky-bunn">
-        <button type="submit" class="btn btn-primary" style="flex:1;">💾 Lagre og send til ProdSys</button>
+        <button type="button" class="btn btn-secondary" onclick="lagreKladdVA()">💾 Lagre kladd</button>
+        <button type="submit" class="btn btn-primary" style="flex:1;">✅ Fullfør og send</button>
         <button type="button" class="btn btn-secondary" onclick="lukkVAModal()">Avbryt</button>
       </div>
     </form>`;
   document.getElementById('va-modal').style.display = 'flex';
   requestAnimationFrame(() => { initSignaturCanvas('va-oppdragsgiver-sig'); });
+  if (vaId) { _vaRedigeringsId = vaId; await _populerVASkjema(vaId); }
+}
+
+function _samlVAData() {
+  return {
+    order_number: aktivOrdre.order_number, ps_order_id: aktivOrdre.ps_id,
+    arbeidets_art: document.getElementById('va-art')?.value||'',
+    arbeidsplass: document.getElementById('va-arbeidsplass')?.value||'',
+    dato_start: document.getElementById('va-start')?.value||null,
+    dato_slutt: document.getElementById('va-slutt')?.value||null,
+    oppdragsgiver_navn: document.getElementById('va-oppdragsgiver-navn')?.value||'',
+    oppdragsgiver_mobil: document.getElementById('va-oppdragsgiver-mobil')?.value||'',
+    oppdragsgiver_signatur: hentSignaturBase64('va-oppdragsgiver-sig'),
+    sikkerhetskrav: VA_SIKKERHETSKRAV.map((_,i) => document.getElementById(`va-sk-${i}`)?.checked||false),
+    eksplosjonsfarlige_rom: document.querySelector('input[name="va-eksplosjon"]:checked')?.value==='ja',
+    arbeidstillatelse_signert: document.querySelector('input[name="va-tillatelse"]:checked')?.value==='ja',
+    navn_kontroller: document.getElementById('va-kontroller-navn')?.value||'',
+    oppfolging: VA_OPPFOLGING.map((_,i) => document.getElementById(`va-opp-${i}`)?.checked||false),
+  };
+}
+
+function _samlVAUtforende() {
+  return Array.from(document.querySelectorAll('[id^="va-utf-rad-"]')).map(rad => {
+    const nr = rad.id.replace('va-utf-rad-','');
+    return { navn: document.getElementById(`va-utf-navn-${nr}`)?.value||'', mobil: document.getElementById(`va-utf-mobil-${nr}`)?.value||'', sertifikat_nr: document.getElementById(`va-utf-sert-${nr}`)?.value||'', signatur: hentSignaturBase64(`va-utf-sig-${nr}`) };
+  });
+}
+
+function _samlVABrannvakt() {
+  return Array.from(document.querySelectorAll('[id^="va-bv-rad-"]')).map(rad => {
+    const nr = rad.id.replace('va-bv-rad-','');
+    return { navn: document.getElementById(`va-bv-navn-${nr}`)?.value||'', mobil: document.getElementById(`va-bv-mobil-${nr}`)?.value||'', sertifikat_nr: document.getElementById(`va-bv-sert-${nr}`)?.value||'', signatur: hentSignaturBase64(`va-bv-sig-${nr}`) };
+  });
+}
+
+async function _lagreVAChildTables(vaId) {
+  await sb.from('varme_arbeider_utforende').delete().eq('varme_arbeider_id', vaId);
+  await sb.from('varme_arbeider_brannvakt').delete().eq('varme_arbeider_id', vaId);
+  const utf = _samlVAUtforende(); const bv = _samlVABrannvakt();
+  if (utf.length) await sb.from('varme_arbeider_utforende').insert(utf.map(u=>({...u,varme_arbeider_id:vaId})));
+  if (bv.length) await sb.from('varme_arbeider_brannvakt').insert(bv.map(b=>({...b,varme_arbeider_id:vaId})));
+}
+
+async function _populerVASkjema(vaId) {
+  const [{ data: va }, { data: utforende }, { data: brannvakter }] = await Promise.all([
+    sb.from('varme_arbeider').select('*').eq('id', vaId).single(),
+    sb.from('varme_arbeider_utforende').select('*').eq('varme_arbeider_id', vaId),
+    sb.from('varme_arbeider_brannvakt').select('*').eq('varme_arbeider_id', vaId),
+  ]);
+  if (!va) return;
+  document.getElementById('va-art').value = va.arbeidets_art||'';
+  document.getElementById('va-arbeidsplass').value = va.arbeidsplass||'';
+  document.getElementById('va-start').value = va.dato_start?.slice(0,16)||'';
+  document.getElementById('va-slutt').value = va.dato_slutt?.slice(0,16)||'';
+  document.getElementById('va-oppdragsgiver-navn').value = va.oppdragsgiver_navn||'';
+  document.getElementById('va-oppdragsgiver-mobil').value = va.oppdragsgiver_mobil||'';
+  if (va.sikkerhetskrav) va.sikkerhetskrav.forEach((v,i) => { if(document.getElementById(`va-sk-${i}`)) document.getElementById(`va-sk-${i}`).checked=v; });
+  if (va.oppfolging) va.oppfolging.forEach((v,i) => { if(document.getElementById(`va-opp-${i}`)) document.getElementById(`va-opp-${i}`).checked=v; });
+  if (va.eksplosjonsfarlige_rom) { const r=document.querySelector('input[name="va-eksplosjon"][value="ja"]'); if(r){r.checked=true; vaEksplosjonEndret();} }
+  if (va.arbeidstillatelse_signert!=null) { const r=document.querySelector(`input[name="va-tillatelse"][value="${va.arbeidstillatelse_signert?'ja':'nei'}"]`); if(r) r.checked=true; }
+  if (va.navn_kontroller) document.getElementById('va-kontroller-navn').value = va.navn_kontroller;
+  if (va.oppdragsgiver_signatur) { const c=document.getElementById('va-oppdragsgiver-sig-canvas'); if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=va.oppdragsgiver_signatur;} }
+  for (const u of (utforende||[])) {
+    leggTilVAUtforende(); const nr = _vaUtforendeNr;
+    await new Promise(r=>requestAnimationFrame(r));
+    document.getElementById(`va-utf-navn-${nr}`).value=u.navn||'';
+    document.getElementById(`va-utf-mobil-${nr}`).value=u.mobil||'';
+    document.getElementById(`va-utf-sert-${nr}`).value=u.sertifikat_nr||'';
+    if(u.signatur){const c=document.getElementById(`va-utf-sig-${nr}-canvas`);if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=u.signatur;}}
+  }
+  for (const b of (brannvakter||[])) {
+    leggTilVABrannvakt(); const nr = _vaBrannvaktNr;
+    await new Promise(r=>requestAnimationFrame(r));
+    document.getElementById(`va-bv-navn-${nr}`).value=b.navn||'';
+    document.getElementById(`va-bv-mobil-${nr}`).value=b.mobil||'';
+    document.getElementById(`va-bv-sert-${nr}`).value=b.sertifikat_nr||'';
+    if(b.signatur){const c=document.getElementById(`va-bv-sig-${nr}-canvas`);if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=b.signatur;}}
+  }
+}
+
+async function lagreKladdVA() {
+  const statusEl = document.getElementById('va-lagre-status');
+  if (statusEl) statusEl.textContent = 'Lagrer kladd…';
+  try {
+    const vaData = _samlVAData();
+    let vaId = _vaRedigeringsId;
+    if (vaId) {
+      const { error } = await sb.from('varme_arbeider').update({...vaData, status:'kladd'}).eq('id', vaId);
+      if (error) throw error;
+    } else {
+      const email = (await sb.auth.getUser()).data?.user?.email||'';
+      const { data, error } = await sb.from('varme_arbeider').insert({...vaData, status:'kladd', created_by:email}).select().single();
+      if (error) throw error;
+      vaId = data.id; _vaRedigeringsId = vaId;
+    }
+    await _lagreVAChildTables(vaId);
+    toast('Kladd lagret ✓', 'success');
+    lukkVAModal();
+    hentOgVisSkjemaer();
+  } catch(err) {
+    toast('Feil: ' + err.message, 'error');
+    if (statusEl) statusEl.textContent = '';
+  }
 }
 
 function vaEksplosjonEndret() {
@@ -3536,56 +3695,36 @@ function lukkVAModalKlikk(e) { if (e.target === document.getElementById('va-moda
 
 async function lagreVarmeArb(e) {
   e.preventDefault();
-  const status = document.getElementById('va-lagre-status');
-  if (status) status.textContent = 'Lagrer…';
+  const statusEl = document.getElementById('va-lagre-status');
+  if (statusEl) statusEl.textContent = 'Lagrer…';
   try {
-    const sikkerhetskrav = VA_SIKKERHETSKRAV.map((_,i) => document.getElementById(`va-sk-${i}`)?.checked || false);
-    const oppfolging = VA_OPPFOLGING.map((_,i) => document.getElementById(`va-opp-${i}`)?.checked || false);
-    const eksplJa = document.querySelector('input[name="va-eksplosjon"]:checked')?.value === 'ja';
-    // Saml utforende
-    const utforende = [];
-    document.querySelectorAll('[id^="va-utf-rad-"]').forEach(rad => {
-      const nr = rad.id.replace('va-utf-rad-','');
-      utforende.push({ navn: document.getElementById(`va-utf-navn-${nr}`)?.value||'', mobil: document.getElementById(`va-utf-mobil-${nr}`)?.value||'', sertifikat_nr: document.getElementById(`va-utf-sert-${nr}`)?.value||'', signatur: hentSignaturBase64(`va-utf-sig-${nr}`) });
-    });
-    const brannvakter = [];
-    document.querySelectorAll('[id^="va-bv-rad-"]').forEach(rad => {
-      const nr = rad.id.replace('va-bv-rad-','');
-      brannvakter.push({ navn: document.getElementById(`va-bv-navn-${nr}`)?.value||'', mobil: document.getElementById(`va-bv-mobil-${nr}`)?.value||'', sertifikat_nr: document.getElementById(`va-bv-sert-${nr}`)?.value||'', signatur: hentSignaturBase64(`va-bv-sig-${nr}`) });
-    });
-    const uid = await getUid();
-    const email = (await sb.auth.getUser()).data?.user?.email || '';
-    // INSERT varme_arbeider
-    const { data: vaRad, error: vaErr } = await sb.from('varme_arbeider').insert({
-      order_number: aktivOrdre.order_number,
-      ps_order_id: aktivOrdre.ps_id,
-      arbeidets_art: document.getElementById('va-art')?.value||'',
-      arbeidsplass: document.getElementById('va-arbeidsplass')?.value||'',
-      dato_start: document.getElementById('va-start')?.value||null,
-      dato_slutt: document.getElementById('va-slutt')?.value||null,
-      oppdragsgiver_navn: document.getElementById('va-oppdragsgiver-navn')?.value||'',
-      oppdragsgiver_mobil: document.getElementById('va-oppdragsgiver-mobil')?.value||'',
-      oppdragsgiver_signatur: hentSignaturBase64('va-oppdragsgiver-sig'),
-      sikkerhetskrav, eksplosjonsfarlige_rom: eksplJa,
-      arbeidstillatelse_signert: document.querySelector('input[name="va-tillatelse"]:checked')?.value === 'ja',
-      navn_kontroller: document.getElementById('va-kontroller-navn')?.value||'',
-      oppfolging, created_by: email
-    }).select().single();
-    if (vaErr) throw vaErr;
-    // INSERT utforende og brannvakter
-    if (utforende.length) await sb.from('varme_arbeider_utforende').insert(utforende.map(u => ({ ...u, varme_arbeider_id: vaRad.id })));
-    if (brannvakter.length) await sb.from('varme_arbeider_brannvakt').insert(brannvakter.map(b => ({ ...b, varme_arbeider_id: vaRad.id })));
-    // Generer og last opp PDF
-    if (status) status.textContent = 'Genererer PDF…';
-    const pdfBlob = genererVarmeArbPDF({ ...vaRad, utforende, brannvakter, sikkerhetskrav, oppfolging });
-    if (status) status.textContent = 'Laster opp til ProdSys…';
+    const vaData = _samlVAData();
+    let vaId = _vaRedigeringsId;
+    let vaRad;
+    if (vaId) {
+      const { data, error } = await sb.from('varme_arbeider').update({...vaData, status:'fullfort'}).eq('id', vaId).select().single();
+      if (error) throw error;
+      vaRad = data;
+    } else {
+      const email = (await sb.auth.getUser()).data?.user?.email||'';
+      const { data, error } = await sb.from('varme_arbeider').insert({...vaData, status:'fullfort', created_by:email}).select().single();
+      if (error) throw error;
+      vaRad = data; vaId = data.id;
+    }
+    await _lagreVAChildTables(vaId);
+    const utforende = _samlVAUtforende();
+    const brannvakter = _samlVABrannvakt();
+    if (statusEl) statusEl.textContent = 'Genererer PDF…';
+    const pdfBlob = genererVarmeArbPDF({ ...vaRad, utforende, brannvakter, sikkerhetskrav: vaData.sikkerhetskrav, oppfolging: vaData.oppfolging });
+    if (statusEl) statusEl.textContent = 'Laster opp til ProdSys…';
     await lastOppSkjemaPDF(pdfBlob, `VarmeArbeider_${aktivOrdre.order_number}.pdf`);
     toast('Varme arbeider lagret og sendt til ProdSys ✓', 'success');
     lukkVAModal();
     _dokumenterLastet = false;
+    hentOgVisSkjemaer();
   } catch(err) {
     toast('Feil: ' + err.message, 'error');
-    if (status) status.textContent = '';
+    if (statusEl) statusEl.textContent = '';
   }
 }
 
@@ -3709,9 +3848,10 @@ const SJA_SJEKKLISTE = [
 ];
 
 let _sjaDeloppgNr = 0, _sjaDeltNr = 0;
+let _sjaRedigeringsId = null, _vaRedigeringsId = null;
 
-function åpneSJASkjema() {
-  _sjaDeloppgNr = 0; _sjaDeltNr = 0;
+async function åpneSJASkjema(sjaId = null) {
+  _sjaDeloppgNr = 0; _sjaDeltNr = 0; _sjaRedigeringsId = null;
   const today = new Date().toISOString().slice(0, 10);
   const prosjektNavn = `${aktivOrdre.customer_name||''} #${aktivOrdre.order_number||''}`.trim();
   let sjekkHtml = '';
@@ -3794,7 +3934,8 @@ function åpneSJASkjema() {
 
       <div id="sja-lagre-status" style="font-size:.9rem;color:var(--muted);min-height:20px;text-align:center;"></div>
       <div class="skj-sticky-bunn">
-        <button type="submit" class="btn btn-primary" style="flex:1;">💾 Lagre og send til ProdSys</button>
+        <button type="button" class="btn btn-secondary" onclick="lagreKladdSJA()">💾 Lagre kladd</button>
+        <button type="submit" class="btn btn-primary" style="flex:1;">✅ Fullfør og send</button>
         <button type="button" class="btn btn-secondary" onclick="lukkSJAModal()">Avbryt</button>
       </div>
     </form>`;
@@ -3803,6 +3944,138 @@ function åpneSJASkjema() {
     initSignaturCanvas('sja-utforende-sig');
     initSignaturCanvas('sja-ansvarlig-sig');
   });
+  if (sjaId) {
+    _sjaRedigeringsId = sjaId;
+    await _populerSJASkjema(sjaId);
+  }
+}
+
+function _samlSJAData() {
+  const arsaker = SJA_ARSAKER.map((_,i) => !!document.querySelector(`[data-arsak="${i}"].do-tag--aktiv`));
+  const sjekkliste = {};
+  SJA_SJEKKLISTE.forEach((sek, si) => {
+    sjekkliste[si] = sek.spørsmål.map((_,qi) => document.querySelector(`input[name="sja-sjekk-${si}-${qi}"]:checked`)?.value || 'ia');
+  });
+  return {
+    order_number: aktivOrdre.order_number, ps_order_id: aktivOrdre.ps_id,
+    prosjekt: document.getElementById('sja-prosjekt')?.value||'',
+    ansvarlig: document.getElementById('sja-ansvarlig')?.value||'',
+    tittel: document.getElementById('sja-tittel')?.value||'',
+    dato: document.getElementById('sja-dato')?.value||null,
+    ansvarlig_bedrift: document.getElementById('sja-bedrift')?.value||'',
+    arsaker, larepunkter: document.getElementById('sja-larepunkter')?.value||'',
+    sjekkliste,
+    utforende_signatur: hentSignaturBase64('sja-utforende-sig'),
+    ansvarlig_signatur: hentSignaturBase64('sja-ansvarlig-sig'),
+  };
+}
+
+function _samlSJADeloppgaver() {
+  const deloppgaver = [];
+  document.querySelectorAll('.sja-do-row').forEach(rad => {
+    const n = rad.dataset.n;
+    const farerChecked = Array.from(rad.querySelectorAll(`[data-gruppe="farer-${n}"].do-tag--aktiv`)).map(b => b.textContent.trim());
+    const farerAnnet = document.getElementById(`sja-do-farer-annet-${n}`)?.value?.trim();
+    if (farerAnnet) farerChecked.push(farerAnnet);
+    const tiltakChecked = Array.from(rad.querySelectorAll(`[data-gruppe="tiltak-${n}"].do-tag--aktiv`)).map(b => b.textContent.trim());
+    const tiltakAnnet = document.getElementById(`sja-do-tiltak-annet-${n}`)?.value?.trim();
+    if (tiltakAnnet) tiltakChecked.push(tiltakAnnet);
+    deloppgaver.push({ tittel: document.getElementById(`sja-do-tittel-${n}`)?.value||'', farer: JSON.stringify(farerChecked), risiko: document.getElementById(`sja-do-risiko-${n}`)?.value||'', tiltak: JSON.stringify(tiltakChecked), ansvarlig: document.getElementById(`sja-do-ansvarlig-${n}`)?.value||'' });
+  });
+  return deloppgaver;
+}
+
+function _samlSJADeltagere() {
+  const deltagere = [];
+  document.querySelectorAll('[id^="sja-dt-"]:not([id*="-navn"]):not([id*="-firma"]):not([id*="-sig"])').forEach(rad => {
+    const n = rad.id.replace('sja-dt-',''); if (isNaN(n)) return;
+    deltagere.push({ navn: document.getElementById(`sja-dt-navn-${n}`)?.value||'', firma: document.getElementById(`sja-dt-firma-${n}`)?.value||'', signatur: hentSignaturBase64(`sja-dt-sig-${n}`) });
+  });
+  return deltagere;
+}
+
+async function _lagreSJAChildTables(sjaId) {
+  await sb.from('sja_deloppgaver').delete().eq('sja_id', sjaId);
+  await sb.from('sja_deltagere').delete().eq('sja_id', sjaId);
+  const deloppgaver = _samlSJADeloppgaver();
+  const deltagere = _samlSJADeltagere();
+  if (deloppgaver.length) await sb.from('sja_deloppgaver').insert(deloppgaver.map(d => ({...d, sja_id: sjaId})));
+  if (deltagere.length) await sb.from('sja_deltagere').insert(deltagere.map(d => ({...d, sja_id: sjaId})));
+}
+
+async function _populerSJASkjema(sjaId) {
+  const [{ data: sja }, { data: deloppgaver }, { data: deltagere }] = await Promise.all([
+    sb.from('sja').select('*').eq('id', sjaId).single(),
+    sb.from('sja_deloppgaver').select('*').eq('sja_id', sjaId),
+    sb.from('sja_deltagere').select('*').eq('sja_id', sjaId),
+  ]);
+  if (!sja) return;
+  document.getElementById('sja-tittel').value = sja.tittel||'';
+  document.getElementById('sja-prosjekt').value = sja.prosjekt||'';
+  document.getElementById('sja-dato').value = sja.dato||'';
+  document.getElementById('sja-ansvarlig').value = sja.ansvarlig||'';
+  document.getElementById('sja-bedrift').value = sja.ansvarlig_bedrift||'';
+  document.getElementById('sja-larepunkter').value = sja.larepunkter||'';
+  if (sja.arsaker) sja.arsaker.forEach((aktiv,i) => { if (aktiv) document.querySelector(`[data-arsak="${i}"]`)?.classList.add('do-tag--aktiv'); });
+  if (sja.sjekkliste) SJA_SJEKKLISTE.forEach((sek,si) => sek.spørsmål.forEach((_,qi) => {
+    const svar = sja.sjekkliste[si]?.[qi]||'ia';
+    const r = document.querySelector(`input[name="sja-sjekk-${si}-${qi}"][value="${svar}"]`);
+    if (r) r.checked = true;
+  }));
+  if (sja.utforende_signatur) { const c=document.getElementById('sja-utforende-sig-canvas'); if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=sja.utforende_signatur;} }
+  if (sja.ansvarlig_signatur) { const c=document.getElementById('sja-ansvarlig-sig-canvas'); if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=sja.ansvarlig_signatur;} }
+  for (const d of (deloppgaver||[])) {
+    leggTilSJADeloppgave();
+    const n = _sjaDeloppgNr;
+    document.getElementById(`sja-do-tittel-${n}`).value = d.tittel||'';
+    document.getElementById(`sja-do-preview-${n}`).textContent = d.tittel ? '— '+d.tittel : '';
+    document.getElementById(`sja-do-risiko-${n}`).value = d.risiko||'';
+    document.getElementById(`sja-do-ansvarlig-${n}`).value = d.ansvarlig||'';
+    try {
+      const farer = JSON.parse(d.farer||'[]');
+      const farerPills = document.querySelectorAll(`[data-gruppe="farer-${n}"]`);
+      farer.forEach(f => { const p=Array.from(farerPills).find(x=>x.textContent.trim()===f); if(p) p.classList.add('do-tag--aktiv'); else { const el=document.getElementById(`sja-do-farer-annet-${n}`); if(el&&!el.value) el.value=f; }});
+    } catch {}
+    try {
+      const tiltak = JSON.parse(d.tiltak||'[]');
+      const tiltakPills = document.querySelectorAll(`[data-gruppe="tiltak-${n}"]`);
+      tiltak.forEach(t => { const p=Array.from(tiltakPills).find(x=>x.textContent.trim()===t); if(p) p.classList.add('do-tag--aktiv'); else { const el=document.getElementById(`sja-do-tiltak-annet-${n}`); if(el&&!el.value) el.value=t; }});
+    } catch {}
+  }
+  for (const d of (deltagere||[])) {
+    leggTilSJADeltager();
+    const n = _sjaDeltNr;
+    await new Promise(r => requestAnimationFrame(r));
+    document.getElementById(`sja-dt-navn-${n}`).value = d.navn||'';
+    document.getElementById(`sja-dt-firma-${n}`).value = d.firma||'';
+    if (d.signatur) { const c=document.getElementById(`sja-dt-sig-${n}-canvas`); if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=d.signatur;} }
+  }
+}
+
+async function lagreKladdSJA() {
+  if (!document.querySelector('.sja-do-row')) { toast('Legg til minst én deloppgave', 'error'); return; }
+  const statusEl = document.getElementById('sja-lagre-status');
+  if (statusEl) statusEl.textContent = 'Lagrer kladd…';
+  try {
+    const sjaData = _samlSJAData();
+    let sjaId = _sjaRedigeringsId;
+    if (sjaId) {
+      const { error } = await sb.from('sja').update({...sjaData, status:'kladd'}).eq('id', sjaId);
+      if (error) throw error;
+    } else {
+      const email = (await sb.auth.getUser()).data?.user?.email||'';
+      const { data, error } = await sb.from('sja').insert({...sjaData, status:'kladd', created_by:email}).select().single();
+      if (error) throw error;
+      sjaId = data.id; _sjaRedigeringsId = sjaId;
+    }
+    await _lagreSJAChildTables(sjaId);
+    toast('Kladd lagret ✓', 'success');
+    lukkSJAModal();
+    hentOgVisSkjemaer();
+  } catch(err) {
+    toast('Feil: ' + err.message, 'error');
+    if (statusEl) statusEl.textContent = '';
+  }
 }
 
 function toggleSJADeloppgave(n) {
@@ -3892,66 +4165,36 @@ async function lagreSJA(e) {
     document.getElementById('sja-deloppg-liste')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
-  const status = document.getElementById('sja-lagre-status');
-  if (status) status.textContent = 'Lagrer…';
+  const statusEl = document.getElementById('sja-lagre-status');
+  if (statusEl) statusEl.textContent = 'Lagrer…';
   try {
-    const arsaker = SJA_ARSAKER.map((_,i) => !!document.querySelector(`[data-arsak="${i}"].do-tag--aktiv`));
-    const sjekkliste = {};
-    SJA_SJEKKLISTE.forEach((sek, si) => {
-      sjekkliste[si] = sek.spørsmål.map((_,qi) => document.querySelector(`input[name="sja-sjekk-${si}-${qi}"]:checked`)?.value || 'ia');
-    });
-    // Deloppgaver
-    const deloppgaver = [];
-    document.querySelectorAll('.sja-do-row').forEach(rad => {
-      const n = rad.dataset.n;
-      const farerChecked = Array.from(rad.querySelectorAll(`[data-gruppe="farer-${n}"].do-tag--aktiv`)).map(b => b.textContent.trim());
-      const farerAnnet = document.getElementById(`sja-do-farer-annet-${n}`)?.value?.trim();
-      if (farerAnnet) farerChecked.push(farerAnnet);
-      const tiltakChecked = Array.from(rad.querySelectorAll(`[data-gruppe="tiltak-${n}"].do-tag--aktiv`)).map(b => b.textContent.trim());
-      const tiltakAnnet = document.getElementById(`sja-do-tiltak-annet-${n}`)?.value?.trim();
-      if (tiltakAnnet) tiltakChecked.push(tiltakAnnet);
-      deloppgaver.push({
-        tittel: document.getElementById(`sja-do-tittel-${n}`)?.value || '',
-        farer: JSON.stringify(farerChecked),
-        risiko: document.getElementById(`sja-do-risiko-${n}`)?.value || '',
-        tiltak: JSON.stringify(tiltakChecked),
-        ansvarlig: document.getElementById(`sja-do-ansvarlig-${n}`)?.value || '',
-      });
-    });
-    const deltagere = [];
-    document.querySelectorAll('[id^="sja-dt-"]:not([id*="-navn"]):not([id*="-firma"]):not([id*="-sig"])').forEach(rad => {
-      const n = rad.id.replace('sja-dt-','');
-      if (isNaN(n)) return;
-      deltagere.push({ navn: document.getElementById(`sja-dt-navn-${n}`)?.value||'', firma: document.getElementById(`sja-dt-firma-${n}`)?.value||'', signatur: hentSignaturBase64(`sja-dt-sig-${n}`) });
-    });
-    const email = (await sb.auth.getUser()).data?.user?.email || '';
-    const { data: sjaRad, error: sjaErr } = await sb.from('sja').insert({
-      order_number: aktivOrdre.order_number,
-      ps_order_id: aktivOrdre.ps_id,
-      prosjekt: document.getElementById('sja-prosjekt')?.value||'',
-      ansvarlig: document.getElementById('sja-ansvarlig')?.value||'',
-      tittel: document.getElementById('sja-tittel')?.value||'',
-      dato: document.getElementById('sja-dato')?.value||null,
-      ansvarlig_bedrift: document.getElementById('sja-bedrift')?.value||'',
-      arsaker, larepunkter: document.getElementById('sja-larepunkter')?.value||'',
-      sjekkliste,
-      utforende_signatur: hentSignaturBase64('sja-utforende-sig'),
-      ansvarlig_signatur: hentSignaturBase64('sja-ansvarlig-sig'),
-      created_by: email
-    }).select().single();
-    if (sjaErr) throw sjaErr;
-    if (deloppgaver.length) await sb.from('sja_deloppgaver').insert(deloppgaver.map(d => ({ ...d, sja_id: sjaRad.id })));
-    if (deltagere.length) await sb.from('sja_deltagere').insert(deltagere.map(d => ({ ...d, sja_id: sjaRad.id })));
-    if (status) status.textContent = 'Genererer PDF…';
-    const pdfBlob = genererSJAPDF({ ...sjaRad, deloppgaver, deltagere, arsaker, sjekkliste });
-    if (status) status.textContent = 'Laster opp til ProdSys…';
+    const sjaData = _samlSJAData();
+    let sjaId = _sjaRedigeringsId;
+    let sjaRad;
+    if (sjaId) {
+      const { data, error } = await sb.from('sja').update({...sjaData, status:'fullfort'}).eq('id', sjaId).select().single();
+      if (error) throw error;
+      sjaRad = data;
+    } else {
+      const email = (await sb.auth.getUser()).data?.user?.email||'';
+      const { data, error } = await sb.from('sja').insert({...sjaData, status:'fullfort', created_by:email}).select().single();
+      if (error) throw error;
+      sjaRad = data; sjaId = data.id;
+    }
+    await _lagreSJAChildTables(sjaId);
+    const deloppgaver = _samlSJADeloppgaver();
+    const deltagere = _samlSJADeltagere();
+    if (statusEl) statusEl.textContent = 'Genererer PDF…';
+    const pdfBlob = genererSJAPDF({ ...sjaRad, deloppgaver, deltagere, arsaker: sjaData.arsaker, sjekkliste: sjaData.sjekkliste });
+    if (statusEl) statusEl.textContent = 'Laster opp til ProdSys…';
     await lastOppSkjemaPDF(pdfBlob, `SJA_${aktivOrdre.order_number}.pdf`);
     toast('SJA lagret og sendt til ProdSys ✓', 'success');
     lukkSJAModal();
     _dokumenterLastet = false;
+    hentOgVisSkjemaer();
   } catch(err) {
     toast('Feil: ' + err.message, 'error');
-    if (status) status.textContent = '';
+    if (statusEl) statusEl.textContent = '';
   }
 }
 
