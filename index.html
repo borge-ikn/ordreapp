@@ -1908,16 +1908,45 @@ async function visDetalj(jsonStr){
     </div>
     `;
   document.getElementById('detalj-modal').style.display='flex';
-  hentOgVisSkjemaer();
+  oppdaterSkjemaerSeksjon();
   oppdaterArtikkelSeksjon();
   oppdaterDokumentSeksjon();
   await oppdaterTimerSeksjon();
 }
 
-async function hentOgVisSkjemaer() {
+function oppdaterSkjemaerSeksjon() {
   const seksjon = document.getElementById('skjemaer-seksjon');
-  if (!seksjon || !aktivOrdre) return;
-  seksjon.innerHTML = '<div style="font-size:.8rem;color:var(--muted);padding:4px 0;">Laster skjemaer…</div>';
+  if (!seksjon) return;
+  _skjemaerLastet = false;
+  seksjon.innerHTML = `
+    <div class="timer-header" onclick="toggleSkjemaerSeksjon()" style="cursor:pointer;user-select:none;">
+      <div class="timer-heading">📋 Skjemaer <span id="skjemaer-pil" style="font-size:.75rem;color:var(--muted);">▶</span></div>
+    </div>
+    <div id="skjemaer-innhold" style="display:none;"></div>`;
+}
+
+function toggleSkjemaerSeksjon() {
+  const innhold = document.getElementById('skjemaer-innhold');
+  const pil = document.getElementById('skjemaer-pil');
+  if (!innhold) return;
+  const aapen = innhold.style.display !== 'none';
+  innhold.style.display = aapen ? 'none' : 'block';
+  if (pil) pil.textContent = aapen ? '▶' : '▼';
+  if (!aapen && !_skjemaerLastet) { _skjemaerLastet = true; hentOgVisSkjemaer(); }
+}
+
+function _refreshSkjemaer() {
+  _skjemaerLastet = false;
+  const inn = document.getElementById('skjemaer-innhold');
+  const pil = document.getElementById('skjemaer-pil');
+  if (inn) { inn.style.display = 'block'; if (pil) pil.textContent = '▼'; }
+  hentOgVisSkjemaer();
+}
+
+async function hentOgVisSkjemaer() {
+  const innhold = document.getElementById('skjemaer-innhold');
+  if (!innhold || !aktivOrdre) return;
+  innhold.innerHTML = '<div style="font-size:.8rem;color:var(--muted);padding:4px 0;">Laster…</div>';
   const [{ data: sjaer }, { data: vaer }] = await Promise.all([
     sb.from('sja').select('id,tittel,dato,status').eq('order_number', aktivOrdre.order_number).order('dato', {ascending:false}),
     sb.from('varme_arbeider').select('id,arbeidets_art,dato_start,status').eq('order_number', aktivOrdre.order_number).order('dato_start', {ascending:false})
@@ -1930,10 +1959,7 @@ async function hentOgVisSkjemaer() {
     <button class="btn btn-secondary btn-sm" onclick="åpneSJASkjema()">📋 Ny SJA</button>
     <button class="btn btn-secondary btn-sm" onclick="åpneVarmeArbSkjema()">🔥 Ny varme arbeider</button>
   </div>` : '';
-  if (!items.length) {
-    seksjon.innerHTML = `<div class="timer-header"><div class="timer-heading">📋 Skjemaer</div></div>${nyBtn}<p style="color:var(--muted);font-size:.85rem;">Ingen skjemaer ennå.</p>`;
-    return;
-  }
+  if (!items.length) { innhold.innerHTML = `${nyBtn}<p style="color:var(--muted);font-size:.85rem;">Ingen skjemaer ennå.</p>`; return; }
   const rader = items.map(item => {
     const kladd = item.status !== 'fullfort';
     const ikon = item.type === 'sja' ? '📋' : '🔥';
@@ -1952,7 +1978,7 @@ async function hentOgVisSkjemaer() {
       <div style="margin-left:auto;display:flex;gap:6px;">${knapper}</div>
     </div>`;
   }).join('');
-  seksjon.innerHTML = `<div class="timer-header"><div class="timer-heading">📋 Skjemaer</div></div>${nyBtn}${rader}`;
+  innhold.innerHTML = `${nyBtn}${rader}`;
 }
 
 async function fortsetteSkjema(type, id) {
@@ -1966,7 +1992,7 @@ async function slettSkjema(type, id) {
   const { error } = await sb.from(tabell).delete().eq('id', id);
   if (error) { toast('Feil ved sletting: ' + error.message, 'error'); return; }
   toast('Kladd slettet', 'success');
-  hentOgVisSkjemaer();
+  _refreshSkjemaer();
 }
 
 async function oppdaterTimerSeksjon(){
@@ -3651,7 +3677,7 @@ async function lagreKladdVA() {
     await _lagreVAChildTables(vaId);
     toast('Kladd lagret ✓', 'success');
     lukkVAModal();
-    hentOgVisSkjemaer();
+    _refreshSkjemaer();
   } catch(err) {
     toast('Feil: ' + err.message, 'error');
     if (statusEl) statusEl.textContent = '';
@@ -3721,7 +3747,7 @@ async function lagreVarmeArb(e) {
     toast('Varme arbeider lagret og sendt til ProdSys ✓', 'success');
     lukkVAModal();
     _dokumenterLastet = false;
-    hentOgVisSkjemaer();
+    _refreshSkjemaer();
   } catch(err) {
     toast('Feil: ' + err.message, 'error');
     if (statusEl) statusEl.textContent = '';
@@ -4071,7 +4097,7 @@ async function lagreKladdSJA() {
     await _lagreSJAChildTables(sjaId);
     toast('Kladd lagret ✓', 'success');
     lukkSJAModal();
-    hentOgVisSkjemaer();
+    _refreshSkjemaer();
   } catch(err) {
     toast('Feil: ' + err.message, 'error');
     if (statusEl) statusEl.textContent = '';
@@ -4191,7 +4217,7 @@ async function lagreSJA(e) {
     toast('SJA lagret og sendt til ProdSys ✓', 'success');
     lukkSJAModal();
     _dokumenterLastet = false;
-    hentOgVisSkjemaer();
+    _refreshSkjemaer();
   } catch(err) {
     toast('Feil: ' + err.message, 'error');
     if (statusEl) statusEl.textContent = '';
@@ -4416,6 +4442,7 @@ function toggleAbusDropdown(e) {
 // ── DOKUMENT-FUNKSJONER ───────────────────────────────────────────────────
 
 let _dokumenterLastet = false;
+let _skjemaerLastet = false;
 let _dokumentKoder = null;
 
 function oppdaterDokumentSeksjon() {
