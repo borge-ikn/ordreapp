@@ -1988,6 +1988,13 @@ async function fortsetteSkjema(type, id) {
 
 async function slettSkjema(type, id) {
   if (!confirm('Slett kladden? Dette kan ikke angres.')) return;
+  if (type === 'sja') {
+    await sb.from('sja_deloppgaver').delete().eq('sja_id', id);
+    await sb.from('sja_deltagere').delete().eq('sja_id', id);
+  } else {
+    await sb.from('varme_arbeider_utforende').delete().eq('varme_arbeider_id', id);
+    await sb.from('varme_arbeider_brannvakt').delete().eq('varme_arbeider_id', id);
+  }
   const tabell = type === 'sja' ? 'sja' : 'varme_arbeider';
   const { error } = await sb.from(tabell).delete().eq('id', id);
   if (error) { toast('Feil ved sletting: ' + error.message, 'error'); return; }
@@ -3728,9 +3735,10 @@ async function lagreVarmeArb(e) {
     let vaId = _vaRedigeringsId;
     let vaRad;
     if (vaId) {
-      const { data, error } = await sb.from('varme_arbeider').update({...vaData, status:'fullfort'}).eq('id', vaId).select();
+      const { data, error } = await sb.from('varme_arbeider').update(vaData).eq('id', vaId).select();
       if (error) throw error;
-      vaRad = data[0];
+      vaRad = data[0] || vaData;
+      await sb.from('varme_arbeider').update({ status: 'fullfort' }).eq('id', vaId);
     } else {
       const email = (await sb.auth.getUser()).data?.user?.email||'';
       const { data, error } = await sb.from('varme_arbeider').insert({...vaData, status:'fullfort', created_by:email}).select();
@@ -4198,9 +4206,10 @@ async function lagreSJA(e) {
     let sjaId = _sjaRedigeringsId;
     let sjaRad;
     if (sjaId) {
-      const { data, error } = await sb.from('sja').update({...sjaData, status:'fullfort'}).eq('id', sjaId).select();
+      const { data, error } = await sb.from('sja').update(sjaData).eq('id', sjaId).select();
       if (error) throw error;
-      sjaRad = data[0];
+      sjaRad = data[0] || sjaData;
+      await sb.from('sja').update({ status: 'fullfort' }).eq('id', sjaId);
     } else {
       const email = (await sb.auth.getUser()).data?.user?.email||'';
       const { data, error } = await sb.from('sja').insert({...sjaData, status:'fullfort', created_by:email}).select();
