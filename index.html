@@ -3670,9 +3670,9 @@ async function lagreKladdVA() {
       if (error) throw error;
     } else {
       const email = (await sb.auth.getUser()).data?.user?.email||'';
-      const { data, error } = await sb.from('varme_arbeider').insert({...vaData, status:'kladd', created_by:email}).select().single();
+      const { data, error } = await sb.from('varme_arbeider').insert({...vaData, status:'kladd', created_by:email}).select();
       if (error) throw error;
-      vaId = data.id; _vaRedigeringsId = vaId;
+      vaId = data[0].id; _vaRedigeringsId = vaId;
     }
     await _lagreVAChildTables(vaId);
     toast('Kladd lagret ✓', 'success');
@@ -3728,14 +3728,14 @@ async function lagreVarmeArb(e) {
     let vaId = _vaRedigeringsId;
     let vaRad;
     if (vaId) {
-      const { data, error } = await sb.from('varme_arbeider').update({...vaData, status:'fullfort'}).eq('id', vaId).select().single();
+      const { data, error } = await sb.from('varme_arbeider').update({...vaData, status:'fullfort'}).eq('id', vaId).select();
       if (error) throw error;
-      vaRad = data;
+      vaRad = data[0];
     } else {
       const email = (await sb.auth.getUser()).data?.user?.email||'';
-      const { data, error } = await sb.from('varme_arbeider').insert({...vaData, status:'fullfort', created_by:email}).select().single();
+      const { data, error } = await sb.from('varme_arbeider').insert({...vaData, status:'fullfort', created_by:email}).select();
       if (error) throw error;
-      vaRad = data; vaId = data.id;
+      vaRad = data[0]; vaId = data[0].id;
     }
     await _lagreVAChildTables(vaId);
     const utforende = _samlVAUtforende();
@@ -4090,9 +4090,9 @@ async function lagreKladdSJA() {
       if (error) throw error;
     } else {
       const email = (await sb.auth.getUser()).data?.user?.email||'';
-      const { data, error } = await sb.from('sja').insert({...sjaData, status:'kladd', created_by:email}).select().single();
+      const { data, error } = await sb.from('sja').insert({...sjaData, status:'kladd', created_by:email}).select();
       if (error) throw error;
-      sjaId = data.id; _sjaRedigeringsId = sjaId;
+      sjaId = data[0].id; _sjaRedigeringsId = sjaId;
     }
     await _lagreSJAChildTables(sjaId);
     toast('Kladd lagret ✓', 'success');
@@ -4198,14 +4198,14 @@ async function lagreSJA(e) {
     let sjaId = _sjaRedigeringsId;
     let sjaRad;
     if (sjaId) {
-      const { data, error } = await sb.from('sja').update({...sjaData, status:'fullfort'}).eq('id', sjaId).select().single();
+      const { data, error } = await sb.from('sja').update({...sjaData, status:'fullfort'}).eq('id', sjaId).select();
       if (error) throw error;
-      sjaRad = data;
+      sjaRad = data[0];
     } else {
       const email = (await sb.auth.getUser()).data?.user?.email||'';
-      const { data, error } = await sb.from('sja').insert({...sjaData, status:'fullfort', created_by:email}).select().single();
+      const { data, error } = await sb.from('sja').insert({...sjaData, status:'fullfort', created_by:email}).select();
       if (error) throw error;
-      sjaRad = data; sjaId = data.id;
+      sjaRad = data[0]; sjaId = data[0].id;
     }
     await _lagreSJAChildTables(sjaId);
     const deloppgaver = _samlSJADeloppgaver();
