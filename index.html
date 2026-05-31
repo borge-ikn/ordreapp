@@ -3640,14 +3640,14 @@ async function _populerVASkjema(vaId) {
   if (va.eksplosjonsfarlige_rom) { const r=document.querySelector('input[name="va-eksplosjon"][value="ja"]'); if(r){r.checked=true; vaEksplosjonEndret();} }
   if (va.arbeidstillatelse_signert!=null) { const r=document.querySelector(`input[name="va-tillatelse"][value="${va.arbeidstillatelse_signert?'ja':'nei'}"]`); if(r) r.checked=true; }
   if (va.navn_kontroller) document.getElementById('va-kontroller-navn').value = va.navn_kontroller;
-  if (va.oppdragsgiver_signatur) { const c=document.getElementById('va-oppdragsgiver-sig-canvas'); if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=va.oppdragsgiver_signatur;} }
+  if (va.oppdragsgiver_signatur) { const c=document.getElementById('va-oppdragsgiver-sig'); if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=va.oppdragsgiver_signatur;} }
   for (const u of (utforende||[])) {
     leggTilVAUtforende(); const nr = _vaUtforendeNr;
     await new Promise(r=>requestAnimationFrame(r));
     document.getElementById(`va-utf-navn-${nr}`).value=u.navn||'';
     document.getElementById(`va-utf-mobil-${nr}`).value=u.mobil||'';
     document.getElementById(`va-utf-sert-${nr}`).value=u.sertifikat_nr||'';
-    if(u.signatur){const c=document.getElementById(`va-utf-sig-${nr}-canvas`);if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=u.signatur;}}
+    if(u.signatur){const c=document.getElementById(`va-utf-sig-${nr}`);if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=u.signatur;}}
   }
   for (const b of (brannvakter||[])) {
     leggTilVABrannvakt(); const nr = _vaBrannvaktNr;
@@ -3655,7 +3655,7 @@ async function _populerVASkjema(vaId) {
     document.getElementById(`va-bv-navn-${nr}`).value=b.navn||'';
     document.getElementById(`va-bv-mobil-${nr}`).value=b.mobil||'';
     document.getElementById(`va-bv-sert-${nr}`).value=b.sertifikat_nr||'';
-    if(b.signatur){const c=document.getElementById(`va-bv-sig-${nr}-canvas`);if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=b.signatur;}}
+    if(b.signatur){const c=document.getElementById(`va-bv-sig-${nr}`);if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=b.signatur;}}
   }
 }
 
@@ -4048,8 +4048,8 @@ async function _populerSJASkjema(sjaId) {
     const r = document.querySelector(`input[name="sja-sjekk-${si}-${qi}"][value="${svar}"]`);
     if (r) r.checked = true;
   }));
-  if (sja.utforende_signatur) { const c=document.getElementById('sja-utforende-sig-canvas'); if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=sja.utforende_signatur;} }
-  if (sja.ansvarlig_signatur) { const c=document.getElementById('sja-ansvarlig-sig-canvas'); if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=sja.ansvarlig_signatur;} }
+  if (sja.utforende_signatur) { const c=document.getElementById('sja-utforende-sig'); if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=sja.utforende_signatur;} }
+  if (sja.ansvarlig_signatur) { const c=document.getElementById('sja-ansvarlig-sig'); if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=sja.ansvarlig_signatur;} }
   for (const d of (deloppgaver||[])) {
     leggTilSJADeloppgave();
     const n = _sjaDeloppgNr;
@@ -4074,7 +4074,7 @@ async function _populerSJASkjema(sjaId) {
     await new Promise(r => requestAnimationFrame(r));
     document.getElementById(`sja-dt-navn-${n}`).value = d.navn||'';
     document.getElementById(`sja-dt-firma-${n}`).value = d.firma||'';
-    if (d.signatur) { const c=document.getElementById(`sja-dt-sig-${n}-canvas`); if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=d.signatur;} }
+    if (d.signatur) { const c=document.getElementById(`sja-dt-sig-${n}`); if(c){const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.src=d.signatur;} }
   }
 }
 
